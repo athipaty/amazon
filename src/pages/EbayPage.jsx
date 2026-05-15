@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -50,16 +51,45 @@ function EbayCard({ item }) {
 }
 
 export default function EbayPage() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [upcMode, setUpcMode] = useState(false);
+
+  // Auto-search when arriving from Amazon card with UPC
+  useEffect(() => {
+    const upc = searchParams.get('upc');
+    const title = searchParams.get('title');
+    if (upc) {
+      setQuery(title || upc);
+      setUpcMode(true);
+      searchByUpc(upc);
+    }
+  }, []);
+
+  async function searchByUpc(upc) {
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await axios.get(`${API}/api/ebay/upc`, { params: { upc } });
+      setResults(data);
+      setSearched(true);
+      setUpcMode(true);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Search failed');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSearch(e) {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
+    setUpcMode(false);
     setLoading(true);
     setError('');
     try {
@@ -77,7 +107,11 @@ export default function EbayPage() {
     <div className="max-w-4xl mx-auto px-5 py-7">
       <header className="mb-7">
         <h1 className="text-xl font-bold text-gray-900 mb-1">eBay Price Search</h1>
-        <p className="text-sm text-gray-400">Search for any product and compare eBay listings sorted by lowest price.</p>
+        <p className="text-sm text-gray-400">
+          {upcMode
+            ? '✅ Exact product match via UPC — these are the same product as on Amazon.'
+            : 'Search for any product. Results sorted by lowest price.'}
+        </p>
       </header>
 
       <form className="flex gap-2 mb-6" onSubmit={handleSearch}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function useCountdown(target) {
   const [remaining, setRemaining] = useState('');
@@ -22,6 +23,7 @@ function useCountdown(target) {
 
 export default function ProductCard({ product, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
+  const navigate = useNavigate();
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const countdown = useCountdown(product.nextCheck);
@@ -100,6 +102,15 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           {checking ? '⏳' : '🔄'}
         </button>
       </div>
+
+      {product.upc && (
+        <button
+          onClick={() => navigate(`/ebay?upc=${product.upc}&title=${encodeURIComponent(title)}`)}
+          className="w-full mt-1 py-1.5 text-xs font-semibold text-[#e53238] border border-[#e53238] rounded-lg hover:bg-red-50 transition-colors"
+        >
+          🏷️ Find on eBay (exact match)
+        </button>
+      )}
     </div>
   );
 }
