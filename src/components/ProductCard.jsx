@@ -40,6 +40,12 @@ export default function ProductCard({ product, onDelete }) {
         {isAtLowest ? '✅ Lowest price ever' : `Lowest ever: ${currency}${lowest.toLocaleString()}`}
       </p>
 
+      {product.nextCheck && (
+        <p className="text-xs text-gray-300">
+          Next check: {new Date(product.nextCheck).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )}
+
       <a
         href={url}
         target="_blank"
