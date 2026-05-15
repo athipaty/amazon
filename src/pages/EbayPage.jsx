@@ -59,14 +59,19 @@ export default function EbayPage() {
   const [searched, setSearched] = useState(false);
   const [upcMode, setUpcMode] = useState(false);
 
-  // Auto-search when arriving from Amazon card with UPC
+  // Auto-search when arriving from Amazon card
   useEffect(() => {
     const upc = searchParams.get('upc');
     const title = searchParams.get('title');
+    const q = searchParams.get('q');
     if (upc) {
       setQuery(title || upc);
       setUpcMode(true);
       searchByUpc(upc);
+    } else if (q) {
+      setQuery(q);
+      setUpcMode(false);
+      handleKeywordSearch(q);
     }
   }, []);
 
@@ -85,11 +90,7 @@ export default function EbayPage() {
     }
   }
 
-  async function handleSearch(e) {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    setUpcMode(false);
+  async function handleKeywordSearch(q) {
     setLoading(true);
     setError('');
     try {
@@ -101,6 +102,14 @@ export default function EbayPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    setUpcMode(false);
+    await handleKeywordSearch(q);
   }
 
   return (
