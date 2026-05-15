@@ -44,7 +44,8 @@ export default function App() {
       if (r.data.nextCheck) setNextCheck(r.data.nextCheck);
     });
 
-    return () => socket.disconnect();
+    const poll = setInterval(loadProducts, 30000);
+    return () => { socket.disconnect(); clearInterval(poll); };
   }, []);
 
   async function loadProducts() {
@@ -81,7 +82,9 @@ export default function App() {
     try {
       const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
       setProducts(prev => prev.map(p => p._id === id ? data : p));
-    } catch {}
+    } catch (err) {
+      alert(err.response?.data?.error || err.message || 'Check failed');
+    }
   }
 
   async function handleCheckNow() {
