@@ -104,6 +104,10 @@ export default function ProductCard({ product, onCheck, onDelete }) {
       </div>
 
       {product.upc && (
+        <p className="text-xs text-gray-300">UPC: {product.upc}</p>
+      )}
+
+      {product.upc && (
         <button
           onClick={() => navigate(`/ebay?upc=${product.upc}&title=${encodeURIComponent(title)}`)}
           className="w-full mt-1 py-1.5 text-xs font-semibold text-[#e53238] border border-[#e53238] rounded-lg hover:bg-red-50 transition-colors"
