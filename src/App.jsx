@@ -80,6 +80,11 @@ export default function App() {
     setChecking(true);
     setStatusMsg('Triggering price check...');
     await axios.post(`${API}/api/tracker/check`);
+    // fallback: reset if tracker:check:done never arrives within 2 minutes
+    setTimeout(() => {
+      setChecking(false);
+      setStatusMsg('');
+    }, 120_000);
   }
 
   return (
