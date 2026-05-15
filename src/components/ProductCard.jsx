@@ -107,16 +107,14 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         <p className="text-xs text-gray-300">UPC: {product.upc}</p>
       )}
 
-      <button
-        onClick={() =>
-          product.upc
-            ? navigate(`/ebay?upc=${product.upc}&title=${encodeURIComponent(title)}`)
-            : navigate(`/ebay?q=${encodeURIComponent(title)}`)
-        }
-        className="w-full mt-1 py-1.5 text-xs font-semibold text-[#e53238] border border-[#e53238] rounded-lg hover:bg-red-50 transition-colors"
+      <a
+        href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full mt-1 py-1.5 text-xs font-semibold text-[#e53238] border border-[#e53238] rounded-lg hover:bg-red-50 transition-colors text-center block"
       >
         {product.upc ? '🏷️ Find on eBay (exact match)' : '🏷️ Find on eBay'}
-      </button>
+      </a>
     </div>
   );
 }
