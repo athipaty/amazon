@@ -78,13 +78,16 @@ export default function App() {
 
   async function handleCheckNow() {
     setChecking(true);
-    setStatusMsg('Triggering price check...');
-    await axios.post(`${API}/api/tracker/check`);
-    // fallback: reset if tracker:check:done never arrives within 2 minutes
-    setTimeout(() => {
+    setStatusMsg('Checking prices…');
+    try {
+      const { data } = await axios.post(`${API}/api/tracker/check`);
+      if (data.products) setProducts(data.products);
+    } catch {
+      // silent — products will still refresh on next loadProducts
+    } finally {
       setChecking(false);
       setStatusMsg('');
-    }, 120_000);
+    }
   }
 
   return (
