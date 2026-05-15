@@ -65,7 +65,8 @@ export default function App() {
       setProducts(prev => [data, ...prev]);
       setUrl('');
     } catch (err) {
-      setAddError(err.response?.data?.error || 'Failed to add product. Check the URL and try again.');
+      const msg = err.response?.data?.error || err.message || 'Failed to reach the server.';
+      setAddError(msg);
     } finally {
       setAdding(false);
     }
