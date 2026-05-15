@@ -45,7 +45,9 @@ export default function ProductCard({ product, onCheck, onDelete }) {
 
       {product.nextCheck && (
         <p className="text-xs text-gray-300">
-          Next check: {new Date(product.nextCheck).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(product.nextCheck) > new Date()
+            ? `Next check: ${new Date(product.nextCheck).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : 'Next check: soon'}
         </p>
       )}
 
