@@ -41,6 +41,14 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         ✕
       </button>
 
+      {product.image && (
+        <img
+          src={product.image}
+          alt={title}
+          className="w-full h-36 object-contain rounded-lg bg-gray-50"
+        />
+      )}
+
       <h3
         className="text-sm font-medium text-gray-700 pr-6 leading-snug"
         style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
