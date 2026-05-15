@@ -82,7 +82,7 @@ export default function ProductCard({ product, onCheck, onDelete }) {
 
       <div className="flex items-center justify-between mt-1">
         <a
-          href={url}
+          href={url?.startsWith('http') ? url : `https://${url}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-orange-600 hover:underline"
