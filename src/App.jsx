@@ -77,6 +77,13 @@ export default function App() {
     setProducts(prev => prev.filter(p => p._id !== id));
   }
 
+  async function handleCheckOne(id) {
+    try {
+      const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
+      setProducts(prev => prev.map(p => p._id === id ? data : p));
+    } catch {}
+  }
+
   async function handleCheckNow() {
     setChecking(true);
     setStatusMsg('Checking prices…');
@@ -156,7 +163,7 @@ export default function App() {
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {products.map(p => (
-            <ProductCard key={p._id} product={p} onDelete={handleDelete} />
+            <ProductCard key={p._id} product={p} onCheck={handleCheckOne} onDelete={handleDelete} />
           ))}
         </div>
       )}

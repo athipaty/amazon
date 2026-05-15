@@ -1,4 +1,7 @@
-export default function ProductCard({ product, onDelete }) {
+import { useState } from 'react';
+
+export default function ProductCard({ product, onCheck, onDelete }) {
+  const [checking, setChecking] = useState(false);
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const isAtLowest = current <= lowest;
@@ -46,14 +49,28 @@ export default function ProductCard({ product, onDelete }) {
         </p>
       )}
 
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs text-orange-600 hover:underline mt-1"
-      >
-        View on Amazon →
-      </a>
+      <div className="flex items-center justify-between mt-1">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-orange-600 hover:underline"
+        >
+          View on Amazon →
+        </a>
+        <button
+          onClick={async () => {
+            setChecking(true);
+            await onCheck(_id);
+            setChecking(false);
+          }}
+          disabled={checking}
+          className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
+          title="Check price now"
+        >
+          {checking ? '⏳' : '🔄'}
+        </button>
+      </div>
     </div>
   );
 }
