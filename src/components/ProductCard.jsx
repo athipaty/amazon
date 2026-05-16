@@ -74,6 +74,18 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         {isAtLowest ? '✅ Lowest price ever' : `Lowest ever: ${currency}${lowest.toLocaleString()}`}
       </p>
 
+      {history?.length > 1 && (
+        <div className="border-t border-gray-100 pt-2 mt-1">
+          <p className="text-xs text-gray-400 font-medium mb-1">Recent prices</p>
+          {[...history].reverse().slice(0, 3).map((entry, i) => (
+            <div key={i} className="flex justify-between text-xs text-gray-400">
+              <span className="font-mono">{currency}{entry.price.toLocaleString()}</span>
+              <span>{new Date(entry.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {product.nextCheck && (
         <p className="text-xs text-gray-300">
           Next check in: <span className="font-mono">{countdown}</span>
