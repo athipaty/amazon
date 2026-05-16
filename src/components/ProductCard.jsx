@@ -39,7 +39,7 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
       )}
 
-      <div className="w-32 flex-shrink-0 flex flex-col gap-1 min-w-0">
+      <div className="w-56 flex-shrink-0 flex flex-col gap-1 min-w-0">
         <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
         <div className="flex items-center gap-1">
           {product.isPrime ? (
