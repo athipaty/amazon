@@ -139,7 +139,7 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           {checking ? '⏳' : '🔄'}
         </button>
         <button
-          onClick={() => onDelete(_id)}
+          onClick={() => { if (window.confirm(`Stop tracking "${title}"?`)) onDelete(_id); }}
           title="Stop tracking"
           className="text-gray-300 hover:text-red-500 transition-colors text-sm"
         >
