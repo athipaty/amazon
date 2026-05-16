@@ -20,6 +20,55 @@ function useCountdown(target) {
   return remaining;
 }
 
+function PrimeVariantBadges({ isPrime, variant }) {
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {isPrime
+        ? <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded leading-none">prime</span>
+        : <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">no prime</span>
+      }
+      {variant && (
+        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none truncate max-w-[80px]" title={variant}>
+          {variant}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PriceHistory({ history, currency }) {
+  if (!history?.length) return null;
+  const recent = [...history].reverse().slice(0, 3);
+  return (
+    <div className="flex gap-4 flex-shrink-0">
+      {recent.map((entry, i) => {
+        const older = recent[i + 1];
+        const dir = older
+          ? entry.price < older.price ? 'down'
+          : entry.price > older.price ? 'up'
+          : null : null;
+        return (
+          <div key={i} className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-0.5">
+              <span className={`font-mono text-xs font-semibold ${dir === 'down' ? 'text-green-600' : dir === 'up' ? 'text-red-500' : 'text-gray-700'}`}>
+                {currency}{entry.price.toLocaleString()}
+              </span>
+              {dir === 'down' && <span className="text-green-500 text-[10px]">↓</span>}
+              {dir === 'up' && <span className="text-red-400 text-[10px]">↑</span>}
+            </div>
+            <span className="text-[10px] text-gray-400 leading-tight">
+              {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short' })}
+            </span>
+            <span className="text-[10px] text-gray-400 leading-tight">
+              {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ProductCard({ product, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
   const { _id, title, url, currency, current, lowest, history } = product;
@@ -30,119 +79,83 @@ export default function ProductCard({ product, onCheck, onDelete }) {
   const hasDrop = firstPrice && current < firstPrice;
   const dropPct = hasDrop ? Math.round(((firstPrice - current) / firstPrice) * 100) : 0;
 
+  function confirmDelete() {
+    if (window.confirm(`Stop tracking "${title}"?`)) onDelete(_id);
+  }
+
+  const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
+
   return (
-    <div className={`bg-white rounded-xl px-4 py-3 flex items-center gap-4 border transition-shadow hover:shadow-sm ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4 p-4 lg:px-4 lg:py-3 ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
 
-      {product.image ? (
-        <img src={product.image} alt={title} className="w-12 h-12 object-contain rounded-lg bg-gray-50 flex-shrink-0" />
-      ) : (
-        <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
-      )}
+      {/* ── Image + Title + Badges ── */}
+      <div className="flex items-start gap-3 min-w-0">
+        {product.image
+          ? <img src={product.image} alt={title} className="w-12 h-12 object-contain rounded-lg bg-gray-50 flex-shrink-0" />
+          : <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
+        }
+        <div className="flex-1 lg:w-56 lg:flex-none min-w-0">
+          <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
+          <div className="mt-0.5">
+            <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} />
+          </div>
+        </div>
+        {/* Delete — mobile only, top-right */}
+        <button onClick={confirmDelete} title="Stop tracking"
+          className="lg:hidden text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">
+          ✕
+        </button>
+      </div>
 
-      <div className="w-56 flex-shrink-0 flex flex-col gap-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
-        <div className="flex items-center gap-1">
-          {product.isPrime ? (
-            <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded leading-none">
-              prime
-            </span>
-          ) : (
-            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
-              no prime
-            </span>
-          )}
-          {product.variant && (
-            <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none truncate max-w-[80px]" title={product.variant}>
-              {product.variant}
-            </span>
+      {/* ── Price + drop badge + lowest (mobile inline) ── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-baseline gap-2 flex-shrink-0">
+          <span className={`text-xl font-black tracking-tight ${isAtLowest ? 'text-green-700' : 'text-gray-900'}`}>
+            {currency}{current.toLocaleString()}
+          </span>
+          {hasDrop && (
+            <span className="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">▼{dropPct}%</span>
           )}
         </div>
+        <p className="lg:hidden text-xs text-gray-400">{lowestText}</p>
       </div>
 
-      <div className="flex items-baseline gap-2 flex-shrink-0">
-        <span className={`text-xl font-black tracking-tight ${isAtLowest ? 'text-green-700' : 'text-gray-900'}`}>
-          {currency}{current.toLocaleString()}
-        </span>
-        {hasDrop && (
-          <span className="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
-            ▼{dropPct}%
-          </span>
-        )}
-      </div>
+      {/* ── Price history ── */}
+      <PriceHistory history={history} currency={currency} />
 
-      {history?.length > 0 && (() => {
-        const recent = [...history].reverse().slice(0, 3);
-        return (
-          <div className="flex gap-4 flex-shrink-0 hidden lg:flex">
-            {recent.map((entry, i) => {
-              const older = recent[i + 1];
-              const dir = older
-                ? entry.price < older.price ? 'down'
-                : entry.price > older.price ? 'up'
-                : null
-                : null;
-              return (
-                <div key={i} className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-0.5">
-                    <span className={`font-mono text-xs font-semibold ${dir === 'down' ? 'text-green-600' : dir === 'up' ? 'text-red-500' : 'text-gray-700'}`}>
-                      {currency}{entry.price.toLocaleString()}
-                    </span>
-                    {dir === 'down' && <span className="text-green-500 text-[10px]">↓</span>}
-                    {dir === 'up' && <span className="text-red-400 text-[10px]">↑</span>}
-                  </div>
-                  <span className="text-[10px] text-gray-400 leading-tight">
-                    {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short' })}
-                  </span>
-                  <span className="text-[10px] text-gray-400 leading-tight">
-                    {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
-
-      <p className="text-xs text-gray-400 flex-shrink-0 w-28 text-right hidden sm:block">
-        {isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`}
-      </p>
-
+      {/* ── Lowest + countdown — desktop only ── */}
+      <p className="hidden lg:block text-xs text-gray-400 flex-shrink-0 w-28 text-right">{lowestText}</p>
       {product.nextCheck && (
-        <p className="text-xs text-gray-300 flex-shrink-0 w-16 text-right font-mono hidden md:block">
+        <p className="hidden lg:block text-xs text-gray-300 flex-shrink-0 w-16 text-right font-mono">
           {countdown || 'soon'}
         </p>
       )}
 
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <a
-          href={url?.startsWith('http') ? url : `https://${url}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-orange-600 hover:underline whitespace-nowrap"
-        >
+      {/* ── Countdown — mobile only ── */}
+      {product.nextCheck && (
+        <p className="lg:hidden text-xs text-gray-300 font-mono">Next: {countdown || 'soon'}</p>
+      )}
+
+      {/* ── Action buttons ── */}
+      <div className="flex items-center gap-3 flex-wrap flex-shrink-0">
+        <a href={url?.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
+          className="text-xs text-orange-600 hover:underline whitespace-nowrap">
           Amazon →
         </a>
-        <a
-          href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap"
-        >
+        <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
+          target="_blank" rel="noopener noreferrer"
+          className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
           eBay →
         </a>
-        <button
-          onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
+        <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
           disabled={checking}
           className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
-          title="Check price now"
-        >
+          title="Check price now">
           {checking ? '⏳' : '🔄'}
         </button>
-        <button
-          onClick={() => { if (window.confirm(`Stop tracking "${title}"?`)) onDelete(_id); }}
-          title="Stop tracking"
-          className="text-gray-300 hover:text-red-500 transition-colors text-sm"
-        >
+        {/* Delete — desktop only */}
+        <button onClick={confirmDelete} title="Stop tracking"
+          className="hidden lg:block text-gray-300 hover:text-red-500 transition-colors text-sm">
           ✕
         </button>
       </div>
