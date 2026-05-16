@@ -70,11 +70,14 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         <div className="flex gap-4 flex-shrink-0 hidden lg:flex">
           {[...history].reverse().slice(0, 3).map((entry, i) => (
             <div key={i} className="flex flex-col gap-0.5">
-              <span className={`font-mono text-xs ${i === 0 ? 'text-gray-600 font-semibold' : 'text-gray-300'}`}>
+              <span className={`font-mono text-xs ${i === 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                 {currency}{entry.price.toLocaleString()}
               </span>
-              <span className="text-xs text-gray-300">
-                {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <span className="text-[10px] text-gray-400 leading-tight">
+                {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short' })}
+              </span>
+              <span className="text-[10px] text-gray-400 leading-tight">
+                {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           ))}
