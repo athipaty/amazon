@@ -12,6 +12,10 @@ export default function AmazonPage() {
   const [addError, setAddError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
   const [checking, setChecking] = useState(false);
+  const [preview, setPreview] = useState(null); // { title, price, currency, image, variants }
+  const [selectedAsins, setSelectedAsins] = useState(new Set());
+  const [addingVariants, setAddingVariants] = useState(false);
+  const [addProgress, setAddProgress] = useState('');
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -53,14 +57,47 @@ export default function AmazonPage() {
     setAdding(true);
     setAddError('');
     try {
-      const { data } = await axios.post(`${API}/api/tracker`, { url: trimmed });
-      setProducts(prev => [data, ...prev]);
-      setUrl('');
+      const { data } = await axios.post(`${API}/api/tracker/preview`, { url: trimmed });
+      if (data.variants && data.variants.length > 1) {
+        setPreview(data);
+        setSelectedAsins(new Set(data.variants.map(v => v.asin)));
+      } else {
+        const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
+        setProducts(prev => [product, ...prev]);
+        setUrl('');
+      }
     } catch (err) {
       setAddError(err.response?.data?.error || err.message || 'Failed to reach the server.');
     } finally {
       setAdding(false);
     }
+  }
+
+  async function handleTrackSelected() {
+    if (!preview || selectedAsins.size === 0) return;
+    setAddingVariants(true);
+    setAddError('');
+    const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
+    const added = [];
+    for (let i = 0; i < toAdd.length; i++) {
+      setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
+      try {
+        const { data } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url });
+        added.push(data);
+      } catch {}
+    }
+    setProducts(prev => [...added.reverse(), ...prev]);
+    setPreview(null);
+    setSelectedAsins(new Set());
+    setUrl('');
+    setAddingVariants(false);
+    setAddProgress('');
+  }
+
+  function toggleVariant(asin, checked) {
+    const next = new Set(selectedAsins);
+    if (checked) next.add(asin); else next.delete(asin);
+    setSelectedAsins(next);
   }
 
   async function handleDelete(id) {
@@ -110,19 +147,83 @@ export default function AmazonPage() {
             placeholder="Paste an Amazon product URL to track…"
             value={url}
             onChange={e => setUrl(e.target.value)}
-            disabled={adding}
+            disabled={adding || !!preview}
             className="flex-1 min-w-0 px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-yellow-400 transition-colors disabled:bg-gray-50"
           />
           <button
             type="submit"
-            disabled={adding || !url.trim()}
+            disabled={adding || !url.trim() || !!preview}
             className="px-5 py-2.5 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
           >
-            {adding ? 'Adding…' : 'Track Price'}
+            {adding ? 'Loading…' : 'Track Price'}
           </button>
         </form>
         {addError && <p className="text-red-500 text-sm mt-2">{addError}</p>}
       </div>
+
+      {preview && (
+        <div className="mb-5 bg-white border border-yellow-300 rounded-xl p-5">
+          <div className="flex justify-between items-start mb-1">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {preview.variants.length} variants found — select which to track:
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
+            </div>
+            <button
+              onClick={() => { setPreview(null); setSelectedAsins(new Set()); }}
+              className="text-gray-300 hover:text-gray-500 text-xl leading-none ml-3"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1 mt-3 max-h-60 overflow-y-auto pr-1">
+            {preview.variants.map(v => (
+              <label
+                key={v.asin}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedAsins.has(v.asin)}
+                  onChange={e => toggleVariant(v.asin, e.target.checked)}
+                  className="w-4 h-4 accent-yellow-400 flex-shrink-0"
+                />
+                <span className="text-sm text-gray-700 flex-1">{v.label}</span>
+                {v.price != null
+                  ? <span className="text-sm font-bold text-gray-900 flex-shrink-0">{preview.currency}{v.price.toLocaleString()}</span>
+                  : <span className="text-xs text-gray-400 flex-shrink-0">price varies</span>
+                }
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={handleTrackSelected}
+              disabled={addingVariants || selectedAsins.size === 0}
+              className="px-4 py-2 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {addingVariants ? addProgress : `Track Selected (${selectedAsins.size})`}
+            </button>
+            <button
+              onClick={() => setSelectedAsins(new Set(preview.variants.map(v => v.asin)))}
+              disabled={addingVariants}
+              className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              Select All
+            </button>
+            <button
+              onClick={() => setSelectedAsins(new Set())}
+              disabled={addingVariants}
+              className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              None
+            </button>
+          </div>
+        </div>
+      )}
 
       {statusMsg && (
         <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-yellow-800">
