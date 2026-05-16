@@ -66,23 +66,38 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         )}
       </div>
 
-      {history?.length > 0 && (
-        <div className="flex gap-4 flex-shrink-0 hidden lg:flex">
-          {[...history].reverse().slice(0, 3).map((entry, i) => (
-            <div key={i} className="flex flex-col gap-0.5">
-              <span className={`font-mono text-xs ${i === 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
-                {currency}{entry.price.toLocaleString()}
-              </span>
-              <span className="text-[10px] text-gray-400 leading-tight">
-                {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short' })}
-              </span>
-              <span className="text-[10px] text-gray-400 leading-tight">
-                {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {history?.length > 0 && (() => {
+        const recent = [...history].reverse().slice(0, 3);
+        return (
+          <div className="flex gap-4 flex-shrink-0 hidden lg:flex">
+            {recent.map((entry, i) => {
+              const older = recent[i + 1];
+              const dir = older
+                ? entry.price < older.price ? 'down'
+                : entry.price > older.price ? 'up'
+                : null
+                : null;
+              return (
+                <div key={i} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-0.5">
+                    <span className={`font-mono text-xs font-semibold ${dir === 'down' ? 'text-green-600' : dir === 'up' ? 'text-red-500' : 'text-gray-700'}`}>
+                      {currency}{entry.price.toLocaleString()}
+                    </span>
+                    {dir === 'down' && <span className="text-green-500 text-[10px]">↓</span>}
+                    {dir === 'up' && <span className="text-red-400 text-[10px]">↑</span>}
+                  </div>
+                  <span className="text-[10px] text-gray-400 leading-tight">
+                    {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short' })}
+                  </span>
+                  <span className="text-[10px] text-gray-400 leading-tight">
+                    {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <p className="text-xs text-gray-400 flex-shrink-0 w-28 text-right hidden sm:block">
         {isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`}
