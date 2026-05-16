@@ -74,7 +74,7 @@ function PriceHistory({ history, currency }) {
 
 const EBAY_FIELDS = [
   ['Brand',            s => s?.brand_name],
-  ['Material',         s => s?.material],
+  ['Material',         s => s?.material || s?.material_type],
   ['Color',            s => s?.color],
   ['Style',            s => s?.style],
   ['Shape',            s => s?.shape],
