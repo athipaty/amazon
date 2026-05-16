@@ -190,6 +190,9 @@ export default function AmazonPage() {
                   onChange={e => toggleVariant(v.asin, e.target.checked)}
                   className="w-4 h-4 accent-yellow-400 flex-shrink-0"
                 />
+                {v.image && (
+                  <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded bg-gray-50 flex-shrink-0" />
+                )}
                 <span className="text-sm text-gray-700 flex-1">{v.label}</span>
                 {v.price != null
                   ? <span className="text-sm font-bold text-gray-900 flex-shrink-0">{preview.currency}{v.price.toLocaleString()}</span>
