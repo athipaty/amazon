@@ -242,7 +242,7 @@ export default function AmazonPage() {
           <p className="text-sm mt-1">Paste an Amazon URL above to start tracking prices.</p>
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+        <div className="flex flex-col gap-2">
           {products.map(p => (
             <ProductCard key={p._id} product={p} onCheck={handleCheckOne} onDelete={handleDelete} />
           ))}
