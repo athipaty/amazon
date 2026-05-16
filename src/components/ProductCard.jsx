@@ -39,9 +39,14 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
       )}
 
-      <p className="w-32 min-w-0 text-sm font-medium text-gray-800 truncate flex-shrink-0" title={title}>
-        {title}
-      </p>
+      <div className="w-32 flex-shrink-0 flex flex-col gap-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
+        {product.isPrime && (
+          <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded self-start leading-none">
+            prime
+          </span>
+        )}
+      </div>
 
       <div className="flex items-baseline gap-2 flex-shrink-0">
         <span className={`text-xl font-black tracking-tight ${isAtLowest ? 'text-green-700' : 'text-gray-900'}`}>
