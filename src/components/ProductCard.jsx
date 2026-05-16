@@ -20,7 +20,7 @@ function useCountdown(target) {
   return remaining;
 }
 
-function PrimeVariantBadges({ isPrime, variant }) {
+function PrimeVariantBadges({ isPrime, variant, upc }) {
   return (
     <div className="flex items-center gap-1 flex-wrap">
       {isPrime
@@ -31,6 +31,9 @@ function PrimeVariantBadges({ isPrime, variant }) {
         <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none truncate max-w-[80px]" title={variant}>
           {variant}
         </span>
+      )}
+      {upc && (
+        <span className="text-[10px] text-gray-400 font-mono">UPC: {upc}</span>
       )}
     </div>
   );
@@ -116,11 +119,8 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         <div className="flex-1 lg:w-56 lg:flex-none min-w-0">
           <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
           <div className="mt-0.5">
-            <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} />
+            <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} upc={product.upc} />
           </div>
-          {product.upc && (
-            <p className="text-[10px] text-gray-400 font-mono mt-0.5">UPC: {product.upc}</p>
-          )}
         </div>
         {/* Delete — mobile only, top-right */}
         <button onClick={confirmDelete} title="Stop tracking"
