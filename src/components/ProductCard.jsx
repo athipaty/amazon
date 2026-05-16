@@ -69,8 +69,27 @@ function PriceHistory({ history, currency }) {
   );
 }
 
+const EBAY_FIELDS = [
+  ['Brand',            s => s?.brand_name],
+  ['Material',         s => s?.material],
+  ['Color',            s => s?.color],
+  ['Style',            s => s?.style],
+  ['Shape',            s => s?.shape],
+  ['Pattern',          s => s?.pattern],
+  ['Size',             s => s?.size],
+  ['Making Method',    s => s?.making_method],
+  ['Country of Origin',s => s?.country_of_origin || s?.country_of_manufacture],
+  ['No. of Items',     s => s?.number_of_items_in_set || s?.unit_count],
+  ['MPN',              s => s?.model_number || s?.part_number],
+  ['Item Weight',      s => s?.item_weight],
+  ['Dimensions',       s => s?.item_dimensions_d_x_w_x_h || s?.item_dimensions_l_x_w_x_h],
+  ['Wattage',          s => s?.wattage],
+  ['Voltage',          s => s?.voltage],
+];
+
 export default function ProductCard({ product, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
+  const [showSpecs, setShowSpecs] = useState(false);
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const countdown = useCountdown(product.nextCheck);
@@ -153,12 +172,38 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           title="Check price now">
           {checking ? '⏳' : '🔄'}
         </button>
+        <button onClick={() => setShowSpecs(s => !s)}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+          {showSpecs ? '▲ specs' : '▼ specs'}
+        </button>
         {/* Delete — desktop only */}
         <button onClick={confirmDelete} title="Stop tracking"
           className="hidden lg:block text-gray-300 hover:text-red-500 transition-colors text-sm">
           ✕
         </button>
       </div>
+
+      {/* ── eBay Specs Panel ── */}
+      {showSpecs && (
+        <div className="w-full border-t border-gray-100 pt-3 mt-1">
+          <p className="text-xs font-semibold text-gray-500 mb-2">eBay listing specs</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-400 uppercase tracking-wide">UPC</span>
+              <span className="text-xs text-gray-700 font-mono">{product.upc || 'N/A'}</span>
+            </div>
+            {EBAY_FIELDS.map(([label, getter]) => {
+              const val = getter(product.specs);
+              return (
+                <div key={label} className="flex flex-col gap-0.5">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</span>
+                  <span className="text-xs text-gray-700">{val || 'N/A'}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
