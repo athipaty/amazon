@@ -118,6 +118,9 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           <div className="mt-0.5">
             <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} />
           </div>
+          {product.upc && (
+            <p className="text-[10px] text-gray-400 font-mono mt-0.5">UPC: {product.upc}</p>
+          )}
         </div>
         {/* Delete — mobile only, top-right */}
         <button onClick={confirmDelete} title="Stop tracking"
