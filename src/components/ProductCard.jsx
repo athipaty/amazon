@@ -80,7 +80,7 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           {[...history].reverse().slice(0, 3).map((entry, i) => (
             <div key={i} className="flex justify-between text-xs text-gray-400">
               <span className="font-mono">{currency}{entry.price.toLocaleString()}</span>
-              <span>{new Date(entry.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>{new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           ))}
         </div>
