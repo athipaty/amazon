@@ -41,11 +41,18 @@ export default function ProductCard({ product, onCheck, onDelete }) {
 
       <div className="w-32 flex-shrink-0 flex flex-col gap-1 min-w-0">
         <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
-        {product.isPrime && (
-          <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded self-start leading-none">
-            prime
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {product.isPrime && (
+            <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded leading-none">
+              prime
+            </span>
+          )}
+          {product.color && (
+            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
+              {product.color}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-baseline gap-2 flex-shrink-0">
