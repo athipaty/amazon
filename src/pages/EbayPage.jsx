@@ -113,7 +113,7 @@ export default function EbayPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-7">
+    <div className="px-6 py-7">
       <header className="mb-7">
         <h1 className="text-xl font-bold text-gray-900 mb-1">eBay Price Search</h1>
         <p className="text-sm text-gray-400">

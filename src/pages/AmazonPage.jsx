@@ -128,7 +128,7 @@ export default function AmazonPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-7">
+    <div className="px-6 py-7">
       <header className="flex justify-between items-center mb-7 flex-wrap gap-3">
         <h1 className="text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
         <button
