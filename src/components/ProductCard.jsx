@@ -72,22 +72,30 @@ function PriceHistory({ history, currency }) {
   );
 }
 
+// Finds any item_dimensions_* key dynamically — Amazon uses many naming variations
+function getDimensions(s) {
+  if (!s) return null;
+  const key = Object.keys(s).find(k => k.startsWith('item_dimensions') || k === 'product_dimensions');
+  return key ? s[key] : null;
+}
+
 const EBAY_FIELDS = [
-  ['Brand',            s => s?.brand_name],
-  ['Material',         s => s?.material || s?.material_type],
-  ['Color',            s => s?.color],
-  ['Style',            s => s?.style],
-  ['Shape',            s => s?.shape],
-  ['Pattern',          s => s?.pattern],
-  ['Size',             s => s?.size],
-  ['Making Method',    s => s?.making_method],
-  ['Country of Origin',s => s?.country_of_origin || s?.country_of_manufacture],
-  ['No. of Items',     s => s?.number_of_items_in_set || s?.unit_count],
-  ['MPN',              s => s?.model_number || s?.part_number],
-  ['Item Weight',      s => s?.item_weight],
-  ['Dimensions',       s => s?.item_dimensions_d_x_w_x_h || s?.item_dimensions_l_x_w_x_h],
-  ['Wattage',          s => s?.wattage],
-  ['Voltage',          s => s?.voltage],
+  ['Brand',             s => s?.brand_name],
+  ['Type',              s => s?.item_type_name || s?.type],
+  ['Material',          s => s?.material || s?.material_type],
+  ['Color',             s => s?.color],
+  ['Style',             s => s?.style],
+  ['Shape',             s => s?.shape],
+  ['Pattern',           s => s?.pattern],
+  ['Size',              s => s?.size],
+  ['Dimensions',        s => getDimensions(s)],
+  ['Making Method',     s => s?.making_method],
+  ['Country of Origin', s => s?.country_of_origin || s?.country_of_manufacture],
+  ['No. of Items',      s => s?.number_of_items_in_set || s?.number_of_packs || s?.unit_count],
+  ['MPN',               s => s?.model_number || s?.part_number],
+  ['Item Weight',       s => s?.item_weight],
+  ['Wattage',           s => s?.wattage],
+  ['Voltage',           s => s?.voltage],
 ];
 
 export default function ProductCard({ product, onCheck, onDelete }) {
