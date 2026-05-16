@@ -39,7 +39,7 @@ export default function ProductCard({ product, onCheck, onDelete }) {
         <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
       )}
 
-      <p className="flex-1 min-w-0 text-sm font-medium text-gray-800 truncate" title={title}>
+      <p className="w-48 min-w-0 text-sm font-medium text-gray-800 truncate flex-shrink-0" title={title}>
         {title}
       </p>
 
@@ -53,6 +53,21 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           </span>
         )}
       </div>
+
+      {history?.length > 0 && (
+        <div className="flex flex-col gap-0.5 flex-shrink-0 w-40 hidden lg:flex">
+          {[...history].reverse().slice(0, 3).map((entry, i) => (
+            <div key={i} className="flex justify-between text-xs gap-2">
+              <span className={`font-mono ${i === 0 ? 'text-gray-500 font-semibold' : 'text-gray-300'}`}>
+                {currency}{entry.price.toLocaleString()}
+              </span>
+              <span className="text-gray-300">
+                {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <p className="text-xs text-gray-400 flex-shrink-0 w-28 text-right hidden sm:block">
         {isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`}
