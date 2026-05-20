@@ -180,7 +180,8 @@ function MyListingsTab() {
       setPhase('loaded');
     } catch (err) {
       if (err.response?.status === 401) { setPhase('disconnected'); return; }
-      setError(err.response?.data?.error || err.message || 'Failed to load listings');
+      const e = err.response?.data?.error;
+      setError(typeof e === 'string' ? e : err.message || 'Failed to load listings');
       setPhase('error');
     }
   }
