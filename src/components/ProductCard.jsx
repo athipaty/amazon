@@ -105,6 +105,7 @@ export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [ebay, setEbay] = useState(null);
+  const [ebayLoading, setEbayLoading] = useState(true);
   const { _id, title, url, currency, current, lowest, history } = product;
 
   useEffect(() => {
@@ -114,7 +115,8 @@ export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
     const timer = setTimeout(() => {
       axios.get(`${API}/api/ebay/sold`, { params: { q } })
         .then(({ data }) => { if (data.count > 0) setEbay(data); })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setEbayLoading(false));
     }, delay);
     return () => clearTimeout(timer);
   }, [_id]);
@@ -211,6 +213,11 @@ export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
       </div>
 
       {/* ── eBay Profit Strip ── */}
+      {ebayLoading && !ebay && (
+        <div className="w-full border-t border-gray-100 pt-2 mt-1">
+          <span className="text-[10px] text-gray-300">fetching eBay sold price…</span>
+        </div>
+      )}
       {ebay && (() => {
         const profit = ebay.avg - current;
         const pct = Math.round((profit / current) * 100);
