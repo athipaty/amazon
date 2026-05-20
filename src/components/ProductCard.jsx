@@ -101,7 +101,7 @@ const EBAY_FIELDS = [
   ['Voltage',           s => s?.voltage],
 ];
 
-export default function ProductCard({ product, onCheck, onDelete }) {
+export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [ebay, setEbay] = useState(null);
@@ -110,9 +110,13 @@ export default function ProductCard({ product, onCheck, onDelete }) {
   useEffect(() => {
     const q = product.upc || title;
     if (!q) return;
-    axios.get(`${API}/api/ebay/sold`, { params: { q } })
-      .then(({ data }) => { if (data.count > 0) setEbay(data); })
-      .catch(() => {});
+    const delay = index * 1200; // 1.2s between each card to avoid rate limits
+    const timer = setTimeout(() => {
+      axios.get(`${API}/api/ebay/sold`, { params: { q } })
+        .then(({ data }) => { if (data.count > 0) setEbay(data); })
+        .catch(() => {});
+    }, delay);
+    return () => clearTimeout(timer);
   }, [_id]);
 
   const countdown = useCountdown(product.nextCheck);

@@ -244,7 +244,7 @@ export default function AmazonPage() {
       ) : (
         <div className="flex flex-col gap-2">
           {products.map(p => (
-            <ProductCard key={p._id} product={p} onCheck={handleCheckOne} onDelete={handleDelete} />
+            <ProductCard key={p._id} product={p} index={i} onCheck={handleCheckOne} onDelete={handleDelete} />
           ))}
         </div>
       )}
