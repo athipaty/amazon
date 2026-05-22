@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ListOnEbayModal from './ListOnEbayModal';
 
 function useCountdown(target) {
   const [remaining, setRemaining] = useState('');
@@ -119,6 +120,7 @@ function SpecsGrid({ specs, upc }) {
 export default function ProductCard({ product, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
+  const [showEbayModal, setShowEbayModal] = useState(false);
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const countdown = useCountdown(product.nextCheck);
@@ -195,6 +197,10 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
           eBay →
         </a>
+        <button onClick={() => setShowEbayModal(true)}
+          className="text-xs font-semibold text-[#e53238] bg-[#e53238]/10 hover:bg-[#e53238]/20 px-2 py-0.5 rounded transition-colors whitespace-nowrap">
+          + List
+        </button>
         <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
           disabled={checking}
           className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
@@ -218,6 +224,10 @@ export default function ProductCard({ product, onCheck, onDelete }) {
           <p className="text-xs font-semibold text-gray-500 mb-2">Product Specs</p>
           <SpecsGrid specs={product.specs} upc={product.upc} />
         </div>
+      )}
+
+      {showEbayModal && (
+        <ListOnEbayModal product={product} onClose={() => setShowEbayModal(false)} />
       )}
     </div>
   );
