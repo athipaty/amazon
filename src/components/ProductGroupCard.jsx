@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import ListGroupOnEbayModal from './ListGroupOnEbayModal';
 
 function PriceHistory({ history, currency }) {
   if (!history?.length) return null;
@@ -43,7 +42,6 @@ function fmtVal(v) {
 export default function ProductGroupCard({ variants, onCheck, onDelete }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [showSpecs, setShowSpecs] = useState(false);
-  const [showModal, setShowModal] = useState(false);
 
   const active = variants[activeIdx];
   const prices = variants.map(v => v.current).filter(Boolean);
@@ -142,10 +140,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete }) {
           className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
           eBay →
         </a>
-        <button onClick={() => setShowModal(true)}
-          className="text-xs font-semibold text-[#e53238] bg-[#e53238]/10 hover:bg-[#e53238]/20 px-2 py-0.5 rounded transition-colors whitespace-nowrap">
-          + List Group
-        </button>
         <button
           onClick={async () => { for (const v of variants) await onCheck(v._id); }}
           className="text-sm text-gray-400 hover:text-gray-600 transition-colors" title="Check all variants">
@@ -178,9 +172,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete }) {
         </div>
       )}
 
-      {showModal && (
-        <ListGroupOnEbayModal variants={variants} onClose={() => setShowModal(false)} />
-      )}
     </div>
   );
 }
