@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
+import ProductGroupCard from '../components/ProductGroupCard';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -12,10 +13,11 @@ export default function AmazonPage() {
   const [addError, setAddError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
   const [checking, setChecking] = useState(false);
-  const [preview, setPreview] = useState(null); // { title, price, currency, image, variants }
+  const [preview, setPreview] = useState(null); // { title, price, currency, image, variants, groupId }
   const [selectedAsins, setSelectedAsins] = useState(new Set());
   const [addingVariants, setAddingVariants] = useState(false);
   const [addProgress, setAddProgress] = useState('');
+  const [previewGroupId, setPreviewGroupId] = useState(null);
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export default function AmazonPage() {
       const { data } = await axios.post(`${API}/api/tracker/preview`, { url: trimmed });
       if (data.variants && data.variants.length > 1) {
         setPreview(data);
+        setPreviewGroupId(data.groupId || null);
         setSelectedAsins(new Set(data.variants.map(v => v.asin)));
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
@@ -82,16 +85,34 @@ export default function AmazonPage() {
     for (let i = 0; i < toAdd.length; i++) {
       setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
       try {
-        const { data } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url });
+        const { data } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
         added.push(data);
       } catch {}
     }
     setProducts(prev => [...added.reverse(), ...prev]);
     setPreview(null);
     setSelectedAsins(new Set());
+    setPreviewGroupId(null);
     setUrl('');
     setAddingVariants(false);
     setAddProgress('');
+  }
+
+  // Build render list: group products sharing a groupId into group cards
+  const renderItems = [];
+  const seenGroups = new Set();
+  for (const p of products) {
+    if (!p.groupId) {
+      renderItems.push({ type: 'single', product: p });
+    } else if (!seenGroups.has(p.groupId)) {
+      seenGroups.add(p.groupId);
+      const group = products.filter(x => x.groupId === p.groupId);
+      if (group.length === 1) {
+        renderItems.push({ type: 'single', product: group[0] });
+      } else {
+        renderItems.push({ type: 'group', groupId: p.groupId, variants: group });
+      }
+    }
   }
 
   function toggleVariant(asin, checked) {
@@ -243,9 +264,11 @@ export default function AmazonPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {products.map((p, i) => (
-            <ProductCard key={p._id} product={p} index={i} onCheck={handleCheckOne} onDelete={handleDelete} />
-          ))}
+          {renderItems.map((item, i) =>
+            item.type === 'group'
+              ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} />
+              : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} />
+          )}
         </div>
       )}
     </div>
