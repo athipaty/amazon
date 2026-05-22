@@ -331,14 +331,14 @@ function MyListingsTab() {
     return <p className="text-red-500 text-sm mt-4">{error}</p>;
   }
 
-  const reconnectBanner = needsReconnect && (
+  const reauthorizeLink = (
     <div className="mb-5 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-3">
-      <p className="text-sm text-yellow-800">Reconnect eBay to show all listings (including manually created ones).</p>
+      <p className="text-sm text-yellow-800">Not seeing all your listings? Re-authorize to grant access to manually created listings.</p>
       <a
         href={`${API}/api/ebay/auth/login`}
         className="shrink-0 px-3 py-1.5 bg-[#e53238] text-white font-bold text-xs rounded-lg hover:bg-red-700 transition-colors"
       >
-        Reconnect
+        Re-authorize eBay
       </a>
     </div>
   );
@@ -346,15 +346,15 @@ function MyListingsTab() {
   if (listings.length === 0) {
     return (
       <>
-        {reconnectBanner}
-        <p className="text-center text-gray-400 mt-16">No active listings found.</p>
+        {reauthorizeLink}
+        <p className="text-center text-gray-400 mt-4">No active listings found.</p>
       </>
     );
   }
 
   return (
     <>
-      {reconnectBanner}
+      {reauthorizeLink}
       <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
         {listings.map(item => (
