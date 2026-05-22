@@ -82,6 +82,7 @@ export default function ListOnEbayModal({ product, onClose }) {
   const [titleLoading, setTitleLoading] = useState(true);
   const [catLoading, setCatLoading]     = useState(true);
   const [catName, setCatName]           = useState('');
+  const [catPath, setCatPath]           = useState('');
   const [error, setError]               = useState('');
   const [result, setResult]             = useState(null);
 
@@ -109,6 +110,7 @@ export default function ListOnEbayModal({ product, onClose }) {
         if (data[0]) {
           setCategoryId(data[0].id);
           setCatName(data[0].name);
+          setCatPath(data[0].path || '');
         }
       } catch {}
       finally { setCatLoading(false); }
@@ -221,9 +223,12 @@ export default function ListOnEbayModal({ product, onClose }) {
                   {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </Field>
-              <Field label={catLoading ? 'Category (detecting…)' : `Category${catName ? ` — ${catName}` : ''}`}>
-                <input value={categoryId} onChange={e => { setCategoryId(e.target.value); setCatName(''); }}
+              <Field label={catLoading ? 'Category (detecting…)' : 'eBay Category ID'}>
+                <input value={categoryId} onChange={e => { setCategoryId(e.target.value); setCatName(''); setCatPath(''); }}
                   placeholder="e.g. 26395" className={inputCls} required />
+                {catPath && !catLoading && (
+                  <span className="text-[10px] text-blue-500 leading-tight">{catPath}</span>
+                )}
               </Field>
             </div>
 
