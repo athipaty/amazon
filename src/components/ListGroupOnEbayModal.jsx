@@ -4,11 +4,11 @@ import axios from 'axios';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const CONDITIONS = [
-  { value: 'NEW',       label: 'New' },
-  { value: 'LIKE_NEW',  label: 'Like New' },
-  { value: 'VERY_GOOD', label: 'Very Good' },
-  { value: 'GOOD',      label: 'Good' },
-  { value: 'ACCEPTABLE',label: 'Acceptable' },
+  { value: 'NEW',        label: 'New' },
+  { value: 'LIKE_NEW',   label: 'Like New' },
+  { value: 'VERY_GOOD',  label: 'Very Good' },
+  { value: 'GOOD',       label: 'Good' },
+  { value: 'ACCEPTABLE', label: 'Acceptable' },
 ];
 
 const CARRIERS = [
@@ -40,44 +40,42 @@ function Section({ title, children }) {
   );
 }
 
+function calcPrice(base, mult) {
+  if (!base) return '';
+  return Math.floor(base * mult) + 0.99;
+}
+
 export default function ListGroupOnEbayModal({ variants, onClose }) {
   const firstVariant = variants[0];
-  const minPrice = Math.min(...variants.map(v => v.current).filter(Boolean));
-
-  const defaultMultiplier = 1.45;
-  function calcPrice(base, mult) { return Math.floor(base * mult) + 0.99; }
+  const DEFAULT_MULT = 1.45;
 
   const [title, setTitle]               = useState((firstVariant.title || '').slice(0, 80));
   const [titleLoading, setTitleLoading] = useState(true);
-  const [multiplier, setMultiplier]     = useState(defaultMultiplier);
-  const [price, setPrice]               = useState(calcPrice(minPrice, defaultMultiplier));
+  const [multiplier, setMultiplier]     = useState(DEFAULT_MULT);
+  const [condition, setCondition]       = useState('NEW');
+  const [categoryId, setCategoryId]     = useState('');
 
-  function handleMultiplier(val) {
-    const m = parseFloat(val) || 1;
-    setMultiplier(m);
-    setPrice(calcPrice(minPrice, m));
-  }
-  const [condition, setCondition]   = useState('NEW');
-  const [categoryId, setCategoryId] = useState('');
-
-  // Per-variant quantities
-  const [quantities, setQuantities] = useState(
-    Object.fromEntries(variants.map(v => [v._id, 1]))
+  // Per-variant state: { [_id]: { price, quantity } }
+  const [variantData, setVariantData] = useState(() =>
+    Object.fromEntries(variants.map(v => [v._id, {
+      price: calcPrice(v.current, DEFAULT_MULT),
+      quantity: 1,
+    }]))
   );
 
-  const [freeShip, setFreeShip]         = useState(true);
-  const [shipCost, setShipCost]         = useState('');
-  const [carrier, setCarrier]           = useState('USPSFirstClass');
-  const [handlingDays, setHandlingDays] = useState(1);
-
+  const [freeShip, setFreeShip]           = useState(true);
+  const [shipCost, setShipCost]           = useState('');
+  const [carrier, setCarrier]             = useState('USPSFirstClass');
+  const [handlingDays, setHandlingDays]   = useState(1);
   const [acceptReturns, setAcceptReturns] = useState(true);
   const [returnDays, setReturnDays]       = useState(30);
   const [buyerPays, setBuyerPays]         = useState(true);
+  const [zipCode, setZipCode]             = useState('');
 
-  const [zipCode, setZipCode]   = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState('');
-  const [result, setResult]         = useState(null);
+  const [submitting, setSubmitting]   = useState(false);
+  const [progress, setProgress]       = useState('');
+  const [error, setError]             = useState('');
+  const [results, setResults]         = useState(null); // array of { variant, listingId, url, error }
 
   const generateTitle = useCallback(async () => {
     setTitleLoading(true);
@@ -93,48 +91,80 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
 
   useEffect(() => { generateTitle(); }, [generateTitle]);
 
+  function handleMultiplier(val) {
+    const m = parseFloat(val) || 1;
+    setMultiplier(m);
+    setVariantData(prev => {
+      const next = { ...prev };
+      for (const v of variants) {
+        next[v._id] = { ...next[v._id], price: calcPrice(v.current, m) };
+      }
+      return next;
+    });
+  }
+
+  function setVariantField(id, field, value) {
+    setVariantData(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  }
+
+  const sharedPayload = {
+    currency: firstVariant.currency === '$' ? 'USD' : firstVariant.currency === '£' ? 'GBP' : 'USD',
+    condition,
+    categoryId: categoryId || undefined,
+    specs: firstVariant.specs || {},
+    zipCode: zipCode || '10001',
+    shipping: {
+      free: freeShip,
+      cost: freeShip ? 0 : parseFloat(shipCost || 0),
+      carrier,
+      handlingDays: parseInt(handlingDays),
+    },
+    returns: {
+      accepted: acceptReturns,
+      days: parseInt(returnDays),
+      buyerPays,
+    },
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setError('');
-    try {
-      const groupKey = firstVariant.groupId || firstVariant.specs?.asin || firstVariant._id;
-      const variantPayload = variants.map(v => ({
-        sku: v.specs?.asin || v._id,
-        label: v.variant || v.title.slice(0, 30),
-        image: v.image || undefined,
-        quantity: parseInt(quantities[v._id]) || 1,
-      }));
+    const created = [];
 
-      const { data } = await axios.post(`${API}/api/ebay/create-group-listing`, {
-        groupKey,
-        title,
-        price: parseFloat(price),
-        currency: firstVariant.currency === '$' ? 'USD' : firstVariant.currency === '£' ? 'GBP' : 'USD',
-        condition,
-        categoryId: categoryId || undefined,
-        variants: variantPayload,
-        specs: firstVariant.specs || {},
-        zipCode: zipCode || '10001',
-        shipping: {
-          free: freeShip,
-          cost: freeShip ? 0 : parseFloat(shipCost || 0),
-          carrier,
-          handlingDays: parseInt(handlingDays),
-        },
-        returns: {
-          accepted: acceptReturns,
-          days: parseInt(returnDays),
-          buyerPays,
-        },
-      });
-      setResult(data);
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to create listing');
-    } finally {
-      setSubmitting(false);
+    for (let i = 0; i < variants.length; i++) {
+      const v = variants[i];
+      const vd = variantData[v._id];
+      const variantLabel = v.variant ? ` - ${v.variant}` : '';
+      const listingTitle = (title + variantLabel).slice(0, 80);
+
+      setProgress(`Listing ${i + 1} of ${variants.length}: ${v.variant || `Variant ${i + 1}`}…`);
+
+      try {
+        const { data } = await axios.post(`${API}/api/ebay/create-listing`, {
+          sku: v.specs?.asin || v._id,
+          title: listingTitle,
+          price: parseFloat(vd.price),
+          quantity: parseInt(vd.quantity) || 1,
+          imageUrl: v.image || undefined,
+          upc: v.upc || undefined,
+          ...sharedPayload,
+        });
+        created.push({ variant: v.variant || `Variant ${i + 1}`, listingId: data.listingId, url: data.url });
+      } catch (err) {
+        created.push({
+          variant: v.variant || `Variant ${i + 1}`,
+          error: err.response?.data?.error || err.message,
+        });
+      }
     }
+
+    setResults(created);
+    setSubmitting(false);
+    setProgress('');
   }
+
+  const successCount = results?.filter(r => !r.error).length ?? 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-0 sm:px-4"
@@ -146,21 +176,31 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold text-[#e53238]">eBay</span>
-            <span className="text-base font-bold text-gray-800">— List Group ({variants.length} variants)</span>
+            <span className="text-base font-bold text-gray-800">— List {variants.length} Variants</span>
           </div>
           <button onClick={onClose} className="text-gray-300 hover:text-gray-600 text-2xl leading-none">×</button>
         </div>
 
-        {result ? (
-          <div className="flex flex-col items-center justify-center gap-4 p-10">
-            <div className="text-5xl">🎉</div>
-            <p className="text-green-700 font-bold text-base">Group listing live on eBay!</p>
-            <p className="text-xs text-gray-400 font-mono">ID: {result.listingId}</p>
-            <a href={result.url} target="_blank" rel="noopener noreferrer"
-              className="px-6 py-2.5 bg-[#e53238] text-white text-sm font-bold rounded-xl hover:opacity-90">
-              View Listing →
-            </a>
-            <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600 underline">Close</button>
+        {results ? (
+          /* ── Results ── */
+          <div className="flex flex-col gap-3 p-5 overflow-y-auto">
+            <p className="text-green-700 font-bold text-base">
+              {successCount} of {variants.length} listings created!
+            </p>
+            {results.map((r, i) => (
+              <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${r.error ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-800'}`}>
+                <span className="font-medium truncate flex-1">{r.variant}</span>
+                {r.error
+                  ? <span className="text-xs ml-2 flex-shrink-0">{r.error}</span>
+                  : <a href={r.url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-bold ml-2 flex-shrink-0 hover:underline">View →</a>
+                }
+              </div>
+            ))}
+            <button onClick={onClose}
+              className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 transition-colors self-center">
+              Close
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
@@ -169,13 +209,11 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-                  {titleLoading ? 'Generating SEO title…' : `Title (${title.length}/80)`}
+                  {titleLoading ? 'Generating SEO title…' : `Base Title (${title.length}/80)`}
                 </span>
                 {!titleLoading && (
                   <button type="button" onClick={generateTitle}
-                    className="text-[10px] text-[#e53238] hover:underline leading-none">
-                    ↻ Regenerate
-                  </button>
+                    className="text-[10px] text-[#e53238] hover:underline leading-none">↻ Regenerate</button>
                 )}
               </div>
               <div className="relative">
@@ -186,6 +224,7 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs animate-pulse">⏳</span>
                 )}
               </div>
+              <p className="text-[10px] text-gray-400">Variant name appended automatically, e.g. "…Title - Red"</p>
             </div>
 
             {/* Condition + Category */}
@@ -201,44 +240,42 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
               </Field>
             </div>
 
-            {/* Variants table */}
-            <Section title="Variants & Quantity">
+            {/* Per-variant prices */}
+            <Section title={`Pricing — Multiplier × ${multiplier}`}>
+              <div className="mb-3">
+                <Field label="Multiplier (applies to all, edit individually below)">
+                  <input type="number" min="1" step="0.01" value={multiplier}
+                    onChange={e => handleMultiplier(e.target.value)} className={inputCls} />
+                </Field>
+              </div>
               <div className="flex flex-col gap-2">
                 {variants.map(v => (
-                  <div key={v._id} className="flex items-center gap-3">
+                  <div key={v._id} className="flex items-center gap-2">
                     {v.image && (
-                      <img src={v.image} alt={v.variant} className="w-9 h-9 object-contain rounded bg-gray-50 flex-shrink-0" />
+                      <img src={v.image} alt={v.variant} className="w-8 h-8 object-contain rounded bg-gray-50 flex-shrink-0" />
                     )}
-                    <span className="text-xs text-gray-700 flex-1 min-w-0 truncate" title={v.variant}>
-                      {v.variant || v.title.slice(0, 40)}
-                    </span>
-                    <span className="text-xs font-mono text-gray-500 flex-shrink-0 w-14 text-right">
-                      ${v.current?.toLocaleString()}
-                    </span>
+                    <span className="text-xs text-gray-600 flex-1 min-w-0 truncate">{v.variant || `Variant`}</span>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">Amazon ${v.current}</span>
+                    <span className="text-[10px] text-gray-400">→</span>
+                    <input
+                      type="number" min="0.01" step="0.01"
+                      value={variantData[v._id]?.price}
+                      onChange={e => setVariantField(v._id, 'price', e.target.value)}
+                      className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center outline-none focus:border-[#e53238]"
+                      required
+                    />
                     <input
                       type="number" min="1" step="1"
-                      value={quantities[v._id]}
-                      onChange={e => setQuantities(q => ({ ...q, [v._id]: e.target.value }))}
-                      className="w-14 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center outline-none focus:border-[#e53238]"
-                      title="Quantity"
+                      value={variantData[v._id]?.quantity}
+                      onChange={e => setVariantField(v._id, 'quantity', e.target.value)}
+                      className="w-12 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center outline-none focus:border-[#e53238]"
+                      title="Qty"
                     />
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-gray-400 mt-2">All variants share the same listing price below.</p>
+              <p className="text-[10px] text-gray-400 mt-2">Each variant is listed as its own eBay listing with its own price.</p>
             </Section>
-
-            {/* Price */}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={`Multiplier (lowest Amazon $${minPrice})`}>
-                <input type="number" min="1" step="0.01" value={multiplier}
-                  onChange={e => handleMultiplier(e.target.value)} className={inputCls} />
-              </Field>
-              <Field label="Sell Price ($) — xx.99, all variants">
-                <input type="number" min="0.01" step="0.01" value={price}
-                  onChange={e => setPrice(e.target.value)} className={inputCls} required />
-              </Field>
-            </div>
 
             {/* Shipping */}
             <Section title="Shipping">
@@ -318,7 +355,7 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
             <div className="flex gap-2 pb-2 flex-shrink-0">
               <button type="submit" disabled={submitting}
                 className="flex-1 py-3 bg-[#e53238] text-white text-sm font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity">
-                {submitting ? 'Creating listing…' : 'List Group on eBay'}
+                {submitting ? progress || 'Creating listings…' : `List ${variants.length} Variants on eBay`}
               </button>
               <button type="button" onClick={onClose}
                 className="px-5 py-3 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 transition-colors">
