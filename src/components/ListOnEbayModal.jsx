@@ -1,62 +1,90 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const CONDITIONS = [
-  { value: 'NEW', label: 'New' },
-  { value: 'LIKE_NEW', label: 'Like New' },
+  { value: 'NEW',       label: 'New' },
+  { value: 'LIKE_NEW',  label: 'Like New' },
   { value: 'VERY_GOOD', label: 'Very Good' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'ACCEPTABLE', label: 'Acceptable' },
+  { value: 'GOOD',      label: 'Good' },
+  { value: 'ACCEPTABLE',label: 'Acceptable' },
 ];
 
-export default function ListOnEbayModal({ product, onClose }) {
-  const [accountInfo, setAccountInfo] = useState(null);
-  const [loadingAccount, setLoadingAccount] = useState(true);
-  const [notAuthenticated, setNotAuthenticated] = useState(false);
+const CARRIERS = [
+  { value: 'USPSFirstClass',     label: 'USPS First Class' },
+  { value: 'USPSPriority',       label: 'USPS Priority Mail' },
+  { value: 'USPSGroundAdvantage',label: 'USPS Ground Advantage' },
+  { value: 'UPSGround',          label: 'UPS Ground' },
+  { value: 'FedExHomeDelivery',  label: 'FedEx Home Delivery' },
+];
 
+const HANDLING = [
+  { value: 1, label: 'Same day' },
+  { value: 1, label: '1 business day' },
+  { value: 2, label: '2 business days' },
+  { value: 3, label: '3 business days' },
+  { value: 5, label: '5 business days' },
+];
+
+function Section({ title, children }) {
+  return (
+    <div className="border border-gray-200 rounded-xl p-4">
+      <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#e53238] bg-white';
+const selectCls = inputCls;
+
+export default function ListOnEbayModal({ product, onClose }) {
   const defaultMarkup = 30;
   const defaultPrice = product.current
     ? Math.ceil(product.current * (1 + defaultMarkup / 100) * 100) / 100
     : '';
 
-  const [title, setTitle] = useState((product.title || '').slice(0, 80));
-  const [markup, setMarkup] = useState(defaultMarkup);
-  const [price, setPrice] = useState(defaultPrice);
+  // ── Listing basics ──
+  const [title, setTitle]       = useState((product.title || '').slice(0, 80));
+  const [markup, setMarkup]     = useState(defaultMarkup);
+  const [price, setPrice]       = useState(defaultPrice);
   const [quantity, setQuantity] = useState(1);
   const [condition, setCondition] = useState('NEW');
   const [categoryId, setCategoryId] = useState('');
-  const [fulfillmentPolicyId, setFulfillmentPolicyId] = useState('');
-  const [returnPolicyId, setReturnPolicyId] = useState('');
-  const [paymentPolicyId, setPaymentPolicyId] = useState('');
-  const [merchantLocationKey, setMerchantLocationKey] = useState('');
 
+  // ── Shipping ──
+  const [freeShip, setFreeShip]         = useState(true);
+  const [shipCost, setShipCost]         = useState('');
+  const [carrier, setCarrier]           = useState('USPSFirstClass');
+  const [handlingDays, setHandlingDays] = useState(1);
+
+  // ── Returns ──
+  const [acceptReturns, setAcceptReturns] = useState(true);
+  const [returnDays, setReturnDays]       = useState(30);
+  const [buyerPays, setBuyerPays]         = useState(true);
+
+  // ── Location ──
+  const [zipCode, setZipCode] = useState('');
+
+  // ── State ──
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState(null);
+  const [error, setError]           = useState('');
+  const [result, setResult]         = useState(null);
 
-  useEffect(() => {
-    axios.get(`${API}/api/ebay/account-info`)
-      .then(({ data }) => {
-        setAccountInfo(data);
-        if (data.fulfillmentPolicies?.[0]) setFulfillmentPolicyId(data.fulfillmentPolicies[0].fulfillmentPolicyId);
-        if (data.returnPolicies?.[0])      setReturnPolicyId(data.returnPolicies[0].returnPolicyId);
-        if (data.paymentPolicies?.[0])     setPaymentPolicyId(data.paymentPolicies[0].paymentPolicyId);
-        if (data.locations?.[0])           setMerchantLocationKey(data.locations[0].merchantLocationKey);
-      })
-      .catch(err => {
-        if (err.response?.status === 401) setNotAuthenticated(true);
-      })
-      .finally(() => setLoadingAccount(false));
-  }, []);
-
-  function handleMarkupChange(val) {
+  function handleMarkup(val) {
     const m = parseFloat(val) || 0;
     setMarkup(m);
-    if (product.current) {
-      setPrice(Math.ceil(product.current * (1 + m / 100) * 100) / 100);
-    }
+    if (product.current) setPrice(Math.ceil(product.current * (1 + m / 100) * 100) / 100);
   }
 
   async function handleSubmit(e) {
@@ -65,20 +93,28 @@ export default function ListOnEbayModal({ product, onClose }) {
     setError('');
     try {
       const { data } = await axios.post(`${API}/api/ebay/create-listing`, {
-        sku: product.specs?.asin || product._id,
+        sku:       product.specs?.asin || product._id,
         title,
-        price: parseFloat(price),
-        currency: 'USD',
-        quantity: parseInt(quantity),
+        price:     parseFloat(price),
+        currency:  'USD',
+        quantity:  parseInt(quantity),
         condition,
         categoryId: categoryId || undefined,
-        fulfillmentPolicyId,
-        returnPolicyId,
-        paymentPolicyId,
-        merchantLocationKey,
-        imageUrl: product.image || undefined,
-        upc: product.upc || undefined,
-        specs: product.specs || {},
+        imageUrl:  product.image || undefined,
+        upc:       product.upc   || undefined,
+        specs:     product.specs || {},
+        zipCode:   zipCode || '10001',
+        shipping: {
+          free:        freeShip,
+          cost:        freeShip ? 0 : parseFloat(shipCost || 0),
+          carrier,
+          handlingDays: parseInt(handlingDays),
+        },
+        returns: {
+          accepted: acceptReturns,
+          days:     parseInt(returnDays),
+          buyerPays,
+        },
       });
       setResult(data);
     } catch (err) {
@@ -89,167 +125,165 @@ export default function ListOnEbayModal({ product, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-gray-600 text-xl leading-none">×</button>
-
-        <h2 className="text-base font-bold text-gray-900 mb-4">List on eBay</h2>
-
-        {loadingAccount && (
-          <p className="text-sm text-gray-400">Loading your eBay account…</p>
-        )}
-
-        {!loadingAccount && notAuthenticated && (
-          <div className="text-center py-6">
-            <p className="text-sm text-gray-600 mb-3">Connect your eBay seller account first.</p>
-            <a
-              href={`${API}/api/ebay/auth/login`}
-              className="px-5 py-2 bg-[#e53238] text-white text-sm font-bold rounded-lg hover:opacity-90"
-            >
-              Connect eBay Account
-            </a>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-0 sm:px-4"
+      onClick={onClose}>
+      <div
+        className="bg-white w-full sm:rounded-2xl sm:max-w-lg shadow-2xl flex flex-col max-h-[92vh]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-[#e53238]">eBay</span>
+            <span className="text-base font-bold text-gray-800">— Create Listing</span>
           </div>
-        )}
+          <button onClick={onClose} className="text-gray-300 hover:text-gray-600 text-2xl leading-none">×</button>
+        </div>
 
-        {!loadingAccount && !notAuthenticated && !result && (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        {result ? (
+          <div className="flex flex-col items-center justify-center gap-4 p-10">
+            <div className="text-5xl">🎉</div>
+            <p className="text-green-700 font-bold text-base">Listing live on eBay!</p>
+            <p className="text-xs text-gray-400 font-mono">ID: {result.listingId}</p>
+            <a href={result.url} target="_blank" rel="noopener noreferrer"
+              className="px-6 py-2.5 bg-[#e53238] text-white text-sm font-bold rounded-xl hover:opacity-90">
+              View Listing →
+            </a>
+            <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600 underline">Close</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
 
-            {/* Title */}
-            <div>
-              <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">
-                Title <span className="normal-case text-gray-300">({title.length}/80)</span>
-              </label>
-              <input
-                value={title}
-                onChange={e => setTitle(e.target.value.slice(0, 80))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400"
-                required
-              />
-            </div>
+            {/* ── Title ── */}
+            <Field label={`Title (${title.length}/80)`}>
+              <input value={title} onChange={e => setTitle(e.target.value.slice(0, 80))}
+                className={inputCls} required />
+            </Field>
 
-            {/* Price + Markup */}
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">
-                  Markup % <span className="normal-case text-gray-300">(Amazon: ${product.current})</span>
-                </label>
-                <input
-                  type="number" min="0" step="1" value={markup}
-                  onChange={e => handleMarkupChange(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Selling Price ($)</label>
-                <input
-                  type="number" min="0.01" step="0.01" value={price}
-                  onChange={e => setPrice(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Quantity + Condition */}
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Quantity</label>
-                <input
-                  type="number" min="1" step="1" value={quantity}
-                  onChange={e => setQuantity(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400"
-                  required
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Condition</label>
-                <select
-                  value={condition} onChange={e => setCondition(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 bg-white"
-                >
+            {/* ── Condition + Category ── */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Condition">
+                <select value={condition} onChange={e => setCondition(e.target.value)} className={selectCls}>
                   {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
-              </div>
+              </Field>
+              <Field label="eBay Category ID (optional)">
+                <input value={categoryId} onChange={e => setCategoryId(e.target.value)}
+                  placeholder="e.g. 26395" className={inputCls} />
+              </Field>
             </div>
 
-            {/* Category ID */}
-            <div>
-              <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">
-                eBay Category ID <span className="normal-case text-gray-300">(optional — eBay will auto-assign if blank)</span>
+            {/* ── Pricing ── */}
+            <Section title="Price & Quantity">
+              <div className="grid grid-cols-3 gap-3">
+                <Field label={`Markup % (Amazon $${product.current})`}>
+                  <input type="number" min="0" step="1" value={markup}
+                    onChange={e => handleMarkup(e.target.value)} className={inputCls} />
+                </Field>
+                <Field label="Buy It Now Price ($)">
+                  <input type="number" min="0.01" step="0.01" value={price}
+                    onChange={e => setPrice(e.target.value)} className={inputCls} required />
+                </Field>
+                <Field label="Quantity">
+                  <input type="number" min="1" step="1" value={quantity}
+                    onChange={e => setQuantity(e.target.value)} className={inputCls} required />
+                </Field>
+              </div>
+            </Section>
+
+            {/* ── Shipping ── */}
+            <Section title="Shipping">
+              <label className="flex items-center gap-2 cursor-pointer mb-3">
+                <input type="checkbox" checked={freeShip} onChange={e => setFreeShip(e.target.checked)}
+                  className="w-4 h-4 accent-[#e53238]" />
+                <span className="text-sm font-medium text-gray-700">Free shipping</span>
               </label>
-              <input
-                value={categoryId} onChange={e => setCategoryId(e.target.value)}
-                placeholder="e.g. 26395"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400"
-              />
-            </div>
 
-            {/* Policies */}
-            {accountInfo && (
+              {!freeShip && (
+                <div className="mb-3">
+                  <Field label="Shipping cost ($)">
+                    <input type="number" min="0" step="0.01" value={shipCost}
+                      onChange={e => setShipCost(e.target.value)} placeholder="e.g. 5.99" className={inputCls} />
+                  </Field>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Shipping Policy</label>
-                  <select value={fulfillmentPolicyId} onChange={e => setFulfillmentPolicyId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-yellow-400 bg-white" required>
-                    {accountInfo.fulfillmentPolicies.map(p => (
-                      <option key={p.fulfillmentPolicyId} value={p.fulfillmentPolicyId}>{p.name}</option>
-                    ))}
+                <Field label="Carrier">
+                  <select value={carrier} onChange={e => setCarrier(e.target.value)} className={selectCls}>
+                    {CARRIERS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Return Policy</label>
-                  <select value={returnPolicyId} onChange={e => setReturnPolicyId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-yellow-400 bg-white" required>
-                    {accountInfo.returnPolicies.map(p => (
-                      <option key={p.returnPolicyId} value={p.returnPolicyId}>{p.name}</option>
-                    ))}
+                </Field>
+                <Field label="Handling time">
+                  <select value={handlingDays} onChange={e => setHandlingDays(e.target.value)} className={selectCls}>
+                    <option value={0}>Same day</option>
+                    <option value={1}>1 business day</option>
+                    <option value={2}>2 business days</option>
+                    <option value={3}>3 business days</option>
+                    <option value={5}>5 business days</option>
                   </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Payment Policy</label>
-                  <select value={paymentPolicyId} onChange={e => setPaymentPolicyId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-yellow-400 bg-white" required>
-                    {accountInfo.paymentPolicies.map(p => (
-                      <option key={p.paymentPolicyId} value={p.paymentPolicyId}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-0.5">Ship-from Location</label>
-                  <select value={merchantLocationKey} onChange={e => setMerchantLocationKey(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-yellow-400 bg-white" required>
-                    {accountInfo.locations.map(l => (
-                      <option key={l.merchantLocationKey} value={l.merchantLocationKey}>{l.name || l.merchantLocationKey}</option>
-                    ))}
-                  </select>
-                </div>
+                </Field>
               </div>
+            </Section>
+
+            {/* ── Returns ── */}
+            <Section title="Returns">
+              <label className="flex items-center gap-2 cursor-pointer mb-3">
+                <input type="checkbox" checked={acceptReturns} onChange={e => setAcceptReturns(e.target.checked)}
+                  className="w-4 h-4 accent-[#e53238]" />
+                <span className="text-sm font-medium text-gray-700">Accept returns</span>
+              </label>
+
+              {acceptReturns && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Return period">
+                    <select value={returnDays} onChange={e => setReturnDays(e.target.value)} className={selectCls}>
+                      <option value={30}>30 days</option>
+                      <option value={60}>60 days</option>
+                    </select>
+                  </Field>
+                  <Field label="Return shipping paid by">
+                    <select value={buyerPays ? 'buyer' : 'seller'}
+                      onChange={e => setBuyerPays(e.target.value === 'buyer')} className={selectCls}>
+                      <option value="buyer">Buyer</option>
+                      <option value="seller">Seller</option>
+                    </select>
+                  </Field>
+                </div>
+              )}
+            </Section>
+
+            {/* ── Location ── */}
+            <Section title="Item Location">
+              <Field label="ZIP Code (US)">
+                <input value={zipCode} onChange={e => setZipCode(e.target.value)}
+                  placeholder="e.g. 90210" maxLength={10} className={inputCls} />
+              </Field>
+              <p className="text-[10px] text-gray-400 mt-1">Used to calculate shipping distance shown to buyers.</p>
+            </Section>
+
+            {/* ── Payment note ── */}
+            <p className="text-[10px] text-gray-400 -mt-1">
+              💳 Payment is handled automatically by eBay Managed Payments.
+            </p>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600">{error}</div>
             )}
 
-            {error && <p className="text-red-500 text-xs">{error}</p>}
-
-            <div className="flex gap-2 mt-1">
+            {/* ── Actions ── */}
+            <div className="flex gap-2 pb-2 flex-shrink-0">
               <button type="submit" disabled={submitting}
-                className="flex-1 py-2.5 bg-[#e53238] text-white text-sm font-bold rounded-lg hover:opacity-90 disabled:opacity-50">
-                {submitting ? 'Creating…' : 'Create eBay Listing'}
+                className="flex-1 py-3 bg-[#e53238] text-white text-sm font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity">
+                {submitting ? 'Creating listing…' : 'List on eBay'}
               </button>
               <button type="button" onClick={onClose}
-                className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">
+                className="px-5 py-3 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 transition-colors">
                 Cancel
               </button>
             </div>
-          </form>
-        )}
 
-        {result && (
-          <div className="text-center py-4">
-            <p className="text-green-600 font-bold text-sm mb-1">Listing created!</p>
-            <p className="text-xs text-gray-500 mb-4">Listing ID: {result.listingId}</p>
-            <a href={result.url} target="_blank" rel="noopener noreferrer"
-              className="px-5 py-2 bg-[#e53238] text-white text-sm font-bold rounded-lg hover:opacity-90">
-              View on eBay →
-            </a>
-          </div>
+          </form>
         )}
       </div>
     </div>
