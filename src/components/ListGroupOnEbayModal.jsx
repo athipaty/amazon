@@ -141,8 +141,9 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
       setProgress(`Listing ${i + 1} of ${variants.length}: ${v.variant || `Variant ${i + 1}`}…`);
 
       try {
+        const asin = (v.url || '').match(/\/dp\/([A-Z0-9]{10})/i)?.[1];
         const { data } = await axios.post(`${API}/api/ebay/create-listing`, {
-          sku: v.specs?.asin || v._id,
+          sku: asin || v._id,
           title: listingTitle,
           price: parseFloat(vd.price),
           quantity: parseInt(vd.quantity) || 1,
