@@ -152,10 +152,14 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
         });
         created.push({ variant: v.variant || `Variant ${i + 1}`, listingId: data.listingId, url: data.url });
       } catch (err) {
-        created.push({
-          variant: v.variant || `Variant ${i + 1}`,
-          error: err.response?.data?.error || err.message,
-        });
+        const errMsg = err.response?.data?.error || err.message;
+        if (errMsg === 'not_authenticated') {
+          setError('not_authenticated');
+          setSubmitting(false);
+          setProgress('');
+          return;
+        }
+        created.push({ variant: v.variant || `Variant ${i + 1}`, error: errMsg });
       }
     }
 
@@ -349,7 +353,15 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
             </p>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600">{error}</div>
+              error === 'not_authenticated'
+                ? <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800 flex items-center justify-between gap-3">
+                    <span>eBay account not connected.</span>
+                    <a href={`${API}/api/ebay/auth/login`}
+                      className="font-bold underline whitespace-nowrap hover:text-yellow-900">
+                      Connect eBay →
+                    </a>
+                  </div>
+                : <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600">{error}</div>
             )}
 
             <div className="flex gap-2 pb-2 flex-shrink-0">
