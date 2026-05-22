@@ -139,7 +139,7 @@ export default function ListOnEbayModal({ product, onClose }) {
         quantity:  parseInt(quantity),
         condition,
         categoryId: categoryId || undefined,
-        imageUrl:  product.image || undefined,
+        imageUrls: product.images?.length ? product.images : (product.image ? [product.image] : []),
         upc:       product.upc   || undefined,
         specs:     product.specs || {},
         zipCode:   zipCode || '10001',

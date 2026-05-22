@@ -168,7 +168,7 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
           title: listingTitle,
           price: parseFloat(vd.price),
           quantity: parseInt(vd.quantity) || 1,
-          imageUrl: v.image || undefined,
+          imageUrls: v.images?.length ? v.images : (v.image ? [v.image] : []),
           upc: v.upc || undefined,
           ...sharedPayload,
         });
