@@ -49,15 +49,16 @@ const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm out
 const selectCls = inputCls;
 
 export default function ListOnEbayModal({ product, onClose }) {
-  const defaultMarkup = 30;
-  const defaultPrice = product.current
-    ? Math.ceil(product.current * (1 + defaultMarkup / 100) * 100) / 100
-    : '';
+  const defaultMultiplier = 1.45;
+  function calcPrice(base, mult) {
+    if (!base) return '';
+    return Math.floor(base * mult) + 0.99;
+  }
 
   // ── Listing basics ──
-  const [title, setTitle]       = useState((product.title || '').slice(0, 80));
-  const [markup, setMarkup]     = useState(defaultMarkup);
-  const [price, setPrice]       = useState(defaultPrice);
+  const [title, setTitle]           = useState((product.title || '').slice(0, 80));
+  const [multiplier, setMultiplier] = useState(defaultMultiplier);
+  const [price, setPrice]           = useState(calcPrice(product.current, defaultMultiplier));
   const [quantity, setQuantity] = useState(1);
   const [condition, setCondition] = useState('NEW');
   const [categoryId, setCategoryId] = useState('');
@@ -96,10 +97,10 @@ export default function ListOnEbayModal({ product, onClose }) {
 
   useEffect(() => { generateTitle(); }, [generateTitle]);
 
-  function handleMarkup(val) {
-    const m = parseFloat(val) || 0;
-    setMarkup(m);
-    if (product.current) setPrice(Math.ceil(product.current * (1 + m / 100) * 100) / 100);
+  function handleMultiplier(val) {
+    const m = parseFloat(val) || 1;
+    setMultiplier(m);
+    if (product.current) setPrice(calcPrice(product.current, m));
   }
 
   async function handleSubmit(e) {
@@ -208,11 +209,11 @@ export default function ListOnEbayModal({ product, onClose }) {
             {/* ── Pricing ── */}
             <Section title="Price & Quantity">
               <div className="grid grid-cols-3 gap-3">
-                <Field label={`Markup % (Amazon $${product.current})`}>
-                  <input type="number" min="0" step="1" value={markup}
-                    onChange={e => handleMarkup(e.target.value)} className={inputCls} />
+                <Field label={`Multiplier (Amazon $${product.current})`}>
+                  <input type="number" min="1" step="0.01" value={multiplier}
+                    onChange={e => handleMultiplier(e.target.value)} className={inputCls} />
                 </Field>
-                <Field label="Buy It Now Price ($)">
+                <Field label="Sell Price ($) — xx.99">
                   <input type="number" min="0.01" step="0.01" value={price}
                     onChange={e => setPrice(e.target.value)} className={inputCls} required />
                 </Field>

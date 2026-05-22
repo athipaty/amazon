@@ -43,11 +43,20 @@ function Section({ title, children }) {
 export default function ListGroupOnEbayModal({ variants, onClose }) {
   const firstVariant = variants[0];
   const minPrice = Math.min(...variants.map(v => v.current).filter(Boolean));
-  const defaultPrice = Math.ceil(minPrice * 1.3 * 100) / 100;
 
-  const [title, setTitle]           = useState((firstVariant.title || '').slice(0, 80));
+  const defaultMultiplier = 1.45;
+  function calcPrice(base, mult) { return Math.floor(base * mult) + 0.99; }
+
+  const [title, setTitle]               = useState((firstVariant.title || '').slice(0, 80));
   const [titleLoading, setTitleLoading] = useState(true);
-  const [price, setPrice]           = useState(defaultPrice);
+  const [multiplier, setMultiplier]     = useState(defaultMultiplier);
+  const [price, setPrice]               = useState(calcPrice(minPrice, defaultMultiplier));
+
+  function handleMultiplier(val) {
+    const m = parseFloat(val) || 1;
+    setMultiplier(m);
+    setPrice(calcPrice(minPrice, m));
+  }
   const [condition, setCondition]   = useState('NEW');
   const [categoryId, setCategoryId] = useState('');
 
@@ -220,10 +229,16 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
             </Section>
 
             {/* Price */}
-            <Field label="Buy It Now Price ($) — applies to all variants">
-              <input type="number" min="0.01" step="0.01" value={price}
-                onChange={e => setPrice(e.target.value)} className={inputCls} required />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={`Multiplier (lowest Amazon $${minPrice})`}>
+                <input type="number" min="1" step="0.01" value={multiplier}
+                  onChange={e => handleMultiplier(e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Sell Price ($) — xx.99, all variants">
+                <input type="number" min="0.01" step="0.01" value={price}
+                  onChange={e => setPrice(e.target.value)} className={inputCls} required />
+              </Field>
+            </div>
 
             {/* Shipping */}
             <Section title="Shipping">
