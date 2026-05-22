@@ -75,31 +75,49 @@ function PriceHistory({ history, currency }) {
   );
 }
 
-// Finds any item_dimensions_* key dynamically — Amazon uses many naming variations
-function getDimensions(s) {
-  if (!s) return null;
-  const key = Object.keys(s).find(k => k.startsWith('item_dimensions') || k === 'product_dimensions');
-  return key ? s[key] : null;
+const SKIP_SPEC_KEYS = new Set(['asin']);
+
+function fmtKey(k) {
+  return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-const EBAY_FIELDS = [
-  ['Brand',             s => s?.brand_name],
-  ['Type',              s => s?.item_type_name || s?.type],
-  ['Material',          s => s?.material || s?.material_type],
-  ['Color',             s => s?.color],
-  ['Style',             s => s?.style],
-  ['Shape',             s => s?.shape],
-  ['Pattern',           s => s?.pattern],
-  ['Size',              s => s?.size],
-  ['Dimensions',        s => getDimensions(s)],
-  ['Making Method',     s => s?.making_method],
-  ['Country of Origin', s => s?.country_of_origin || s?.country_of_manufacture],
-  ['No. of Items',      s => s?.number_of_items_in_set || s?.number_of_packs || s?.unit_count],
-  ['MPN',               s => s?.model_number || s?.part_number],
-  ['Item Weight',       s => s?.item_weight],
-  ['Wattage',           s => s?.wattage],
-  ['Voltage',           s => s?.voltage],
-];
+function fmtVal(v) {
+  if (v == null) return null;
+  if (Array.isArray(v)) return v.join(' · ');
+  if (typeof v === 'object') {
+    return Object.entries(v)
+      .filter(([, val]) => val != null)
+      .map(([k, val]) => `${fmtKey(k)}: ${val}`)
+      .join(' · ');
+  }
+  return String(v);
+}
+
+function SpecsGrid({ specs, upc }) {
+  if (!specs && !upc) return null;
+  const entries = specs
+    ? Object.entries(specs).filter(([k, v]) => !SKIP_SPEC_KEYS.has(k) && fmtVal(v))
+    : [];
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2">
+      {upc && (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-gray-400 uppercase tracking-wide">UPC</span>
+          <span className="text-xs text-gray-700 font-mono">{upc}</span>
+        </div>
+      )}
+      {entries.map(([k, v]) => (
+        <div key={k} className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-gray-400 uppercase tracking-wide">{fmtKey(k)}</span>
+          <span className="text-xs text-gray-700 break-words">{fmtVal(v)}</span>
+        </div>
+      ))}
+      {!upc && entries.length === 0 && (
+        <span className="text-xs text-gray-400 col-span-full">No spec data available.</span>
+      )}
+    </div>
+  );
+}
 
 export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
@@ -234,25 +252,11 @@ export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
         );
       })()}
 
-      {/* ── eBay Specs Panel ── */}
+      {/* ── Amazon Specs Panel ── */}
       {showSpecs && (
         <div className="w-full border-t border-gray-100 pt-3 mt-1">
-          <p className="text-xs font-semibold text-gray-500 mb-2">eBay listing specs</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-gray-400 uppercase tracking-wide">UPC</span>
-              <span className="text-xs text-gray-700 font-mono">{product.upc || 'N/A'}</span>
-            </div>
-            {EBAY_FIELDS.map(([label, getter]) => {
-              const val = getter(product.specs);
-              return (
-                <div key={label} className="flex flex-col gap-0.5">
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</span>
-                  <span className="text-xs text-gray-700">{val || 'N/A'}</span>
-                </div>
-              );
-            })}
-          </div>
+          <p className="text-xs font-semibold text-gray-500 mb-2">Product Specs</p>
+          <SpecsGrid specs={product.specs} upc={product.upc} />
         </div>
       )}
     </div>
