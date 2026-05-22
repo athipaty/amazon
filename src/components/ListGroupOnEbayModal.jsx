@@ -142,8 +142,10 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
 
       try {
         const asin = (v.url || '').match(/\/dp\/([A-Z0-9]{10})/i)?.[1];
+        const rawSku = asin || String(v._id || '');
+        const sku = rawSku.replace(/[^a-zA-Z0-9]/g, '').slice(0, 50) || 'ITEM';
         const { data } = await axios.post(`${API}/api/ebay/create-listing`, {
-          sku: asin || v._id,
+          sku,
           title: listingTitle,
           price: parseFloat(vd.price),
           quantity: parseInt(vd.quantity) || 1,

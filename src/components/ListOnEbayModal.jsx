@@ -109,8 +109,10 @@ export default function ListOnEbayModal({ product, onClose }) {
     setError('');
     try {
       const asin = (product.url || '').match(/\/dp\/([A-Z0-9]{10})/i)?.[1];
+      const rawSku = asin || String(product._id || '');
+      const sku = rawSku.replace(/[^a-zA-Z0-9]/g, '').slice(0, 50) || 'ITEM';
       const { data } = await axios.post(`${API}/api/ebay/create-listing`, {
-        sku:       asin || product._id,
+        sku,
         title,
         price:     parseFloat(price),
         currency:  'USD',
