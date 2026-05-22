@@ -234,6 +234,7 @@ function MyListingsTab() {
   const [phase, setPhase] = useState('checking'); // checking | disconnected | loading | loaded | error
   const [listings, setListings] = useState([]);
   const [error, setError] = useState('');
+  const [needsReconnect, setNeedsReconnect] = useState(false);
 
   useEffect(() => {
     axios.get(`${API}/api/ebay/auth/status`)
@@ -257,7 +258,14 @@ function MyListingsTab() {
       }
 
       const invListings = invRes.status === 'fulfilled' ? (invRes.value.data || []) : [];
-      const tradeListings = tradeRes.status === 'fulfilled' ? (tradeRes.value.data || []) : [];
+
+      // 403 from all-active-listings means missing sell.item scope — need reconnect
+      let tradeListings = [];
+      if (tradeRes.status === 'fulfilled') {
+        tradeListings = tradeRes.value.data || [];
+      } else if (tradeRes.reason?.response?.status === 403) {
+        setNeedsReconnect(true);
+      }
 
       // Merge: Inventory API listings have offerId + listingId.
       // Trading API listings only have listingId. Skip duplicates by listingId.
@@ -323,12 +331,30 @@ function MyListingsTab() {
     return <p className="text-red-500 text-sm mt-4">{error}</p>;
   }
 
+  const reconnectBanner = needsReconnect && (
+    <div className="mb-5 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-3">
+      <p className="text-sm text-yellow-800">Reconnect eBay to show all listings (including manually created ones).</p>
+      <a
+        href={`${API}/api/ebay/auth/login`}
+        className="shrink-0 px-3 py-1.5 bg-[#e53238] text-white font-bold text-xs rounded-lg hover:bg-red-700 transition-colors"
+      >
+        Reconnect
+      </a>
+    </div>
+  );
+
   if (listings.length === 0) {
-    return <p className="text-center text-gray-400 mt-16">No active listings found.</p>;
+    return (
+      <>
+        {reconnectBanner}
+        <p className="text-center text-gray-400 mt-16">No active listings found.</p>
+      </>
+    );
   }
 
   return (
     <>
+      {reconnectBanner}
       <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
         {listings.map(item => (
