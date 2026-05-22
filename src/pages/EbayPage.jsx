@@ -36,9 +36,7 @@ function EbayCard({ item }) {
   );
 }
 
-// item: { listingId, offerId?, title, image, price, currency, quantity?, sku?, url }
-// onSavePrice: async (price) => void — throws on failure so the card can show the error
-function MyListingCard({ item, onSavePrice }) {
+function MyListingCard({ item, onPriceUpdate }) {
   const sym = item.currency === 'GBP' ? '£' : item.currency === 'EUR' ? '€' : '$';
   const [editing, setEditing] = useState(false);
   const [newPrice, setNewPrice] = useState('');
@@ -50,7 +48,8 @@ function MyListingCard({ item, onSavePrice }) {
     if (!p || p <= 0) return;
     setSaving(true); setErr('');
     try {
-      await onSavePrice(p);
+      await axios.patch(`${API}/api/ebay/offer/${item.offerId}/price`, { price: p });
+      onPriceUpdate(item.offerId, p);
       setEditing(false);
     } catch (e) {
       setErr(e.response?.data?.error || e.message || 'Failed to update price');
@@ -71,15 +70,12 @@ function MyListingCard({ item, onSavePrice }) {
       >
         {item.title}
       </h3>
-
       {editing ? (
         <div className="flex flex-col gap-1.5 mt-1">
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500 font-medium">{sym}</span>
             <input
-              type="number"
-              step="0.01"
-              min="0.01"
+              type="number" step="0.01" min="0.01"
               value={newPrice}
               onChange={e => setNewPrice(e.target.value)}
               placeholder={item.price.toFixed(2)}
@@ -93,18 +89,12 @@ function MyListingCard({ item, onSavePrice }) {
           </div>
           {err && <p className="text-xs text-red-500 leading-tight">{err}</p>}
           <div className="flex gap-1">
-            <button
-              onClick={savePrice}
-              disabled={saving || !newPrice || parseFloat(newPrice) <= 0}
-              className="flex-1 py-1 text-xs font-semibold bg-[#e53238] text-white rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
-            >
+            <button onClick={savePrice} disabled={saving || !newPrice || parseFloat(newPrice) <= 0}
+              className="flex-1 py-1 text-xs font-semibold bg-[#e53238] text-white rounded hover:bg-red-700 disabled:opacity-50 transition-colors">
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button
-              onClick={() => { setEditing(false); setErr(''); }}
-              disabled={saving}
-              className="flex-1 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-            >
+            <button onClick={() => { setEditing(false); setErr(''); }} disabled={saving}
+              className="flex-1 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">
               Cancel
             </button>
           </div>
@@ -112,27 +102,80 @@ function MyListingCard({ item, onSavePrice }) {
       ) : (
         <div className="flex items-baseline gap-2 mt-1">
           <span className="text-2xl font-black text-gray-900">{sym}{item.price.toLocaleString()}</span>
-          {item.quantity != null && (
-            <span className="text-xs text-gray-400">×{item.quantity} in stock</span>
-          )}
+          <span className="text-xs text-gray-400">×{item.quantity} in stock</span>
           <button
             onClick={() => { setNewPrice(item.price.toFixed(2)); setEditing(true); setErr(''); }}
             className="ml-auto text-xs text-gray-400 hover:text-gray-700 transition-colors px-1"
             title="Edit price"
-          >
-            ✏️
-          </button>
+          >✏️</button>
         </div>
       )}
-
-      {item.sku && (
-        <span className="text-xs text-gray-400 font-mono truncate" title={item.sku}>SKU: {item.sku}</span>
-      )}
+      <span className="text-xs text-gray-400 font-mono truncate" title={item.sku}>SKU: {item.sku}</span>
       {item.url && (
         <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-auto text-xs font-semibold text-[#e53238] hover:underline">
           View listing →
         </a>
       )}
+    </div>
+  );
+}
+
+// ── Update price for any listing by ID ─────────────────────────────
+
+function UpdatePriceForm() {
+  const [listingId, setListingId] = useState('');
+  const [price, setPrice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!listingId.trim() || !price || parseFloat(price) <= 0) return;
+    setSaving(true); setMsg(''); setErr('');
+    try {
+      await axios.post(`${API}/api/ebay/listing/price`, {
+        listingId: listingId.trim(),
+        price: parseFloat(price),
+      });
+      setMsg('Price updated!');
+      setPrice('');
+    } catch (e) {
+      setErr(e.response?.data?.error || e.message || 'Failed');
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
+      <p className="text-sm font-semibold text-gray-700 mb-1">Update Price by Listing ID</p>
+      <p className="text-xs text-gray-400 mb-3">For listings created manually in eBay Seller Hub. Find the ID in the listing URL (e.g. ebay.com/itm/<strong>123456789</strong>).</p>
+      <form className="flex gap-2 flex-wrap" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Listing ID"
+          value={listingId}
+          onChange={e => setListingId(e.target.value)}
+          disabled={saving}
+          className="flex-1 min-w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-colors disabled:bg-gray-100"
+        />
+        <input
+          type="number" step="0.01" min="0.01"
+          placeholder="New price (USD)"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
+          disabled={saving}
+          className="w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-colors disabled:bg-gray-100"
+        />
+        <button
+          type="submit"
+          disabled={saving || !listingId.trim() || !price || parseFloat(price) <= 0}
+          className="px-4 py-2 bg-[#e53238] text-white font-bold text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+        >
+          {saving ? 'Updating…' : 'Update Price'}
+        </button>
+      </form>
+      {msg && <p className="text-green-600 text-xs mt-2">{msg}</p>}
+      {err && <p className="text-red-500 text-xs mt-2">{err}</p>}
     </div>
   );
 }
@@ -234,48 +277,20 @@ function MyListingsTab() {
   const [phase, setPhase] = useState('checking'); // checking | disconnected | loading | loaded | error
   const [listings, setListings] = useState([]);
   const [error, setError] = useState('');
-  const [needsReconnect, setNeedsReconnect] = useState(false);
 
   useEffect(() => {
     axios.get(`${API}/api/ebay/auth/status`)
       .then(({ data }) => {
-        if (data.connected) { setPhase('loading'); fetchAll(); }
+        if (data.connected) { setPhase('loading'); fetchListings(); }
         else setPhase('disconnected');
       })
       .catch(() => setPhase('disconnected'));
   }, []);
 
-  async function fetchAll() {
+  async function fetchListings() {
     try {
-      // Fetch Inventory API listings and all Trading API listings in parallel
-      const [invRes, tradeRes] = await Promise.allSettled([
-        axios.get(`${API}/api/ebay/my-listings`),
-        axios.get(`${API}/api/ebay/all-active-listings`),
-      ]);
-
-      if (invRes.status === 'rejected' && invRes.reason?.response?.status === 401) {
-        setPhase('disconnected'); return;
-      }
-
-      const invListings = invRes.status === 'fulfilled' ? (invRes.value.data || []) : [];
-
-      // 403 from all-active-listings means missing sell.item scope — need reconnect
-      let tradeListings = [];
-      if (tradeRes.status === 'fulfilled') {
-        tradeListings = tradeRes.value.data || [];
-      } else if (tradeRes.reason?.response?.status === 403) {
-        setNeedsReconnect(true);
-      }
-
-      // Merge: Inventory API listings have offerId + listingId.
-      // Trading API listings only have listingId. Skip duplicates by listingId.
-      const seenListingIds = new Set(invListings.map(l => l.listingId).filter(Boolean));
-      const merged = [
-        ...invListings,
-        ...tradeListings.filter(l => l.listingId && !seenListingIds.has(l.listingId)),
-      ];
-
-      setListings(merged);
+      const { data } = await axios.get(`${API}/api/ebay/my-listings`);
+      setListings(data);
       setPhase('loaded');
     } catch (err) {
       if (err.response?.status === 401) { setPhase('disconnected'); return; }
@@ -285,22 +300,8 @@ function MyListingsTab() {
     }
   }
 
-  // Build a save-price callback for a listing.
-  // Inventory API listings (have offerId) use PATCH /offer/:offerId/price.
-  // Manually created listings (no offerId) use POST /listing/price via Trading API.
-  function makeSavePrice(item) {
-    return async (price) => {
-      if (item.offerId) {
-        await axios.patch(`${API}/api/ebay/offer/${item.offerId}/price`, { price });
-      } else {
-        await axios.post(`${API}/api/ebay/listing/price`, { listingId: item.listingId, price });
-      }
-      setListings(prev => prev.map(l =>
-        (item.offerId ? l.offerId === item.offerId : l.listingId === item.listingId)
-          ? { ...l, price }
-          : l
-      ));
-    };
+  function handlePriceUpdate(offerId, newPrice) {
+    setListings(prev => prev.map(l => l.offerId === offerId ? { ...l, price: newPrice } : l));
   }
 
   if (phase === 'checking' || phase === 'loading') {
@@ -331,40 +332,21 @@ function MyListingsTab() {
     return <p className="text-red-500 text-sm mt-4">{error}</p>;
   }
 
-  const reauthorizeLink = (
-    <div className="mb-5 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-3">
-      <p className="text-sm text-yellow-800">Not seeing all your listings? Re-authorize to grant access to manually created listings.</p>
-      <a
-        href={`${API}/api/ebay/auth/login`}
-        className="shrink-0 px-3 py-1.5 bg-[#e53238] text-white font-bold text-xs rounded-lg hover:bg-red-700 transition-colors"
-      >
-        Re-authorize eBay
-      </a>
-    </div>
-  );
-
-  if (listings.length === 0) {
-    return (
-      <>
-        {reauthorizeLink}
-        <p className="text-center text-gray-400 mt-4">No active listings found.</p>
-      </>
-    );
-  }
-
   return (
     <>
-      {reauthorizeLink}
-      <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-        {listings.map(item => (
-          <MyListingCard
-            key={item.offerId || item.listingId}
-            item={item}
-            onSavePrice={makeSavePrice(item)}
-          />
-        ))}
-      </div>
+      <UpdatePriceForm />
+      {listings.length === 0 ? (
+        <p className="text-center text-gray-400 mt-8">No active listings found via Inventory API.</p>
+      ) : (
+        <>
+          <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+            {listings.map(item => (
+              <MyListingCard key={item.offerId} item={item} onPriceUpdate={handlePriceUpdate} />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
