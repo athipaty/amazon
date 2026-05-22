@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -77,9 +77,24 @@ export default function ListOnEbayModal({ product, onClose }) {
   const [zipCode, setZipCode] = useState('');
 
   // ── State ──
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState('');
-  const [result, setResult]         = useState(null);
+  const [submitting, setSubmitting]   = useState(false);
+  const [titleLoading, setTitleLoading] = useState(true);
+  const [error, setError]             = useState('');
+  const [result, setResult]           = useState(null);
+
+  const generateTitle = useCallback(async () => {
+    setTitleLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/api/ebay/seo-title`, {
+        title: product.title,
+        specs: product.specs || {},
+      });
+      if (data.title) setTitle(data.title.slice(0, 80));
+    } catch { /* keep original title on error */ }
+    finally { setTitleLoading(false); }
+  }, [product.title, product.specs]);
+
+  useEffect(() => { generateTitle(); }, [generateTitle]);
 
   function handleMarkup(val) {
     const m = parseFloat(val) || 0;
@@ -155,10 +170,27 @@ export default function ListOnEbayModal({ product, onClose }) {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
 
             {/* ── Title ── */}
-            <Field label={`Title (${title.length}/80)`}>
-              <input value={title} onChange={e => setTitle(e.target.value.slice(0, 80))}
-                className={inputCls} required />
-            </Field>
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide">
+                  {titleLoading ? 'Generating SEO title…' : `Title (${title.length}/80)`}
+                </span>
+                {!titleLoading && (
+                  <button type="button" onClick={generateTitle}
+                    className="text-[10px] text-[#e53238] hover:underline leading-none">
+                    ↻ Regenerate
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input value={title} onChange={e => setTitle(e.target.value.slice(0, 80))}
+                  className={`${inputCls} ${titleLoading ? 'opacity-50' : ''}`}
+                  disabled={titleLoading} required />
+                {titleLoading && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs animate-pulse">⏳</span>
+                )}
+              </div>
+            </div>
 
             {/* ── Condition + Category ── */}
             <div className="grid grid-cols-2 gap-3">
