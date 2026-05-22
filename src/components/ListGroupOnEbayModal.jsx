@@ -262,7 +262,7 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
               </Field>
               <Field label={catLoading ? 'Category (detecting…)' : 'eBay Category ID'}>
                 <input value={categoryId} onChange={e => { setCategoryId(e.target.value); setCatName(''); setCatPath(''); }}
-                  placeholder="e.g. 26395" className={inputCls} required />
+                  placeholder="e.g. 26395" className={inputCls} />
                 {catPath && !catLoading && (
                   <span className="text-[10px] text-blue-500 leading-tight">{catPath}</span>
                 )}
