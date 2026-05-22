@@ -78,10 +78,12 @@ export default function ListOnEbayModal({ product, onClose }) {
   const [zipCode, setZipCode] = useState('');
 
   // ── State ──
-  const [submitting, setSubmitting]   = useState(false);
+  const [submitting, setSubmitting]     = useState(false);
   const [titleLoading, setTitleLoading] = useState(true);
-  const [error, setError]             = useState('');
-  const [result, setResult]           = useState(null);
+  const [catLoading, setCatLoading]     = useState(true);
+  const [catName, setCatName]           = useState('');
+  const [error, setError]               = useState('');
+  const [result, setResult]             = useState(null);
 
   const generateTitle = useCallback(async () => {
     setTitleLoading(true);
@@ -95,7 +97,23 @@ export default function ListOnEbayModal({ product, onClose }) {
     finally { setTitleLoading(false); }
   }, [product.title, product.specs]);
 
-  useEffect(() => { generateTitle(); }, [generateTitle]);
+  useEffect(() => {
+    generateTitle();
+    // Auto-suggest eBay category
+    (async () => {
+      setCatLoading(true);
+      try {
+        const { data } = await axios.get(`${API}/api/ebay/category-suggestions`, {
+          params: { q: product.title },
+        });
+        if (data[0]) {
+          setCategoryId(data[0].id);
+          setCatName(data[0].name);
+        }
+      } catch {}
+      finally { setCatLoading(false); }
+    })();
+  }, [generateTitle, product.title]);
 
   function handleMultiplier(val) {
     const m = parseFloat(val) || 1;
@@ -203,9 +221,9 @@ export default function ListOnEbayModal({ product, onClose }) {
                   {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </Field>
-              <Field label="eBay Category ID (optional)">
-                <input value={categoryId} onChange={e => setCategoryId(e.target.value)}
-                  placeholder="e.g. 26395" className={inputCls} />
+              <Field label={catLoading ? 'Category (detecting…)' : `Category${catName ? ` — ${catName}` : ''}`}>
+                <input value={categoryId} onChange={e => { setCategoryId(e.target.value); setCatName(''); }}
+                  placeholder="e.g. 26395" className={inputCls} required />
               </Field>
             </div>
 

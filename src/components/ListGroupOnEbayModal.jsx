@@ -54,6 +54,8 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
   const [multiplier, setMultiplier]     = useState(DEFAULT_MULT);
   const [condition, setCondition]       = useState('NEW');
   const [categoryId, setCategoryId]     = useState('');
+  const [catLoading, setCatLoading]     = useState(true);
+  const [catName, setCatName]           = useState('');
 
   // Per-variant state: { [_id]: { price, quantity } }
   const [variantData, setVariantData] = useState(() =>
@@ -89,7 +91,22 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
     finally { setTitleLoading(false); }
   }, [firstVariant.title, firstVariant.specs]);
 
-  useEffect(() => { generateTitle(); }, [generateTitle]);
+  useEffect(() => {
+    generateTitle();
+    (async () => {
+      setCatLoading(true);
+      try {
+        const { data } = await axios.get(`${API}/api/ebay/category-suggestions`, {
+          params: { q: firstVariant.title },
+        });
+        if (data[0]) {
+          setCategoryId(data[0].id);
+          setCatName(data[0].name);
+        }
+      } catch {}
+      finally { setCatLoading(false); }
+    })();
+  }, [generateTitle, firstVariant.title]);
 
   function handleMultiplier(val) {
     const m = parseFloat(val) || 1;
@@ -241,9 +258,9 @@ export default function ListGroupOnEbayModal({ variants, onClose }) {
                   {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </Field>
-              <Field label="eBay Category ID (optional)">
-                <input value={categoryId} onChange={e => setCategoryId(e.target.value)}
-                  placeholder="e.g. 26395" className={inputCls} />
+              <Field label={catLoading ? 'Category (detecting…)' : `Category${catName ? ` — ${catName}` : ''}`}>
+                <input value={categoryId} onChange={e => { setCategoryId(e.target.value); setCatName(''); }}
+                  placeholder="e.g. 26395" className={inputCls} required />
               </Field>
             </div>
 
