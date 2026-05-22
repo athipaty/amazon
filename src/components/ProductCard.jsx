@@ -1,7 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 function useCountdown(target) {
   const [remaining, setRemaining] = useState('');
@@ -119,25 +116,10 @@ function SpecsGrid({ specs, upc }) {
   );
 }
 
-export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
+export default function ProductCard({ product, onCheck, onDelete }) {
   const [checking, setChecking] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
-  const [ebay, setEbay] = useState(null);
-  const [ebayLoading, setEbayLoading] = useState(true);
   const { _id, title, url, currency, current, lowest, history } = product;
-
-  useEffect(() => {
-    const q = product.upc || title;
-    if (!q) return;
-    const delay = index * 1200; // 1.2s between each card to avoid rate limits
-    const timer = setTimeout(() => {
-      axios.get(`${API}/api/ebay/sold`, { params: { q } })
-        .then(({ data }) => { if (data.count > 0) setEbay(data); })
-        .catch(() => {})
-        .finally(() => setEbayLoading(false));
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [_id]);
 
   const countdown = useCountdown(product.nextCheck);
   const isAtLowest = current <= lowest;
@@ -229,28 +211,6 @@ export default function ProductCard({ product, index = 0, onCheck, onDelete }) {
           ✕
         </button>
       </div>
-
-      {/* ── eBay Profit Strip ── */}
-      {ebayLoading && !ebay && (
-        <div className="w-full border-t border-gray-100 pt-2 mt-1">
-          <span className="text-[10px] text-gray-300">fetching eBay sold price…</span>
-        </div>
-      )}
-      {ebay && (() => {
-        const profit = ebay.avg - current;
-        const pct = Math.round((profit / current) * 100);
-        const pos = profit > 0;
-        return (
-          <div className="w-full border-t border-gray-100 pt-2 mt-1 flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">eBay sold</span>
-            <span className="text-xs font-bold text-gray-700">{currency}{ebay.avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${pos ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-500'}`}>
-              {pos ? '+' : ''}{currency}{profit.toFixed(2)} ({pos ? '+' : ''}{pct}%)
-            </span>
-            <span className="text-[10px] text-gray-300">{ebay.count} recent sales</span>
-          </div>
-        );
-      })()}
 
       {/* ── Amazon Specs Panel ── */}
       {showSpecs && (
