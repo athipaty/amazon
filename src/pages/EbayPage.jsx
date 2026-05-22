@@ -36,7 +36,9 @@ function EbayCard({ item }) {
   );
 }
 
-function MyListingCard({ item, onPriceUpdate }) {
+// item: { listingId, offerId?, title, image, price, currency, quantity?, sku?, url }
+// onSavePrice: async (price) => void — throws on failure so the card can show the error
+function MyListingCard({ item, onSavePrice }) {
   const sym = item.currency === 'GBP' ? '£' : item.currency === 'EUR' ? '€' : '$';
   const [editing, setEditing] = useState(false);
   const [newPrice, setNewPrice] = useState('');
@@ -48,8 +50,7 @@ function MyListingCard({ item, onPriceUpdate }) {
     if (!p || p <= 0) return;
     setSaving(true); setErr('');
     try {
-      await axios.patch(`${API}/api/ebay/offer/${item.offerId}/price`, { price: p });
-      onPriceUpdate(item.offerId, p);
+      await onSavePrice(p);
       setEditing(false);
     } catch (e) {
       setErr(e.response?.data?.error || e.message || 'Failed to update price');
@@ -84,7 +85,10 @@ function MyListingCard({ item, onPriceUpdate }) {
               placeholder={item.price.toFixed(2)}
               className="flex-1 min-w-0 px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:border-red-400"
               autoFocus
-              onKeyDown={e => { if (e.key === 'Enter') savePrice(); if (e.key === 'Escape') { setEditing(false); setErr(''); } }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') savePrice();
+                if (e.key === 'Escape') { setEditing(false); setErr(''); }
+              }}
             />
           </div>
           {err && <p className="text-xs text-red-500 leading-tight">{err}</p>}
@@ -108,7 +112,9 @@ function MyListingCard({ item, onPriceUpdate }) {
       ) : (
         <div className="flex items-baseline gap-2 mt-1">
           <span className="text-2xl font-black text-gray-900">{sym}{item.price.toLocaleString()}</span>
-          <span className="text-xs text-gray-400">×{item.quantity} in stock</span>
+          {item.quantity != null && (
+            <span className="text-xs text-gray-400">×{item.quantity} in stock</span>
+          )}
           <button
             onClick={() => { setNewPrice(item.price.toFixed(2)); setEditing(true); setErr(''); }}
             className="ml-auto text-xs text-gray-400 hover:text-gray-700 transition-colors px-1"
@@ -119,73 +125,14 @@ function MyListingCard({ item, onPriceUpdate }) {
         </div>
       )}
 
-      <span className="text-xs text-gray-400 font-mono truncate" title={item.sku}>SKU: {item.sku}</span>
+      {item.sku && (
+        <span className="text-xs text-gray-400 font-mono truncate" title={item.sku}>SKU: {item.sku}</span>
+      )}
       {item.url && (
         <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-auto text-xs font-semibold text-[#e53238] hover:underline">
           View listing →
         </a>
       )}
-    </div>
-  );
-}
-
-// ── Update price by Listing ID (for manually created listings) ─────
-
-function UpdatePriceForm() {
-  const [listingId, setListingId] = useState('');
-  const [price, setPrice] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!listingId.trim() || !price || parseFloat(price) <= 0) return;
-    setSaving(true); setMsg(''); setErr('');
-    try {
-      await axios.post(`${API}/api/ebay/listing/price`, {
-        listingId: listingId.trim(),
-        price: parseFloat(price),
-      });
-      setMsg('Price updated successfully!');
-      setPrice('');
-    } catch (e) {
-      setErr(e.response?.data?.error || e.message || 'Failed to update price');
-    } finally { setSaving(false); }
-  }
-
-  return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
-      <p className="text-sm font-semibold text-gray-700 mb-3">Update Price by Listing ID</p>
-      <form className="flex gap-2 flex-wrap" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Listing ID (e.g. 123456789012)"
-          value={listingId}
-          onChange={e => setListingId(e.target.value)}
-          disabled={saving}
-          className="flex-1 min-w-40 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-colors disabled:bg-gray-100"
-        />
-        <input
-          type="number"
-          step="0.01"
-          min="0.01"
-          placeholder="New price (USD)"
-          value={price}
-          onChange={e => setPrice(e.target.value)}
-          disabled={saving}
-          className="w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-colors disabled:bg-gray-100"
-        />
-        <button
-          type="submit"
-          disabled={saving || !listingId.trim() || !price || parseFloat(price) <= 0}
-          className="px-4 py-2 bg-[#e53238] text-white font-bold text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-        >
-          {saving ? 'Updating…' : 'Update Price'}
-        </button>
-      </form>
-      {msg && <p className="text-green-600 text-xs mt-2">{msg}</p>}
-      {err && <p className="text-red-500 text-xs mt-2">{err}</p>}
     </div>
   );
 }
@@ -291,16 +238,36 @@ function MyListingsTab() {
   useEffect(() => {
     axios.get(`${API}/api/ebay/auth/status`)
       .then(({ data }) => {
-        if (data.connected) { setPhase('loading'); fetchListings(); }
+        if (data.connected) { setPhase('loading'); fetchAll(); }
         else setPhase('disconnected');
       })
       .catch(() => setPhase('disconnected'));
   }, []);
 
-  async function fetchListings() {
+  async function fetchAll() {
     try {
-      const { data } = await axios.get(`${API}/api/ebay/my-listings`);
-      setListings(data);
+      // Fetch Inventory API listings and all Trading API listings in parallel
+      const [invRes, tradeRes] = await Promise.allSettled([
+        axios.get(`${API}/api/ebay/my-listings`),
+        axios.get(`${API}/api/ebay/all-active-listings`),
+      ]);
+
+      if (invRes.status === 'rejected' && invRes.reason?.response?.status === 401) {
+        setPhase('disconnected'); return;
+      }
+
+      const invListings = invRes.status === 'fulfilled' ? (invRes.value.data || []) : [];
+      const tradeListings = tradeRes.status === 'fulfilled' ? (tradeRes.value.data || []) : [];
+
+      // Merge: Inventory API listings have offerId + listingId.
+      // Trading API listings only have listingId. Skip duplicates by listingId.
+      const seenListingIds = new Set(invListings.map(l => l.listingId).filter(Boolean));
+      const merged = [
+        ...invListings,
+        ...tradeListings.filter(l => l.listingId && !seenListingIds.has(l.listingId)),
+      ];
+
+      setListings(merged);
       setPhase('loaded');
     } catch (err) {
       if (err.response?.status === 401) { setPhase('disconnected'); return; }
@@ -310,8 +277,22 @@ function MyListingsTab() {
     }
   }
 
-  function handlePriceUpdate(offerId, newPrice) {
-    setListings(prev => prev.map(l => l.offerId === offerId ? { ...l, price: newPrice } : l));
+  // Build a save-price callback for a listing.
+  // Inventory API listings (have offerId) use PATCH /offer/:offerId/price.
+  // Manually created listings (no offerId) use POST /listing/price via Trading API.
+  function makeSavePrice(item) {
+    return async (price) => {
+      if (item.offerId) {
+        await axios.patch(`${API}/api/ebay/offer/${item.offerId}/price`, { price });
+      } else {
+        await axios.post(`${API}/api/ebay/listing/price`, { listingId: item.listingId, price });
+      }
+      setListings(prev => prev.map(l =>
+        (item.offerId ? l.offerId === item.offerId : l.listingId === item.listingId)
+          ? { ...l, price }
+          : l
+      ));
+    };
   }
 
   if (phase === 'checking' || phase === 'loading') {
@@ -342,21 +323,22 @@ function MyListingsTab() {
     return <p className="text-red-500 text-sm mt-4">{error}</p>;
   }
 
+  if (listings.length === 0) {
+    return <p className="text-center text-gray-400 mt-16">No active listings found.</p>;
+  }
+
   return (
     <>
-      <UpdatePriceForm />
-      {listings.length === 0 ? (
-        <p className="text-center text-gray-400 mt-8">No active listings found via Inventory API.</p>
-      ) : (
-        <>
-          <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-            {listings.map(item => (
-              <MyListingCard key={item.offerId} item={item} onPriceUpdate={handlePriceUpdate} />
-            ))}
-          </div>
-        </>
-      )}
+      <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+        {listings.map(item => (
+          <MyListingCard
+            key={item.offerId || item.listingId}
+            item={item}
+            onSavePrice={makeSavePrice(item)}
+          />
+        ))}
+      </div>
     </>
   );
 }
