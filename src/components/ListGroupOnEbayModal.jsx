@@ -4,11 +4,11 @@ import axios from 'axios';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const CONDITIONS = [
-  { value: 'NEW',        label: 'New' },
-  { value: 'LIKE_NEW',   label: 'Like New' },
-  { value: 'VERY_GOOD',  label: 'Very Good' },
-  { value: 'GOOD',       label: 'Good' },
-  { value: 'ACCEPTABLE', label: 'Acceptable' },
+  { value: 'NEW',             label: 'New' },
+  { value: 'LIKE_NEW',        label: 'Like New' },
+  { value: 'USED_VERY_GOOD',  label: 'Used – Very Good' },
+  { value: 'USED_GOOD',       label: 'Used – Good' },
+  { value: 'USED_ACCEPTABLE', label: 'Used – Acceptable' },
 ];
 
 const CARRIERS = [
