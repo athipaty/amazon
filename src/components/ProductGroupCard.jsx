@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -49,6 +49,28 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [savingEbay, setSavingEbay] = useState(false);
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
+
+  const [ebayLivePrices, setEbayLivePrices] = useState(null); // { base, variations }
+
+  useEffect(() => {
+    if (!groupEbayId) { setEbayLivePrices(null); return; }
+    fetch(`${API}/api/ebay/listing/${groupEbayId}/prices`)
+      .then(r => r.json())
+      .then(d => setEbayLivePrices(d))
+      .catch(() => {});
+  }, [groupEbayId]);
+
+  function getLivePrice(variantLabel) {
+    if (!ebayLivePrices) return null;
+    const label = variantLabel.toLowerCase();
+    if (ebayLivePrices.variations?.length) {
+      const match = ebayLivePrices.variations.find(v =>
+        Object.values(v.specs).some(val => val === label || label.includes(val) || val.includes(label))
+      );
+      if (match) return match.price;
+    }
+    return ebayLivePrices.base || null;
+  }
 
   async function saveEbayListing() {
     setSavingEbay(true);
@@ -133,6 +155,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               <span className={`font-mono text-[10px] ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-400'}`}>
                 {v.currency}{(Math.floor(v.current * 1.45) + 0.99).toFixed(2)}
               </span>
+              {(() => {
+                const live = getLivePrice(v.variant || label);
+                if (live == null) return null;
+                return (
+                  <span className="font-mono text-[10px] text-blue-400" title="Current eBay price">
+                    eBay {v.currency}{live.toFixed(2)}
+                  </span>
+                );
+              })()}
             </button>
           );
         })}
