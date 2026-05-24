@@ -118,16 +118,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               key={v._id}
               onClick={() => setActiveIdx(i)}
               title={label}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs transition-colors ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg border text-xs transition-colors ${
                 i === activeIdx
                   ? 'border-[#e53238] bg-[#e53238]/8 text-[#e53238] font-semibold'
                   : 'border-gray-200 text-gray-600 hover:border-gray-400'
               }`}
             >
-              {v.image && (
-                <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />
-              )}
-              <span className="max-w-[100px] truncate">{label}</span>
+              <div className="flex items-center gap-1.5">
+                {v.image && (
+                  <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />
+                )}
+                <span className="max-w-[100px] truncate">{label}</span>
+              </div>
+              <span className={`font-mono text-[10px] ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-400'}`}>
+                {v.currency}{(Math.floor(v.current * 1.45) + 0.99).toFixed(2)}
+              </span>
             </button>
           );
         })}
