@@ -244,7 +244,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate }) {
           </div>
         ) : (
           <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
-            className="text-xs text-gray-300 hover:text-gray-500 whitespace-nowrap" title="Link your eBay listing">
+            className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
             + My Listing
           </button>
         )}
