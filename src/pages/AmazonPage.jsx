@@ -270,7 +270,7 @@ export default function AmazonPage() {
         <div className="flex flex-col gap-2">
           {renderItems.map((item, i) =>
             item.type === 'group'
-              ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} />
+              ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} />
               : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} />
           )}
         </div>

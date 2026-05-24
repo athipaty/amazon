@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 function PriceHistory({ history, currency }) {
   if (!history?.length) return null;
   const recent = [...history].reverse().slice(0, 3);
@@ -39,9 +41,31 @@ function fmtVal(v) {
   return String(v);
 }
 
-export default function ProductGroupCard({ variants, onCheck, onDelete }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [showSpecs, setShowSpecs] = useState(false);
+  const [editingEbay, setEditingEbay] = useState(false);
+  const [ebayInput, setEbayInput] = useState('');
+  const [savingEbay, setSavingEbay] = useState(false);
+
+  const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
+
+  async function saveEbayListing() {
+    setSavingEbay(true);
+    try {
+      const id = ebayInput.trim().replace(/.*\/itm\/(\d+).*/,'$1');
+      for (const v of variants) {
+        const res = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ebayListingId: id || null }),
+        });
+        const updated = await res.json();
+        onUpdate?.(updated);
+      }
+      setEditingEbay(false);
+    } finally { setSavingEbay(false); }
+  }
 
   const active = variants[activeIdx];
   const prices = variants.map(v => v.current).filter(Boolean);
@@ -140,6 +164,38 @@ export default function ProductGroupCard({ variants, onCheck, onDelete }) {
           className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
           eBay →
         </a>
+        {editingEbay ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Listing ID or URL"
+              value={ebayInput}
+              onChange={e => setEbayInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
+              className="w-36 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
+              disabled={savingEbay}
+            />
+            <button onClick={saveEbayListing} disabled={savingEbay}
+              className="text-xs text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
+            <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
+              className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+        ) : groupEbayId ? (
+          <div className="flex items-center gap-1">
+            <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
+              className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
+              My Listing →
+            </a>
+            <button onClick={() => { setEbayInput(groupEbayId); setEditingEbay(true); }}
+              className="text-gray-300 hover:text-gray-500 text-[10px]" title="Edit eBay listing">✏️</button>
+          </div>
+        ) : (
+          <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
+            className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
+            + My Listing
+          </button>
+        )}
         <button
           onClick={async () => { for (const v of variants) await onCheck(v._id); }}
           className="text-sm text-gray-400 hover:text-gray-600 transition-colors" title="Check all variants">
