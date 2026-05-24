@@ -126,6 +126,10 @@ export default function AmazonPage() {
     setProducts(prev => prev.filter(p => p._id !== id));
   }
 
+  function handleUpdate(updated) {
+    setProducts(prev => prev.map(p => p._id === updated._id ? updated : p));
+  }
+
   async function handleCheckOne(id) {
     try {
       const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
@@ -267,7 +271,7 @@ export default function AmazonPage() {
           {renderItems.map((item, i) =>
             item.type === 'group'
               ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} />
-              : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} />
+              : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} />
           )}
         </div>
       )}
