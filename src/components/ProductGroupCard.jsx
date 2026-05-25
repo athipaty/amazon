@@ -35,12 +35,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [editingEbay, setEditingEbay] = useState(false);
   const [ebayInput, setEbayInput] = useState('');
   const [savingEbay, setSavingEbay] = useState(false);
+  const [refreshingIds, setRefreshingIds] = useState(new Set());
+  const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null); // null | 'ok' | 'fail'
 
   async function fetchEbayPrices() {
     if (!groupEbayId) return;
@@ -55,18 +55,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     fetchEbayPrices();
   }, [groupEbayId]);
 
-  async function handleCheckAll() {
-    setSyncing(true);
-    setSyncResult(null);
+  async function handleCheckOne(id) {
+    setRefreshingIds(prev => new Set(prev).add(id));
+    setRefreshResults(prev => { const n = { ...prev }; delete n[id]; return n; });
     try {
-      for (const v of variants) await onCheck(v._id);
+      await onCheck(id);
       await fetchEbayPrices();
-      setSyncResult('ok');
+      setRefreshResults(prev => ({ ...prev, [id]: 'ok' }));
     } catch {
-      setSyncResult('fail');
+      setRefreshResults(prev => ({ ...prev, [id]: 'fail' }));
     } finally {
-      setSyncing(false);
-      setTimeout(() => setSyncResult(null), 5000);
+      setRefreshingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+      setTimeout(() => setRefreshResults(prev => { const n = { ...prev }; delete n[id]; return n; }), 4000);
     }
   }
 
@@ -157,14 +157,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           const calcPrice = Math.floor(v.current * 1.45) + 0.99;
           const livePrice = getLivePrice(v.variant || label);
           const synced = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;
+          const isRefreshing = refreshingIds.has(v._id);
+          const result = refreshResults[v._id];
+          const isActive = i === activeIdx;
 
           return (
-            <button
+            <div
               key={v._id}
               onClick={() => setActiveIdx(i)}
               title={label}
-              className={`flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg border text-xs transition-colors min-w-[80px] ${
-                i === activeIdx
+              className={`flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg border text-xs transition-colors min-w-[80px] cursor-pointer ${
+                isActive
                   ? 'border-[#e53238] bg-[#fff5f5]'
                   : 'border-gray-200 hover:border-gray-400'
               }`}
@@ -173,7 +176,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 <img src={v.image} alt={label} className="w-8 h-8 object-contain rounded self-center mb-0.5 flex-shrink-0" />
               )}
               {/* Line 1: color name */}
-              <span className={`font-medium truncate max-w-[90px] ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-700'}`}>
+              <span className={`font-medium truncate max-w-[90px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
                 {label}
               </span>
               {/* Line 2: Amazon price */}
@@ -181,11 +184,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 Amazon {v.currency}{v.current.toFixed(2)}
               </span>
               {/* Line 3: calculated eBay price */}
-              <span className={`text-[10px] font-mono font-semibold ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-600'}`}>
+              <span className={`text-[10px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>
                 Calc {v.currency}{calcPrice.toFixed(2)}
               </span>
               {/* Line 4: live eBay price + match indicator */}
-              {syncing ? (
+              {isRefreshing ? (
                 <span className="text-[10px] font-mono text-yellow-500">eBay syncing…</span>
               ) : livePrice != null ? (
                 <span className={`text-[10px] font-mono flex items-center gap-0.5 ${synced ? 'text-green-600' : 'text-red-500'}`}>
@@ -198,7 +201,27 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   ⏱ {countdowns[i] || 'soon'}
                 </span>
               )}
-            </button>
+              {/* Refresh button for this variant only */}
+              <button
+                onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
+                disabled={isRefreshing}
+                title={`Refresh ${label}`}
+                className={`mt-1 self-stretch flex items-center justify-center gap-1 rounded text-[10px] py-0.5 transition-all ${
+                  isRefreshing
+                    ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
+                    : result === 'ok'
+                    ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                    : result === 'fail'
+                    ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+                }`}
+              >
+                <span className={isRefreshing ? 'animate-spin inline-block' : ''}>🔄</span>
+                <span>
+                  {isRefreshing ? 'Checking…' : result === 'ok' ? 'Updated ✓' : result === 'fail' ? 'Failed ✗' : 'Refresh'}
+                </span>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -246,25 +269,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
             + My Listing
           </button>
-        )}
-        <button
-          onClick={handleCheckAll}
-          disabled={syncing}
-          className={`flex items-center gap-1 text-xs transition-colors active:scale-95 ${
-            syncing
-              ? 'text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 cursor-not-allowed'
-              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded px-2 py-0.5'
-          }`}
-          title="Check all variants now"
-        >
-          <span className={syncing ? 'animate-spin inline-block' : ''}>🔄</span>
-          <span>{syncing ? 'Syncing…' : 'Refresh'}</span>
-        </button>
-        {syncResult === 'ok' && (
-          <span className="text-xs text-green-600 font-medium">eBay updated ✓</span>
-        )}
-        {syncResult === 'fail' && (
-          <span className="text-xs text-red-500 font-medium">Sync failed ✗</span>
         )}
         <button onClick={() => setShowSpecs(s => !s)}
           className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
