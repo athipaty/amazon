@@ -64,15 +64,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const updated = await onCheck(id);
       if (updated?.current != null && groupEbayId) {
         const newCalcPrice = Math.floor(updated.current * 1.45) + 0.99;
+        const variantLabel = variants.find(v => v._id === id)?.variant || '';
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listingId: groupEbayId, price: newCalcPrice }),
+          body: JSON.stringify({ listingId: groupEbayId, price: newCalcPrice, variantLabel }),
         });
         if (r.ok) {
           setEbayPushResults(prev => ({ ...prev, [id]: 'ok' }));
-          // eBay's Trading API has propagation delay — update state optimistically
-          const variantLabel = (variants.find(v => v._id === id)?.variant || '').toLowerCase();
+          // eBay has propagation delay — update display state optimistically
+          const label = variantLabel.toLowerCase();
           setEbayLivePrices(prev => {
             if (!prev) return prev;
             if (prev.variations?.length) {
@@ -80,7 +81,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 ...prev,
                 variations: prev.variations.map(v => {
                   const hit = Object.values(v.specs).some(val =>
-                    val === variantLabel || variantLabel.includes(val) || val.includes(variantLabel)
+                    val === label || label.includes(val) || val.includes(label)
                   );
                   return hit ? { ...v, price: newCalcPrice } : v;
                 }),
