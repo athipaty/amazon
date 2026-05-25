@@ -39,14 +39,36 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null); // null | 'ok' | 'fail'
+
+  async function fetchEbayPrices() {
+    if (!groupEbayId) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listing/${groupEbayId}/prices`);
+      const d = await r.json();
+      setEbayLivePrices(d);
+    } catch {}
+  }
 
   useEffect(() => {
-    if (!groupEbayId) { setEbayLivePrices(null); return; }
-    fetch(`${API}/api/ebay/listing/${groupEbayId}/prices`)
-      .then(r => r.json())
-      .then(d => setEbayLivePrices(d))
-      .catch(() => {});
+    fetchEbayPrices();
   }, [groupEbayId]);
+
+  async function handleCheckAll() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      for (const v of variants) await onCheck(v._id);
+      await fetchEbayPrices();
+      setSyncResult('ok');
+    } catch {
+      setSyncResult('fail');
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncResult(null), 5000);
+    }
+  }
 
   function getLivePrice(variantLabel) {
     if (!ebayLivePrices) return null;
@@ -163,11 +185,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 Calc {v.currency}{calcPrice.toFixed(2)}
               </span>
               {/* Line 4: live eBay price + match indicator */}
-              {livePrice != null && (
+              {syncing ? (
+                <span className="text-[10px] font-mono text-yellow-500">eBay syncing…</span>
+              ) : livePrice != null ? (
                 <span className={`text-[10px] font-mono flex items-center gap-0.5 ${synced ? 'text-green-600' : 'text-red-500'}`}>
                   eBay {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
                 </span>
-              )}
+              ) : null}
               {/* Line 5: next check countdown */}
               {v.nextCheck && (
                 <span className="text-[10px] text-gray-500 font-mono">
@@ -224,10 +248,20 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           </button>
         )}
         <button
-          onClick={async () => { for (const v of variants) await onCheck(v._id); }}
-          className="text-sm text-gray-400 hover:text-gray-600 transition-colors" title="Check all variants">
-          🔄
+          onClick={handleCheckAll}
+          disabled={syncing}
+          className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40"
+          title="Check all variants now"
+        >
+          <span className={syncing ? 'animate-spin inline-block' : ''}>🔄</span>
+          {syncing && <span className="text-gray-500">Syncing…</span>}
         </button>
+        {syncResult === 'ok' && (
+          <span className="text-xs text-green-600 font-medium">eBay updated ✓</span>
+        )}
+        {syncResult === 'fail' && (
+          <span className="text-xs text-red-500 font-medium">Sync failed ✗</span>
+        )}
         <button onClick={() => setShowSpecs(s => !s)}
           className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
           {showSpecs ? '▲ specs' : '▼ specs'}
