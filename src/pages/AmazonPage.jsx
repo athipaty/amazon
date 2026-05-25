@@ -152,8 +152,10 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
       setProducts(prev => prev.map(p => p._id === id ? data : p));
+      return data;
     } catch (err) {
       alert(err.response?.data?.error || err.message || 'Check failed');
+      throw err;
     }
   }
 

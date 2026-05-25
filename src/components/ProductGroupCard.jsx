@@ -59,7 +59,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setRefreshingIds(prev => new Set(prev).add(id));
     setRefreshResults(prev => { const n = { ...prev }; delete n[id]; return n; });
     try {
-      await onCheck(id);
+      const updated = await onCheck(id);
+      // Push new calculated price to the eBay listing
+      if (updated?.current != null && groupEbayId) {
+        const newCalcPrice = Math.floor(updated.current * 1.45) + 0.99;
+        await fetch(`${API}/api/ebay/listing/price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: groupEbayId, price: newCalcPrice }),
+        });
+      }
       await fetchEbayPrices();
       setRefreshResults(prev => ({ ...prev, [id]: 'ok' }));
     } catch {
