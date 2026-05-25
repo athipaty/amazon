@@ -1,8 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+function extractItemId(url) {
+  if (!url) return null;
+  const m = url.match(/\/itm\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+function findMatchedTracker(item, candidates) {
+  if (!candidates?.length) return null;
+  if (candidates.length === 1) return candidates[0];
+  const sku = (item.sku || '').toLowerCase();
+  const title = (item.title || '').toLowerCase();
+  return (
+    candidates.find(p => {
+      const v = (p.variant || '').toLowerCase();
+      return v && (sku.includes(v) || title.includes(v));
+    }) || candidates[0]
+  );
+}
 
 // ── Cards ──────────────────────────────────────────────────────────
 
@@ -36,12 +55,18 @@ function EbayCard({ item }) {
   );
 }
 
-function MyListingCard({ item, onPriceUpdate }) {
+function MyListingCard({ item, matchedTracker, onFix, onPriceUpdate }) {
   const sym = item.currency === 'GBP' ? '£' : item.currency === 'EUR' ? '€' : '$';
   const [editing, setEditing] = useState(false);
   const [newPrice, setNewPrice] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+
+  const calcPrice = matchedTracker != null
+    ? Math.floor(matchedTracker.current * 1.45) + 0.99
+    : null;
+  const isMismatched = calcPrice != null && Math.abs(item.price - calcPrice) >= 0.02;
+  const itemId = extractItemId(item.url);
 
   async function savePrice() {
     const p = parseFloat(newPrice);
@@ -57,7 +82,7 @@ function MyListingCard({ item, onPriceUpdate }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-2 hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-xl border p-4 flex flex-col gap-2 hover:shadow-md transition-shadow ${isMismatched ? 'border-orange-300' : 'border-gray-200'}`}>
       {item.image ? (
         <img src={item.image} alt={item.title} className="w-full h-36 object-contain rounded-lg bg-gray-50" />
       ) : (
@@ -110,6 +135,17 @@ function MyListingCard({ item, onPriceUpdate }) {
           >✏️</button>
         </div>
       )}
+      {isMismatched && !editing && (
+        <div className="flex items-center justify-between gap-2 bg-orange-50 border border-orange-200 rounded-lg px-2.5 py-1.5 text-xs">
+          <span className="text-orange-700">Expected: <span className="font-bold">{sym}{calcPrice.toFixed(2)}</span></span>
+          <button
+            onClick={() => itemId && onFix({ listingId: itemId, price: calcPrice, variantLabel: matchedTracker.variant || '' })}
+            className="font-semibold text-orange-700 hover:text-orange-900 whitespace-nowrap"
+          >
+            Fix →
+          </button>
+        </div>
+      )}
       <span className="text-xs text-gray-400 font-mono truncate" title={item.sku}>SKU: {item.sku}</span>
       {item.url && (
         <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-auto text-xs font-semibold text-[#e53238] hover:underline">
@@ -122,12 +158,24 @@ function MyListingCard({ item, onPriceUpdate }) {
 
 // ── Update price for any listing by ID ─────────────────────────────
 
-function UpdatePriceForm() {
+function UpdatePriceForm({ prefill, onPrefillUsed }) {
   const [listingId, setListingId] = useState('');
+  const [variantLabel, setVariantLabel] = useState('');
   const [price, setPrice] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (!prefill) return;
+    setListingId(prefill.listingId || '');
+    setVariantLabel(prefill.variantLabel || '');
+    setPrice(prefill.price != null ? prefill.price.toFixed(2) : '');
+    setMsg('');
+    setErr('');
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [prefill]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -137,18 +185,20 @@ function UpdatePriceForm() {
       await axios.post(`${API}/api/ebay/listing/price`, {
         listingId: listingId.trim(),
         price: parseFloat(price),
+        ...(variantLabel.trim() ? { variantLabel: variantLabel.trim() } : {}),
       });
       setMsg('Price updated!');
       setPrice('');
+      onPrefillUsed?.();
     } catch (e) {
       setErr(e.response?.data?.error || e.message || 'Failed');
     } finally { setSaving(false); }
   }
 
   return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
+    <div ref={formRef} className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
       <p className="text-sm font-semibold text-gray-700 mb-1">Update Price by Listing ID</p>
-      <p className="text-xs text-gray-400 mb-3">For listings created manually in eBay Seller Hub. Find the ID in the listing URL (e.g. ebay.com/itm/<strong>123456789</strong>).</p>
+      <p className="text-xs text-gray-400 mb-3">Click <strong>Fix →</strong> on a highlighted card to auto-fill, or enter manually. Listing ID is found in the URL (e.g. ebay.com/itm/<strong>123456789</strong>).</p>
       <form className="flex gap-2 flex-wrap" onSubmit={handleSubmit}>
         <input
           type="text"
@@ -157,6 +207,14 @@ function UpdatePriceForm() {
           onChange={e => setListingId(e.target.value)}
           disabled={saving}
           className="flex-1 min-w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-colors disabled:bg-gray-100"
+        />
+        <input
+          type="text"
+          placeholder="Color / variant (optional)"
+          value={variantLabel}
+          onChange={e => setVariantLabel(e.target.value)}
+          disabled={saving}
+          className="w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-colors disabled:bg-gray-100"
         />
         <input
           type="number" step="0.01" min="0.01"
@@ -277,8 +335,21 @@ function MyListingsTab() {
   const [phase, setPhase] = useState('checking'); // checking | disconnected | loading | loaded | error
   const [listings, setListings] = useState([]);
   const [error, setError] = useState('');
+  const [prefill, setPrefill] = useState(null);
+  const [itemIdMap, setItemIdMap] = useState({});
 
   useEffect(() => {
+    axios.get(`${API}/api/tracker`).then(({ data }) => {
+      const map = {};
+      for (const p of data) {
+        if (p.ebayListingId) {
+          if (!map[p.ebayListingId]) map[p.ebayListingId] = [];
+          map[p.ebayListingId].push(p);
+        }
+      }
+      setItemIdMap(map);
+    }).catch(() => {});
+
     axios.get(`${API}/api/ebay/auth/status`)
       .then(({ data }) => {
         if (data.connected) { setPhase('loading'); fetchListings(); }
@@ -334,16 +405,27 @@ function MyListingsTab() {
 
   return (
     <>
-      <UpdatePriceForm />
+      <UpdatePriceForm prefill={prefill} onPrefillUsed={() => setPrefill(null)} />
       {listings.length === 0 ? (
         <p className="text-center text-gray-400 mt-8">No active listings found via Inventory API.</p>
       ) : (
         <>
           <p className="text-sm text-gray-400 mb-5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-            {listings.map(item => (
-              <MyListingCard key={item.offerId} item={item} onPriceUpdate={handlePriceUpdate} />
-            ))}
+            {listings.map(item => {
+              const itemId = extractItemId(item.url);
+              const candidates = itemId ? (itemIdMap[itemId] || []) : [];
+              const matchedTracker = findMatchedTracker(item, candidates);
+              return (
+                <MyListingCard
+                  key={item.offerId}
+                  item={item}
+                  matchedTracker={matchedTracker}
+                  onFix={setPrefill}
+                  onPriceUpdate={handlePriceUpdate}
+                />
+              );
+            })}
           </div>
         </>
       )}
