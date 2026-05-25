@@ -29,7 +29,7 @@ function fmtVal(v) {
   return String(v);
 }
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [showSpecs, setShowSpecs] = useState(false);
   const [editingEbay, setEditingEbay] = useState(false);
@@ -37,6 +37,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [savingEbay, setSavingEbay] = useState(false);
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
+  const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
 
   useEffect(() => {
@@ -119,6 +120,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <button onClick={confirmDeleteAll} title="Stop tracking all variants"
           className="text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">✕</button>
       </div>
+
+      {/* ── eBay sync failure warning ── */}
+      {anySyncFailed && (
+        <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
+          <span>⚠️</span> eBay price sync failed — check your listing or reconnect eBay.
+        </div>
+      )}
 
       {/* ── Variant swatches ── */}
       <div className="flex flex-wrap gap-2">

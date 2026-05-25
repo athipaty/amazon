@@ -118,7 +118,7 @@ function SpecsGrid({ specs, upc }) {
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductCard({ product, onCheck, onDelete, onUpdate }) {
+export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebayFailed }) {
   const [checking, setChecking] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [editingEbay, setEditingEbay] = useState(false);
@@ -202,6 +202,13 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate }) {
       {/* ── Countdown — mobile only ── */}
       {product.nextCheck && (
         <p className="lg:hidden text-xs text-gray-300 font-mono">Next: {countdown || 'soon'}</p>
+      )}
+
+      {/* ── eBay sync failure warning ── */}
+      {ebayFailed && (
+        <div className="w-full flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
+          <span>⚠️</span> eBay price sync failed — check your listing or reconnect eBay.
+        </div>
       )}
 
       {/* ── Action buttons ── */}

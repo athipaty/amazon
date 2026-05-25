@@ -18,10 +18,13 @@ export default function AmazonPage() {
   const [addingVariants, setAddingVariants] = useState(false);
   const [addProgress, setAddProgress] = useState('');
   const [previewGroupId, setPreviewGroupId] = useState(null);
+  const [ebayConnected, setEbayConnected] = useState(true);
+  const [ebayFailedIds, setEbayFailedIds] = useState(new Set());
   const socketRef = useRef(null);
 
   useEffect(() => {
     loadProducts();
+    checkEbayStatus();
 
     socketRef.current = io(API);
     const socket = socketRef.current;
@@ -41,9 +44,24 @@ export default function AmazonPage() {
       setProducts(prev => prev.map(p => p._id === product._id ? product : p));
     });
 
+    socket.on('tracker:ebay:sync:fail', ({ productId }) => {
+      setEbayFailedIds(prev => new Set([...prev, productId]));
+    });
+
+    socket.on('tracker:ebay:sync:ok', ({ productId }) => {
+      setEbayFailedIds(prev => { const next = new Set(prev); next.delete(productId); return next; });
+    });
+
     const poll = setInterval(loadProducts, 30000);
     return () => { socket.disconnect(); clearInterval(poll); };
   }, []);
+
+  async function checkEbayStatus() {
+    try {
+      const { data } = await axios.get(`${API}/api/ebay/auth/status`);
+      setEbayConnected(data.connected === true);
+    } catch { setEbayConnected(false); }
+  }
 
   async function loadProducts() {
     try {
@@ -253,6 +271,14 @@ export default function AmazonPage() {
         </div>
       )}
 
+      {!ebayConnected && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-red-700">
+          <span className="flex-shrink-0">⚠️</span>
+          eBay token expired — prices won't sync until you
+          <a href={`${API}/api/ebay/auth/login`} className="underline font-semibold ml-1">reconnect eBay</a>.
+        </div>
+      )}
+
       {statusMsg && (
         <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-yellow-800">
           <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0 animate-pulse" />
@@ -270,8 +296,8 @@ export default function AmazonPage() {
         <div className="flex flex-col gap-2">
           {renderItems.map((item, i) =>
             item.type === 'group'
-              ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} />
-              : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} />
+              ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} />
+              : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(item.product._id))} />
           )}
         </div>
       )}
