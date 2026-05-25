@@ -35,6 +35,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [editingEbay, setEditingEbay] = useState(false);
   const [ebayInput, setEbayInput] = useState('');
   const [savingEbay, setSavingEbay] = useState(false);
+  const [myListings, setMyListings] = useState([]);
   const [refreshingIds, setRefreshingIds] = useState(new Set());
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
   const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
@@ -116,6 +117,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       if (match) return match.price;
     }
     return ebayLivePrices.base || null;
+  }
+
+  async function openEbayEdit(prefill) {
+    setEbayInput(prefill || '');
+    setEditingEbay(true);
+    try {
+      const r = await fetch(`${API}/api/ebay/all-active-listings`);
+      const data = await r.json();
+      setMyListings(Array.isArray(data) ? data : []);
+    } catch { setMyListings([]); }
   }
 
   async function saveEbayListing() {
@@ -298,21 +309,38 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           eBay →
         </a>
         {editingEbay ? (
-          <div className="flex items-center gap-1">
-            <input
-              autoFocus
-              type="text"
-              placeholder="Listing ID or URL"
-              value={ebayInput}
-              onChange={e => setEbayInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
-              className="w-36 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
-              disabled={savingEbay}
-            />
-            <button onClick={saveEbayListing} disabled={savingEbay}
-              className="text-xs text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
-            <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-              className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+          <div className="flex flex-col gap-1 min-w-0">
+            {myListings.length > 0 && (
+              <select
+                autoFocus
+                className="w-48 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238] bg-white"
+                value={ebayInput}
+                onChange={e => setEbayInput(e.target.value)}
+                disabled={savingEbay}
+              >
+                <option value="">— pick a listing —</option>
+                {myListings.map(l => (
+                  <option key={l.listingId} value={l.listingId}>
+                    {l.listingId} · {(l.title || '').slice(0, 40)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                placeholder="or paste ID / URL"
+                value={ebayInput}
+                onChange={e => setEbayInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
+                className="w-48 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
+                disabled={savingEbay}
+              />
+              <button onClick={saveEbayListing} disabled={savingEbay}
+                className="text-xs text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
+              <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
+                className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+            </div>
           </div>
         ) : groupEbayId ? (
           <div className="flex items-center gap-1">
@@ -320,11 +348,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
               My Listing →
             </a>
-            <button onClick={() => { setEbayInput(groupEbayId); setEditingEbay(true); }}
+            <button onClick={() => openEbayEdit(groupEbayId)}
               className="text-gray-300 hover:text-gray-500 text-[10px]" title="Edit eBay listing">✏️</button>
           </div>
         ) : (
-          <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
+          <button onClick={() => openEbayEdit('')}
             className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
             + My Listing
           </button>
