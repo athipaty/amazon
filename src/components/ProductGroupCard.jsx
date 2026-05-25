@@ -250,11 +250,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <button
           onClick={handleCheckAll}
           disabled={syncing}
-          className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40"
+          className={`flex items-center gap-1 text-xs transition-colors active:scale-95 ${
+            syncing
+              ? 'text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 cursor-not-allowed'
+              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded px-2 py-0.5'
+          }`}
           title="Check all variants now"
         >
           <span className={syncing ? 'animate-spin inline-block' : ''}>🔄</span>
-          {syncing && <span className="text-gray-500">Syncing…</span>}
+          <span>{syncing ? 'Syncing…' : 'Refresh'}</span>
         </button>
         {syncResult === 'ok' && (
           <span className="text-xs text-green-600 font-medium">eBay updated ✓</span>
