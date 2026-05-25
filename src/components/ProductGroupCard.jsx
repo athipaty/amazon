@@ -2,6 +2,24 @@ import { useState, useEffect } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+function useCountdown(target) {
+  const [remaining, setRemaining] = useState('');
+  useEffect(() => {
+    function update() {
+      const diff = new Date(target) - new Date();
+      if (diff <= 0) { setRemaining('soon'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setRemaining(h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`);
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  return remaining;
+}
+
 const SKIP_SPEC_KEYS = new Set(['asin']);
 function fmtKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 function fmtVal(v) {
@@ -57,6 +75,19 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       setEditingEbay(false);
     } finally { setSavingEbay(false); }
   }
+
+  const countdowns = [
+    useCountdown(variants[0]?.nextCheck),
+    useCountdown(variants[1]?.nextCheck),
+    useCountdown(variants[2]?.nextCheck),
+    useCountdown(variants[3]?.nextCheck),
+    useCountdown(variants[4]?.nextCheck),
+    useCountdown(variants[5]?.nextCheck),
+    useCountdown(variants[6]?.nextCheck),
+    useCountdown(variants[7]?.nextCheck),
+    useCountdown(variants[8]?.nextCheck),
+    useCountdown(variants[9]?.nextCheck),
+  ];
 
   const active = variants[activeIdx];
 
@@ -127,6 +158,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               {livePrice != null && (
                 <span className={`text-[10px] font-mono flex items-center gap-0.5 ${synced ? 'text-green-600' : 'text-red-500'}`}>
                   eBay {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
+                </span>
+              )}
+              {/* Line 5: next check countdown */}
+              {v.nextCheck && (
+                <span className="text-[10px] text-gray-300 font-mono">
+                  ⏱ {countdowns[i] || 'soon'}
                 </span>
               )}
             </button>
