@@ -162,7 +162,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               )}
               {/* Line 5: next check countdown */}
               {v.nextCheck && (
-                <span className="text-[10px] text-gray-300 font-mono">
+                <span className="text-[10px] text-gray-500 font-mono">
                   ⏱ {countdowns[i] || 'soon'}
                 </span>
               )}
