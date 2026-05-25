@@ -2,36 +2,6 @@ import { useState, useEffect } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function PriceHistory({ history, currency }) {
-  if (!history?.length) return null;
-  const recent = [...history].reverse().slice(0, 3);
-  return (
-    <div className="flex gap-4 flex-shrink-0">
-      {recent.map((entry, i) => {
-        const older = recent[i + 1];
-        const dir = older
-          ? entry.price < older.price ? 'down'
-          : entry.price > older.price ? 'up'
-          : null : null;
-        return (
-          <div key={i} className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-0.5">
-              <span className={`font-mono text-xs font-semibold ${dir === 'down' ? 'text-green-600' : dir === 'up' ? 'text-red-500' : 'text-gray-700'}`}>
-                {currency}{entry.price.toLocaleString()}
-              </span>
-              {dir === 'down' && <span className="text-green-500 text-[10px]">↓</span>}
-              {dir === 'up' && <span className="text-red-400 text-[10px]">↑</span>}
-            </div>
-            <span className="text-[10px] text-gray-400 leading-tight">
-              {new Date(entry.createdAt).toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short' })}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 const SKIP_SPEC_KEYS = new Set(['asin']);
 function fmtKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 function fmtVal(v) {
@@ -49,8 +19,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [savingEbay, setSavingEbay] = useState(false);
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
-
-  const [ebayLivePrices, setEbayLivePrices] = useState(null); // { base, variations }
+  const [ebayLivePrices, setEbayLivePrices] = useState(null);
 
   useEffect(() => {
     if (!groupEbayId) { setEbayLivePrices(null); return; }
@@ -62,7 +31,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   function getLivePrice(variantLabel) {
     if (!ebayLivePrices) return null;
-    const label = variantLabel.toLowerCase();
+    const label = (variantLabel || '').toLowerCase();
     if (ebayLivePrices.variations?.length) {
       const match = ebayLivePrices.variations.find(v =>
         Object.values(v.specs).some(val => val === label || label.includes(val) || val.includes(label))
@@ -90,17 +59,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   }
 
   const active = variants[activeIdx];
-  const prices = variants.map(v => v.current).filter(Boolean);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const priceRange = minPrice === maxPrice
-    ? `${active.currency}${minPrice.toLocaleString()}`
-    : `${active.currency}${minPrice.toLocaleString()} – ${active.currency}${maxPrice.toLocaleString()}`;
-
-  const isAtLowest = active.current <= active.lowest;
-  const firstPrice = active.history?.[0]?.price;
-  const hasDrop = firstPrice && active.current < firstPrice;
-  const dropPct = hasDrop ? Math.round(((firstPrice - active.current) / firstPrice) * 100) : 0;
 
   function confirmDeleteAll() {
     if (window.confirm(`Stop tracking all ${variants.length} variants of "${active.title}"?`)) {
@@ -113,9 +71,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     : [];
 
   return (
-    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col gap-3 p-4 ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+    <div className="bg-white rounded-xl border border-gray-200 transition-shadow hover:shadow-sm flex flex-col gap-3 p-4">
 
-      {/* ── Group header row ── */}
+      {/* ── Group header ── */}
       <div className="flex items-start gap-3 min-w-0">
         {active.image
           ? <img src={active.image} alt={active.title} className="w-12 h-12 object-contain rounded-lg bg-gray-50 flex-shrink-0" />
@@ -132,60 +90,48 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       </div>
 
       {/* ── Variant swatches ── */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {variants.map((v, i) => {
           const label = v.variant || `Variant ${i + 1}`;
+          const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+          const livePrice = getLivePrice(v.variant || label);
+          const synced = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;
+
           return (
             <button
               key={v._id}
               onClick={() => setActiveIdx(i)}
               title={label}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg border text-xs transition-colors ${
+              className={`flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg border text-xs transition-colors min-w-[80px] ${
                 i === activeIdx
-                  ? 'border-[#e53238] bg-[#e53238]/8 text-[#e53238] font-semibold'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                  ? 'border-[#e53238] bg-[#fff5f5]'
+                  : 'border-gray-200 hover:border-gray-400'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                {v.image && (
-                  <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />
-                )}
-                <span className="max-w-[100px] truncate">{label}</span>
-              </div>
-              <span className={`font-mono text-[10px] ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-400'}`}>
-                {v.currency}{(Math.floor(v.current * 1.45) + 0.99).toFixed(2)}
+              {v.image && (
+                <img src={v.image} alt={label} className="w-8 h-8 object-contain rounded self-center mb-0.5 flex-shrink-0" />
+              )}
+              {/* Line 1: color name */}
+              <span className={`font-medium truncate max-w-[90px] ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-700'}`}>
+                {label}
               </span>
-              {(() => {
-                const live = getLivePrice(v.variant || label);
-                if (live == null) return null;
-                return (
-                  <span className="font-mono text-[10px] text-blue-400" title="Current eBay price">
-                    eBay {v.currency}{live.toFixed(2)}
-                  </span>
-                );
-              })()}
+              {/* Line 2: Amazon price */}
+              <span className="text-[10px] text-gray-400 font-mono">
+                Amazon {v.currency}{v.current.toFixed(2)}
+              </span>
+              {/* Line 3: calculated eBay price */}
+              <span className={`text-[10px] font-mono font-semibold ${i === activeIdx ? 'text-[#e53238]' : 'text-gray-600'}`}>
+                Calc {v.currency}{calcPrice.toFixed(2)}
+              </span>
+              {/* Line 4: live eBay price + match indicator */}
+              {livePrice != null && (
+                <span className={`text-[10px] font-mono flex items-center gap-0.5 ${synced ? 'text-green-600' : 'text-red-500'}`}>
+                  eBay {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
+                </span>
+              )}
             </button>
           );
         })}
-      </div>
-
-      {/* ── Active variant price + history ── */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-baseline gap-2 flex-shrink-0">
-          <span className={`text-xl font-black tracking-tight ${isAtLowest ? 'text-green-700' : 'text-gray-900'}`}>
-            {active.currency}{active.current.toLocaleString()}
-          </span>
-          {hasDrop && (
-            <span className="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">▼{dropPct}%</span>
-          )}
-        </div>
-        {variants.length > 1 && (
-          <span className="text-xs text-gray-400">Range: {priceRange}</span>
-        )}
-        <span className="text-xs text-gray-400 flex-shrink-0">
-          {isAtLowest ? '✅ Lowest ever' : `Low: ${active.currency}${active.lowest.toLocaleString()}`}
-        </span>
-        <PriceHistory history={active.history} currency={active.currency} />
       </div>
 
       {/* ── Action buttons ── */}
@@ -243,7 +189,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         </button>
       </div>
 
-      {/* ── Specs panel (active variant) ── */}
+      {/* ── Specs panel ── */}
       {showSpecs && (
         <div className="border-t border-gray-100 pt-3">
           <p className="text-xs font-semibold text-gray-500 mb-2">Specs — {active.variant || `Variant ${activeIdx + 1}`}</p>
