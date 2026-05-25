@@ -37,6 +37,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [savingEbay, setSavingEbay] = useState(false);
   const [refreshingIds, setRefreshingIds] = useState(new Set());
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
+  const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
@@ -58,6 +59,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   async function handleCheckOne(id) {
     setRefreshingIds(prev => new Set(prev).add(id));
     setRefreshResults(prev => { const n = { ...prev }; delete n[id]; return n; });
+    setEbayPushResults(prev => { const n = { ...prev }; delete n[id]; return n; });
     try {
       const updated = await onCheck(id);
       if (updated?.current != null && groupEbayId) {
@@ -68,6 +70,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           body: JSON.stringify({ listingId: groupEbayId, price: newCalcPrice }),
         });
         if (r.ok) {
+          setEbayPushResults(prev => ({ ...prev, [id]: 'ok' }));
           // eBay's Trading API has propagation delay — update state optimistically
           const variantLabel = (variants.find(v => v._id === id)?.variant || '').toLowerCase();
           setEbayLivePrices(prev => {
@@ -86,6 +89,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             return { ...prev, base: newCalcPrice };
           });
         } else {
+          setEbayPushResults(prev => ({ ...prev, [id]: 'fail' }));
           await fetchEbayPrices();
         }
       }
@@ -94,7 +98,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       setRefreshResults(prev => ({ ...prev, [id]: 'fail' }));
     } finally {
       setRefreshingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-      setTimeout(() => setRefreshResults(prev => { const n = { ...prev }; delete n[id]; return n; }), 4000);
+      setTimeout(() => {
+        setRefreshResults(prev => { const n = { ...prev }; delete n[id]; return n; });
+        setEbayPushResults(prev => { const n = { ...prev }; delete n[id]; return n; });
+      }, 6000);
     }
   }
 
@@ -187,6 +194,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           const synced = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;
           const isRefreshing = refreshingIds.has(v._id);
           const result = refreshResults[v._id];
+          const ebayPush = ebayPushResults[v._id];
           const isActive = i === activeIdx;
 
           return (
@@ -237,8 +245,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 className={`mt-1 self-stretch flex items-center justify-center gap-1 rounded text-[10px] py-0.5 transition-all ${
                   isRefreshing
                     ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
-                    : result === 'ok'
+                    : result === 'ok' && ebayPush === 'ok'
                     ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                    : result === 'ok' && ebayPush === 'fail'
+                    ? 'bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100'
                     : result === 'fail'
                     ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100'
                     : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
@@ -246,7 +256,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               >
                 <span className={isRefreshing ? 'animate-spin inline-block' : ''}>🔄</span>
                 <span>
-                  {isRefreshing ? 'Checking…' : result === 'ok' ? 'Updated ✓' : result === 'fail' ? 'Failed ✗' : 'Refresh'}
+                  {isRefreshing ? 'Checking…'
+                    : result === 'ok' && ebayPush === 'ok' ? 'Updated ✓'
+                    : result === 'ok' && ebayPush === 'fail' ? 'eBay sync ⚠'
+                    : result === 'fail' ? 'Failed ✗'
+                    : 'Refresh'}
                 </span>
               </button>
             </div>
