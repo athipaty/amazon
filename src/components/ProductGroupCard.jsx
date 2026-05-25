@@ -180,8 +180,14 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       {/* ── eBay sync failure warning ── */}
       {anySyncFailed && (
-        <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
-          <span>⚠️</span> eBay price sync failed — check your listing or reconnect eBay.
+        <div className="flex items-center justify-between gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
+          <span>⚠️ eBay price sync failed</span>
+          <a
+            href={`${API}/api/ebay/auth/login`}
+            className="font-semibold underline whitespace-nowrap hover:text-red-800"
+          >
+            Reconnect eBay →
+          </a>
         </div>
       )}
 
@@ -236,6 +242,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 <span className="text-[10px] text-gray-500 font-mono">
                   ⏱ {countdowns[i] || 'soon'}
                 </span>
+              )}
+              {/* eBay reconnect link after a failed push */}
+              {ebayPush === 'fail' && (
+                <a
+                  href={`${API}/api/ebay/auth/login`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-[10px] text-yellow-700 underline whitespace-nowrap"
+                >
+                  Reconnect eBay →
+                </a>
               )}
               {/* Refresh button for this variant only */}
               <button
