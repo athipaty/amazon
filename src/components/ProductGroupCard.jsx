@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -44,6 +44,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
+  const autoSyncDone = useRef(false);
 
   async function fetchEbayPrices() {
     if (!groupEbayId) return;
@@ -57,6 +58,53 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   useEffect(() => {
     fetchEbayPrices();
   }, [groupEbayId]);
+
+  // Auto-fix mismatched eBay prices as soon as live prices are fetched
+  useEffect(() => {
+    if (!ebayLivePrices || !groupEbayId || autoSyncDone.current) return;
+    autoSyncDone.current = true;
+
+    const mismatches = variants.filter(v => {
+      const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+      const livePrice = getLivePrice(v.variant || '');
+      return livePrice != null && Math.abs(livePrice - calcPrice) >= 0.02;
+    });
+    if (!mismatches.length) return;
+
+    const ids = new Set(mismatches.map(v => v._id));
+    setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
+
+    Promise.all(mismatches.map(async v => {
+      const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+      const label = (v.variant || '').toLowerCase();
+      try {
+        const r = await fetch(`${API}/api/ebay/listing/price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: groupEbayId, price: calcPrice, variantLabel: v.variant || '' }),
+        });
+        if (r.ok) {
+          setEbayLivePrices(prev => {
+            if (!prev) return prev;
+            if (prev.variations?.length) {
+              return {
+                ...prev,
+                variations: prev.variations.map(var_ => {
+                  const hit = Object.values(var_.specs).some(val =>
+                    val === label || label.includes(val) || val.includes(label)
+                  );
+                  return hit ? { ...var_, price: calcPrice } : var_;
+                }),
+              };
+            }
+            return { ...prev, base: calcPrice };
+          });
+        }
+      } catch {}
+    })).finally(() => {
+      setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n; });
+    });
+  }, [ebayLivePrices]); // autoSyncDone ref prevents re-triggering on our own setEbayLivePrices calls
 
   async function handleCheckOne(id) {
     setRefreshingIds(prev => new Set(prev).add(id));
