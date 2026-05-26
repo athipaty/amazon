@@ -360,23 +360,23 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       </div>
 
       {/* ── Action buttons ── */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         <a href={active.url?.startsWith('http') ? active.url : `https://${active.url}`}
           target="_blank" rel="noopener noreferrer"
-          className="text-xs text-orange-600 hover:underline whitespace-nowrap">
-          Amazon →
+          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
+          Amazon ↗
         </a>
         <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(active.upc || active.title)}&_sop=15`}
           target="_blank" rel="noopener noreferrer"
-          className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
-          eBay →
+          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-red-50 text-[#e53238] border border-red-200 hover:bg-red-100 transition-colors whitespace-nowrap">
+          eBay ↗
         </a>
         {editingEbay ? (
-          <div className="flex flex-col gap-1 min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0">
             {myListings.length > 0 && (
               <select
                 autoFocus
-                className="w-48 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238] bg-white"
+                className="w-52 px-2 py-1 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#e53238] bg-white"
                 value={ebayInput}
                 onChange={e => setEbayInput(e.target.value)}
                 disabled={savingEbay}
@@ -389,35 +389,35 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 ))}
               </select>
             )}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <input
                 type="text"
                 placeholder="or paste ID / URL"
                 value={ebayInput}
                 onChange={e => setEbayInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
-                className="w-48 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
+                className="w-52 px-2 py-1 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#e53238]"
                 disabled={savingEbay}
               />
               <button onClick={saveEbayListing} disabled={savingEbay}
-                className="text-xs text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-[#e53238] text-white text-xs hover:bg-red-700 disabled:opacity-40 transition-colors">✓</button>
               <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-                className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs hover:bg-gray-200 transition-colors">✕</button>
             </div>
           </div>
         ) : groupEbayId ? (
-          <div className="flex items-center gap-1">
+          <div className="inline-flex items-center gap-1.5">
             <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
-              className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
-              My Listing →
+              className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-red-700 transition-colors whitespace-nowrap">
+              My Listing ↗
             </a>
             <button onClick={() => openEbayEdit(groupEbayId)}
-              className="text-gray-300 hover:text-gray-500 text-[10px]" title="Edit eBay listing">✏️</button>
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
           </div>
         ) : (
           <button onClick={() => openEbayEdit('')}
-            className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
-            + My Listing
+            className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-[#e53238] hover:text-[#e53238] transition-colors whitespace-nowrap">
+            + Link My Listing
           </button>
         )}
         {linkStatus === 'pushing' && (
@@ -430,8 +430,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           <span className="text-xs text-red-500 whitespace-nowrap">Price push failed ⚠</span>
         )}
         <button onClick={() => setShowSpecs(s => !s)}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
-          {showSpecs ? '▲ specs' : '▼ specs'}
+          className="ml-auto inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap px-2 py-1 rounded-full hover:bg-gray-100">
+          <span className="text-[10px]">{showSpecs ? '▲' : '▼'}</span> specs
         </button>
       </div>
 
