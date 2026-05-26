@@ -167,7 +167,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
   const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
 
   return (
-    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4 p-4 lg:px-4 lg:py-3 ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 p-3 lg:px-4 lg:py-3 ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
 
       {/* ── Image + Title + Badges ── */}
       <div className="flex items-start gap-3 min-w-0">
@@ -181,11 +181,6 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
             <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} upc={product.upc} />
           </div>
         </div>
-        {/* Delete — mobile only, top-right */}
-        <button onClick={confirmDelete} title="Stop tracking"
-          className="lg:hidden text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">
-          ✕
-        </button>
       </div>
 
       {/* ── Price + drop badge + lowest (mobile inline) ── */}
@@ -225,14 +220,14 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       )}
 
       {/* ── Action buttons ── */}
-      <div className="flex items-center gap-3 flex-wrap flex-shrink-0">
+      <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
         <a href={url?.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-orange-600 hover:underline whitespace-nowrap">
+          className="text-xs text-orange-600 hover:underline whitespace-nowrap py-1">
           Amazon →
         </a>
         <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
           target="_blank" rel="noopener noreferrer"
-          className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
+          className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap py-1">
           eBay →
         </a>
         {/* eBay listing link / editor */}
@@ -245,51 +240,46 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
               value={ebayInput}
               onChange={e => setEbayInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
-              className="w-36 px-2 py-0.5 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
+              className="w-36 px-2 py-1 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
               disabled={savingEbay}
             />
             <button onClick={saveEbayListing} disabled={savingEbay}
-              className="text-xs text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
+              className="p-2 text-sm text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
             <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-              className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+              className="p-2 text-sm text-gray-400 hover:text-gray-600">✕</button>
           </div>
         ) : product.ebayListingId ? (
           <div className="flex items-center gap-1">
             <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
-              className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap">
+              className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap py-1">
               My Listing →
             </a>
             <button onClick={() => { setEbayInput(product.ebayListingId); setEditingEbay(true); }}
-              className="text-gray-300 hover:text-gray-500 text-[10px]" title="Edit eBay listing">✏️</button>
+              className="p-2 text-gray-300 hover:text-gray-500 text-sm" title="Edit eBay listing">✏️</button>
           </div>
         ) : (
           <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
-            className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
+            className="py-1 text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
             + My Listing
           </button>
         )}
-        {linkStatus === 'pushing' && (
-          <span className="text-xs text-blue-500 whitespace-nowrap">Pushing price…</span>
-        )}
-        {linkStatus === 'ok' && (
-          <span className="text-xs text-green-600 whitespace-nowrap">Price updated ✓</span>
-        )}
-        {linkStatus === 'fail' && (
-          <span className="text-xs text-red-500 whitespace-nowrap">Price push failed ⚠</span>
-        )}
+        {linkStatus === 'pushing' && <span className="text-xs text-blue-500 whitespace-nowrap">Pushing…</span>}
+        {linkStatus === 'ok' && <span className="text-xs text-green-600 whitespace-nowrap">Updated ✓</span>}
+        {linkStatus === 'fail' && <span className="text-xs text-red-500 whitespace-nowrap">Failed ⚠</span>}
+        {/* Refresh — large tap target */}
         <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
           disabled={checking}
-          className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
+          className="p-2 text-base text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
           title="Check price now">
           {checking ? '⏳' : '🔄'}
         </button>
         <button onClick={() => setShowSpecs(s => !s)}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+          className="py-1 text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
           {showSpecs ? '▲ specs' : '▼ specs'}
         </button>
-        {/* Delete — desktop only */}
+        {/* Delete — large tap target */}
         <button onClick={confirmDelete} title="Stop tracking"
-          className="hidden lg:block text-gray-300 hover:text-red-500 transition-colors text-sm">
+          className="p-2 text-gray-300 hover:text-red-500 transition-colors text-base">
           ✕
         </button>
       </div>

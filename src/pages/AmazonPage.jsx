@@ -173,15 +173,15 @@ export default function AmazonPage() {
   }
 
   return (
-    <div className="px-6 py-7">
-      <header className="flex justify-between items-center mb-7 flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
+    <div className="px-4 py-4 md:px-6 md:py-7">
+      <header className="flex justify-between items-center mb-4 md:mb-7 gap-3">
+        <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
         <button
           onClick={handleCheckNow}
           disabled={checking}
-          className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
         >
-          {checking ? 'Checking…' : 'Check All Now'}
+          {checking ? 'Checking…' : 'Check All'}
         </button>
       </header>
 

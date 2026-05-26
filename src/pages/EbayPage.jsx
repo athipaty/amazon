@@ -505,7 +505,7 @@ export default function EbayPage() {
   const q = searchParams.get('q');
 
   return (
-    <div className="px-6 py-7">
+    <div className="px-4 py-4 md:px-6 md:py-7">
       <header className="mb-5">
         <h1 className="text-xl font-bold text-gray-900 mb-3">eBay</h1>
         <div className="flex gap-1 border-b border-gray-200">

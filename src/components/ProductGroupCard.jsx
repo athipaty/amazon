@@ -261,7 +261,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Variant swatches ── */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {variants.map((v, i) => {
           const label = v.variant || `Variant ${i + 1}`;
           const calcPrice = Math.floor(v.current * 1.45) + 0.99;
@@ -333,7 +333,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
                 disabled={isRefreshing}
                 title={`Refresh ${label}`}
-                className={`mt-1 self-stretch flex items-center justify-center gap-1 rounded text-[10px] py-0.5 transition-all ${
+                className={`mt-1 self-stretch flex items-center justify-center gap-1 rounded text-xs py-2 transition-all ${
                   isRefreshing
                     ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
                     : result === 'ok' && ebayPush === 'ok'
