@@ -220,68 +220,74 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       )}
 
       {/* ── Action buttons ── */}
-      <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-        <a href={url?.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-orange-600 hover:underline whitespace-nowrap py-1">
-          Amazon →
-        </a>
-        <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
-          target="_blank" rel="noopener noreferrer"
-          className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap py-1">
-          eBay →
-        </a>
-        {/* eBay listing link / editor */}
+      <div className="flex flex-col gap-2 w-full lg:w-48 lg:flex-shrink-0">
+
+        {/* Row 1: External links */}
+        <div className="grid grid-cols-2 gap-2">
+          <a href={url?.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center py-2 rounded-lg border border-orange-200 bg-orange-50 text-xs font-semibold text-orange-600 active:bg-orange-100">
+            🛒 Amazon
+          </a>
+          <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-[#e53238] active:bg-red-100">
+            🏷️ eBay
+          </a>
+        </div>
+
+        {/* Row 2: My eBay listing */}
         {editingEbay ? (
           <div className="flex items-center gap-1">
             <input
-              autoFocus
-              type="text"
-              placeholder="Listing ID or URL"
+              autoFocus type="text" placeholder="Listing ID or URL"
               value={ebayInput}
               onChange={e => setEbayInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
-              className="w-36 px-2 py-1 border border-gray-300 rounded text-xs outline-none focus:border-[#e53238]"
+              className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-[#e53238]"
               disabled={savingEbay}
             />
             <button onClick={saveEbayListing} disabled={savingEbay}
-              className="p-2 text-sm text-[#e53238] hover:text-red-700 disabled:opacity-40">✓</button>
+              className="p-2.5 bg-[#e53238] text-white rounded-lg disabled:opacity-40">✓</button>
             <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-              className="p-2 text-sm text-gray-400 hover:text-gray-600">✕</button>
+              className="p-2.5 bg-gray-100 text-gray-500 rounded-lg">✕</button>
           </div>
         ) : product.ebayListingId ? (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e53238]/20 bg-[#fff5f5]">
             <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
-              className="text-xs font-semibold text-[#e53238] hover:underline whitespace-nowrap py-1">
-              My Listing →
+              className="flex-1 text-xs font-semibold text-[#e53238]">
+              My eBay Listing →
             </a>
             <button onClick={() => { setEbayInput(product.ebayListingId); setEditingEbay(true); }}
-              className="p-2 text-gray-300 hover:text-gray-500 text-sm" title="Edit eBay listing">✏️</button>
+              className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg" title="Change listing">✏️</button>
           </div>
         ) : (
           <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
-            className="py-1 text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
-            + My Listing
+            className="w-full py-2 rounded-lg border border-dashed border-gray-200 text-xs text-gray-400 hover:border-[#e53238] hover:text-[#e53238] transition-colors">
+            + Link eBay Listing
           </button>
         )}
-        {linkStatus === 'pushing' && <span className="text-xs text-blue-500 whitespace-nowrap">Pushing…</span>}
-        {linkStatus === 'ok' && <span className="text-xs text-green-600 whitespace-nowrap">Updated ✓</span>}
-        {linkStatus === 'fail' && <span className="text-xs text-red-500 whitespace-nowrap">Failed ⚠</span>}
-        {/* Refresh — large tap target */}
-        <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
-          disabled={checking}
-          className="p-2 text-base text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
-          title="Check price now">
-          {checking ? '⏳' : '🔄'}
-        </button>
-        <button onClick={() => setShowSpecs(s => !s)}
-          className="py-1 text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
-          {showSpecs ? '▲ specs' : '▼ specs'}
-        </button>
-        {/* Delete — large tap target */}
-        <button onClick={confirmDelete} title="Stop tracking"
-          className="p-2 text-gray-300 hover:text-red-500 transition-colors text-base">
-          ✕
-        </button>
+
+        {linkStatus === 'pushing' && <p className="text-xs text-blue-500 text-center">Pushing price…</p>}
+        {linkStatus === 'ok' && <p className="text-xs text-green-600 text-center">Price updated ✓</p>}
+        {linkStatus === 'fail' && <p className="text-xs text-red-500 text-center">Price push failed ⚠</p>}
+
+        {/* Row 3: Utilities */}
+        <div className="flex items-center gap-2">
+          <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
+            disabled={checking}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-100 text-xs font-medium text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors">
+            {checking ? '⏳' : '🔄'} {checking ? 'Checking…' : 'Refresh'}
+          </button>
+          <button onClick={() => setShowSpecs(s => !s)}
+            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors">
+            {showSpecs ? '▲' : '▼'} Specs
+          </button>
+          <button onClick={confirmDelete} title="Stop tracking"
+            className="px-3 py-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+            ✕
+          </button>
+        </div>
+
       </div>
 
       {/* ── Amazon Specs Panel ── */}
