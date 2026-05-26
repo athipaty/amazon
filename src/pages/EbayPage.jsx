@@ -337,6 +337,9 @@ function MyListingsTab() {
   const [error, setError] = useState('');
   const [prefill, setPrefill] = useState(null);
   const [itemIdMap, setItemIdMap] = useState({});
+  const [trackerLoaded, setTrackerLoaded] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null); // null | 'syncing' | { fixed, failed }
+  const autoSyncDone = useRef(false);
 
   useEffect(() => {
     axios.get(`${API}/api/tracker`).then(({ data }) => {
@@ -348,7 +351,7 @@ function MyListingsTab() {
         }
       }
       setItemIdMap(map);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setTrackerLoaded(true));
 
     axios.get(`${API}/api/ebay/auth/status`)
       .then(({ data }) => {
@@ -374,6 +377,53 @@ function MyListingsTab() {
   function handlePriceUpdate(offerId, newPrice) {
     setListings(prev => prev.map(l => l.offerId === offerId ? { ...l, price: newPrice } : l));
   }
+
+  // Auto-sync all mismatched eBay prices as soon as both listings and tracker data are ready
+  useEffect(() => {
+    if (phase !== 'loaded' || !trackerLoaded || autoSyncDone.current) return;
+    autoSyncDone.current = true;
+
+    const mismatches = [];
+    for (const item of listings) {
+      const itemId = extractItemId(item.url);
+      if (!itemId) continue;
+      const candidates = itemIdMap[itemId] || [];
+      const matched = findMatchedTracker(item, candidates);
+      if (!matched) continue;
+      const calcPrice = Math.floor(matched.current * 1.45) + 0.99;
+      if (Math.abs(item.price - calcPrice) < 0.02) continue;
+      mismatches.push({ offerId: item.offerId, itemId, calcPrice, variantLabel: matched.variant || '' });
+    }
+
+    if (!mismatches.length) return;
+
+    setSyncStatus('syncing');
+    const updates = [];
+    let fixed = 0, failed = 0;
+
+    Promise.all(mismatches.map(async ({ offerId, itemId, calcPrice, variantLabel }) => {
+      try {
+        await axios.post(`${API}/api/ebay/listing/price`, {
+          listingId: itemId,
+          price: calcPrice,
+          ...(variantLabel ? { variantLabel } : {}),
+        });
+        updates.push({ offerId, price: calcPrice });
+        fixed++;
+      } catch {
+        failed++;
+      }
+    })).then(() => {
+      if (updates.length) {
+        setListings(prev => prev.map(l => {
+          const u = updates.find(x => x.offerId === l.offerId);
+          return u ? { ...l, price: u.price } : l;
+        }));
+      }
+      setSyncStatus({ fixed, failed });
+      setTimeout(() => setSyncStatus(null), 7000);
+    });
+  }, [phase, trackerLoaded]); // listings & itemIdMap captured from closure at run time
 
   if (phase === 'checking' || phase === 'loading') {
     return (
@@ -405,6 +455,17 @@ function MyListingsTab() {
 
   return (
     <>
+      {syncStatus === 'syncing' && (
+        <div className="mb-4 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 font-medium">
+          Syncing mismatched eBay prices…
+        </div>
+      )}
+      {syncStatus && syncStatus !== 'syncing' && (
+        <div className={`mb-4 px-3 py-2 rounded-lg text-xs font-medium border ${syncStatus.failed === 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
+          {syncStatus.fixed > 0 && `Auto-synced ${syncStatus.fixed} eBay price${syncStatus.fixed !== 1 ? 's' : ''}.`}
+          {syncStatus.failed > 0 && ` ${syncStatus.failed} failed — use Fix → to retry manually.`}
+        </div>
+      )}
       <UpdatePriceForm prefill={prefill} onPrefillUsed={() => setPrefill(null)} />
       {listings.length === 0 ? (
         <p className="text-center text-gray-400 mt-8">No active listings found via Inventory API.</p>
