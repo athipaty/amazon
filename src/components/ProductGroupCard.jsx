@@ -44,6 +44,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
+  const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
   const autoSyncDone = useRef(false);
 
   async function fetchEbayPrices() {
@@ -73,38 +74,29 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
     const ids = new Set(mismatches.map(v => v._id));
     setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
+    setAutoSyncErrors({});
 
     Promise.all(mismatches.map(async v => {
       const calcPrice = Math.floor(v.current * 1.45) + 0.99;
-      const label = (v.variant || '').toLowerCase();
       try {
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ listingId: groupEbayId, price: calcPrice, variantLabel: v.variant || '' }),
         });
-        if (r.ok) {
-          setEbayLivePrices(prev => {
-            if (!prev) return prev;
-            if (prev.variations?.length) {
-              return {
-                ...prev,
-                variations: prev.variations.map(var_ => {
-                  const hit = Object.values(var_.specs).some(val =>
-                    val === label || label.includes(val) || val.includes(label)
-                  );
-                  return hit ? { ...var_, price: calcPrice } : var_;
-                }),
-              };
-            }
-            return { ...prev, base: calcPrice };
-          });
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          setAutoSyncErrors(prev => ({ ...prev, [v._id]: body.error || `HTTP ${r.status}` }));
         }
-      } catch {}
+      } catch (e) {
+        setAutoSyncErrors(prev => ({ ...prev, [v._id]: e.message || 'Network error' }));
+      }
     })).finally(() => {
       setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n; });
+      // Re-fetch actual eBay prices to confirm what really changed (don't trust optimistic update)
+      setTimeout(fetchEbayPrices, 4000);
     });
-  }, [ebayLivePrices]); // autoSyncDone ref prevents re-triggering on our own setEbayLivePrices calls
+  }, [ebayLivePrices]); // autoSyncDone ref prevents looping when fetchEbayPrices re-sets ebayLivePrices
 
   async function handleCheckOne(id) {
     setRefreshingIds(prev => new Set(prev).add(id));
@@ -314,6 +306,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   eBay {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
                 </span>
               ) : null}
+              {/* Auto-sync error — show exact eBay error so we know why it failed */}
+              {autoSyncErrors[v._id] && (
+                <span className="text-[9px] text-red-600 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-tight break-all max-w-[110px]">
+                  ⚠ {autoSyncErrors[v._id]}
+                </span>
+              )}
               {/* Line 5: next check countdown */}
               {v.nextCheck && (
                 <span className="text-[10px] text-gray-500 font-mono">
