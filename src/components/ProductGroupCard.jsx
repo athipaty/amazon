@@ -40,12 +40,26 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
   const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
   const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
+  const [ebayListingTitle, setEbayListingTitle] = useState(null);
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
   const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
   const autoSyncDone = useRef(false);
+
+  useEffect(() => {
+    if (!groupEbayId) { setEbayListingTitle(null); return; }
+    fetch(`${API}/api/ebay/all-active-listings`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const match = data.find(l => String(l.listingId) === String(groupEbayId));
+          setEbayListingTitle(match?.title || null);
+        }
+      })
+      .catch(() => {});
+  }, [groupEbayId]);
 
   async function fetchEbayPrices() {
     if (!groupEbayId) return;
@@ -239,6 +253,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         }
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-800 truncate" title={active.title}>{active.title}</p>
+          {ebayListingTitle && (
+            <p
+              className={`text-xs mt-0.5 truncate ${ebayListingTitle.length > 80 ? 'text-red-500' : 'text-gray-500'}`}
+              title={`${ebayListingTitle} (${ebayListingTitle.length}/80)`}
+            >
+              <span className="font-semibold text-[#e53238] mr-1">eBay</span>
+              {ebayListingTitle.length > 80
+                ? <>{ebayListingTitle.slice(0, 80)}<span className="text-red-400"> +{ebayListingTitle.length - 80} over</span></>
+                : ebayListingTitle}
+            </p>
+          )}
           <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
             {variants.length} variants
           </span>
