@@ -39,6 +39,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [refreshingIds, setRefreshingIds] = useState(new Set());
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
   const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
+  const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
@@ -131,6 +132,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   async function saveEbayListing() {
     setSavingEbay(true);
+    setLinkStatus('');
     try {
       const id = ebayInput.trim().replace(/.*\/itm\/(\d+).*/,'$1');
       for (const v of variants) {
@@ -143,6 +145,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         onUpdate?.(updated);
       }
       setEditingEbay(false);
+      if (id) {
+        setLinkStatus('pushing');
+        let anyFail = false;
+        for (const v of variants) {
+          const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+          const r = await fetch(`${API}/api/ebay/listing/price`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId: id, price: calcPrice, variantLabel: v.variant || '' }),
+          });
+          if (!r.ok) anyFail = true;
+        }
+        setLinkStatus(anyFail ? 'fail' : 'ok');
+        setTimeout(() => setLinkStatus(''), 5000);
+      }
     } finally { setSavingEbay(false); }
   }
 
@@ -356,6 +373,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
             + My Listing
           </button>
+        )}
+        {linkStatus === 'pushing' && (
+          <span className="text-xs text-blue-500 whitespace-nowrap">Pushing prices…</span>
+        )}
+        {linkStatus === 'ok' && (
+          <span className="text-xs text-green-600 whitespace-nowrap">Prices updated ✓</span>
+        )}
+        {linkStatus === 'fail' && (
+          <span className="text-xs text-red-500 whitespace-nowrap">Price push failed ⚠</span>
         )}
         <button onClick={() => setShowSpecs(s => !s)}
           className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">

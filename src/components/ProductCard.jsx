@@ -124,6 +124,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
   const [editingEbay, setEditingEbay] = useState(false);
   const [ebayInput, setEbayInput] = useState('');
   const [savingEbay, setSavingEbay] = useState(false);
+  const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const countdown = useCountdown(product.nextCheck);
@@ -138,6 +139,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
 
   async function saveEbayListing() {
     setSavingEbay(true);
+    setLinkStatus('');
     try {
       const id = ebayInput.trim().replace(/.*\/itm\/(\d+).*/,'$1');
       const res = await fetch(`${API}/api/tracker/${_id}/ebay`, {
@@ -148,6 +150,17 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       const updated = await res.json();
       onUpdate?.(updated);
       setEditingEbay(false);
+      if (id) {
+        setLinkStatus('pushing');
+        const calcPrice = Math.floor(current * 1.45) + 0.99;
+        const r = await fetch(`${API}/api/ebay/listing/price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: id, price: calcPrice, variantLabel: product.variant || '' }),
+        });
+        setLinkStatus(r.ok ? 'ok' : 'fail');
+        setTimeout(() => setLinkStatus(''), 5000);
+      }
     } finally { setSavingEbay(false); }
   }
 
@@ -254,6 +267,15 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
             className="text-xs text-gray-400 hover:text-[#e53238] whitespace-nowrap" title="Link your eBay listing">
             + My Listing
           </button>
+        )}
+        {linkStatus === 'pushing' && (
+          <span className="text-xs text-blue-500 whitespace-nowrap">Pushing price…</span>
+        )}
+        {linkStatus === 'ok' && (
+          <span className="text-xs text-green-600 whitespace-nowrap">Price updated ✓</span>
+        )}
+        {linkStatus === 'fail' && (
+          <span className="text-xs text-red-500 whitespace-nowrap">Price push failed ⚠</span>
         )}
         <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
           disabled={checking}
