@@ -271,6 +271,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     ? Object.entries(active.specs).filter(([k, v]) => !SKIP_SPEC_KEYS.has(k) && fmtVal(v))
     : [];
 
+  const allUnavailable = variants.every(v => v.status === 'unavailable');
+  const allOOS = variants.every(v => v.status === 'out_of_stock');
+  const someIssue = variants.some(v => v.status && v.status !== 'active');
+  const groupStatus = allUnavailable ? 'unavailable' : allOOS ? 'out_of_stock' : someIssue ? 'partial' : 'active';
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 transition-shadow hover:shadow-sm flex flex-col gap-3 p-4">
 
@@ -300,6 +305,28 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <button onClick={confirmDeleteAll} title="Stop tracking all variants"
           className="text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">✕</button>
       </div>
+
+      {/* ── Product status banner ── */}
+      {groupStatus === 'unavailable' && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
+          <span>🔴</span>
+          <span className="font-medium">Product unavailable</span>
+          <span className="text-red-400 ml-auto">Retrying every 24h</span>
+        </div>
+      )}
+      {groupStatus === 'out_of_stock' && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700">
+          <span>🟡</span>
+          <span className="font-medium">Out of stock on Amazon</span>
+          <span className="text-amber-500 ml-auto">Retrying every 24h</span>
+        </div>
+      )}
+      {groupStatus === 'partial' && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700">
+          <span>⚠️</span>
+          <span className="font-medium">Some variants unavailable</span>
+        </div>
+      )}
 
       {/* ── eBay sync failure warning ── */}
       {anySyncFailed && (
@@ -344,6 +371,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               <span className={`font-medium truncate max-w-[90px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
                 {label}
               </span>
+              {v.status === 'out_of_stock' && (
+                <span className="text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 leading-tight">Out of stock</span>
+              )}
+              {(v.status === 'unavailable' || v.status === 'error') && (
+                <span className="text-[9px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-tight">Unavailable</span>
+              )}
               {/* Line 2: Amazon price */}
               <span className="text-[10px] text-gray-400 font-mono">
                 Amazon {v.currency}{v.current.toFixed(2)}
