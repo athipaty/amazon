@@ -20,13 +20,43 @@ function useCountdown(target) {
   return remaining;
 }
 
+function AmazonPrimeBadge() {
+  return (
+    <span className="inline-flex flex-col items-center leading-none select-none" title="Amazon Prime">
+      {/* "prime" wordmark on blue pill */}
+      <span
+        style={{ background: '#00A8E0', fontFamily: 'Georgia, serif' }}
+        className="text-white text-[9px] font-extrabold italic tracking-widest px-2 pt-[3px] pb-[1px] rounded-t-sm"
+      >
+        prime
+      </span>
+      {/* Amazon smile arrow */}
+      <svg
+        viewBox="0 0 40 8"
+        className="w-8"
+        style={{ display: 'block', marginTop: '-1px' }}
+        aria-hidden="true"
+      >
+        <path
+          d="M2 2 Q10 7 20 5 Q30 3 38 6"
+          fill="none"
+          stroke="#FF9900"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <polygon points="35,3 39,6 35.5,8" fill="#FF9900" />
+      </svg>
+    </span>
+  );
+}
+
 function PrimeVariantBadges({ isPrime, variant, upc }) {
   return (
     <div className="flex flex-col gap-1">
       {/* Prime + UPC row */}
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap">
         {isPrime
-          ? <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded leading-none">prime</span>
+          ? <AmazonPrimeBadge />
           : <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">no prime</span>
         }
         {upc && (
