@@ -369,7 +369,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Variant swatches ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
         {variants.map((v, i) => {
           const label = v.variant || `Variant ${i + 1}`;
           const calcPrice = Math.floor(v.current * 1.45) + 0.99;
@@ -385,17 +385,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               key={v._id}
               onClick={() => setActiveIdx(i)}
               title={label}
-              className={`flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg border text-xs transition-colors min-w-[80px] cursor-pointer ${
+              className={`flex flex-col items-start gap-0.5 px-1.5 py-1.5 rounded-lg border text-xs transition-colors min-w-[40px] cursor-pointer ${
                 isActive
                   ? 'border-[#e53238] bg-[#fff5f5]'
                   : 'border-gray-200 hover:border-gray-400'
               }`}
             >
               {v.image && (
-                <img src={v.image} alt={label} className="w-8 h-8 object-contain rounded self-center mb-0.5 flex-shrink-0" />
+                <img src={v.image} alt={label} className="w-6 h-6 object-contain rounded self-center mb-0.5 flex-shrink-0" />
               )}
               {/* Line 1: color name */}
-              <span className={`font-medium truncate max-w-[90px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
+              <span className={`font-medium truncate max-w-[70px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
                 {label}
               </span>
               {v.status === 'out_of_stock' && (
@@ -404,8 +404,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               {(v.status === 'unavailable' || v.status === 'error') && (
                 <span className="text-[9px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-tight">Unavailable</span>
               )}
-              {/* Prime badge */}
-              {v.isPrime && <AmazonPrimeBadge />}
               {/* Line 2: Amazon price */}
               <span className="text-[10px] text-gray-400 font-mono">
                 Amazon {v.currency}{v.current.toFixed(2)}
@@ -449,7 +447,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
                 disabled={isRefreshing}
                 title={`Refresh ${label}`}
-                className={`mt-1 self-stretch flex items-center justify-center gap-1 rounded text-xs py-2 transition-all ${
+                className={`mt-1 self-stretch flex items-center justify-center gap-0.5 rounded text-[10px] py-1 transition-all ${
                   isRefreshing
                     ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
                     : result === 'ok' && ebayPush === 'ok'
