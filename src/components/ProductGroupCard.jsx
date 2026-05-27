@@ -48,7 +48,16 @@ function fmtVal(v) {
 
 export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds }) {
   const [activeIdx, setActiveIdx] = useState(0);
+  const [expandedIds, setExpandedIds] = useState(new Set());
   const [showSpecs, setShowSpecs] = useState(false);
+
+  function toggleExpand(id, idx) {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); setActiveIdx(idx); }
+      return next;
+    });
+  }
   const [editingEbay, setEditingEbay] = useState(false);
   const [ebayInput, setEbayInput] = useState('');
   const [savingEbay, setSavingEbay] = useState(false);
@@ -380,92 +389,80 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           const ebayPush = ebayPushResults[v._id];
           const isActive = i === activeIdx;
 
+          const isExpanded = expandedIds.has(v._id);
+
           return (
             <div
               key={v._id}
-              onClick={() => setActiveIdx(i)}
+              onClick={() => toggleExpand(v._id, i)}
               title={label}
-              className={`flex flex-col items-start gap-0.5 px-1 py-1 rounded-lg border text-xs transition-colors min-w-[28px] cursor-pointer ${
+              className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
                 isActive
                   ? 'border-[#e53238] bg-[#fff5f5]'
                   : 'border-gray-200 hover:border-gray-400'
               }`}
             >
+              {/* ── Collapsed: image + label only ── */}
               {v.image && (
-                <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded self-center mb-0.5 flex-shrink-0" />
+                <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />
               )}
-              {/* Variant name */}
-              <span className={`font-medium truncate max-w-[60px] text-[10px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
+              <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
                 {label}
               </span>
-              {v.status === 'out_of_stock' && (
-                <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>
+
+              {/* ── Expanded details ── */}
+              {isExpanded && (
+                <>
+                  {v.status === 'out_of_stock' && (
+                    <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>
+                  )}
+                  {(v.status === 'unavailable' || v.status === 'error') && (
+                    <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>
+                  )}
+                  <span className="text-[9px] text-gray-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
+                  <span className={`text-[9px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>
+                    {v.currency}{calcPrice.toFixed(2)}
+                  </span>
+                  {isRefreshing ? (
+                    <span className="text-[9px] font-mono text-yellow-500">…</span>
+                  ) : livePrice != null ? (
+                    <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>
+                      {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
+                    </span>
+                  ) : null}
+                  {autoSyncErrors[v._id] && (
+                    <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">⚠ err</span>
+                  )}
+                  {v.nextCheck && (
+                    <span className="text-[9px] text-gray-400 font-mono">⏱{countdowns[i] || '…'}</span>
+                  )}
+                  {ebayPush === 'fail' && (
+                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
+                      className="text-[9px] text-yellow-700 underline whitespace-nowrap">
+                      Reconnect →
+                    </a>
+                  )}
+                  <button
+                    onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
+                    disabled={isRefreshing}
+                    title={`Refresh ${label}`}
+                    className={`mt-0.5 self-stretch flex items-center justify-center rounded text-[10px] py-0.5 transition-all ${
+                      isRefreshing ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
+                      : result === 'ok' && ebayPush === 'ok' ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                      : result === 'ok' && ebayPush === 'fail' ? 'bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100'
+                      : result === 'fail' ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100'
+                      : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+                    }`}
+                  >
+                    <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
+                      {result === 'ok' && ebayPush === 'ok' ? '✓'
+                        : result === 'ok' && ebayPush === 'fail' ? '⚠'
+                        : result === 'fail' ? '✗'
+                        : '🔄'}
+                    </span>
+                  </button>
+                </>
               )}
-              {(v.status === 'unavailable' || v.status === 'error') && (
-                <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>
-              )}
-              {/* Amazon price */}
-              <span className="text-[9px] text-gray-400 font-mono">
-                {v.currency}{v.current.toFixed(2)}
-              </span>
-              {/* Calc price */}
-              <span className={`text-[9px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>
-                {v.currency}{calcPrice.toFixed(2)}
-              </span>
-              {/* Live eBay price + sync indicator */}
-              {isRefreshing ? (
-                <span className="text-[9px] font-mono text-yellow-500">…</span>
-              ) : livePrice != null ? (
-                <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>
-                  {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
-                </span>
-              ) : null}
-              {/* Auto-sync error */}
-              {autoSyncErrors[v._id] && (
-                <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight break-all max-w-[60px]">
-                  ⚠ err
-                </span>
-              )}
-              {/* Countdown */}
-              {v.nextCheck && (
-                <span className="text-[9px] text-gray-400 font-mono">
-                  ⏱{countdowns[i] || '…'}
-                </span>
-              )}
-              {/* eBay reconnect link after a failed push */}
-              {ebayPush === 'fail' && (
-                <a
-                  href={`${API}/api/ebay/auth/login`}
-                  onClick={e => e.stopPropagation()}
-                  className="text-[10px] text-yellow-700 underline whitespace-nowrap"
-                >
-                  Reconnect eBay →
-                </a>
-              )}
-              {/* Refresh button for this variant only */}
-              <button
-                onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
-                disabled={isRefreshing}
-                title={`Refresh ${label}`}
-                className={`mt-1 self-stretch flex items-center justify-center gap-0.5 rounded text-[10px] py-1 transition-all ${
-                  isRefreshing
-                    ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
-                    : result === 'ok' && ebayPush === 'ok'
-                    ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
-                    : result === 'ok' && ebayPush === 'fail'
-                    ? 'bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100'
-                    : result === 'fail'
-                    ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100'
-                    : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
-                }`}
-              >
-                <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
-                  {result === 'ok' && ebayPush === 'ok' ? '✓'
-                    : result === 'ok' && ebayPush === 'fail' ? '⚠'
-                    : result === 'fail' ? '✗'
-                    : '🔄'}
-                </span>
-              </button>
             </div>
           );
         })}
