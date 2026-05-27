@@ -133,6 +133,16 @@ export default function AmazonPage() {
     }
   }
 
+  // Sort: items with any issue bubble to the top
+  function itemHasIssue(item) {
+    const variants = item.type === 'group' ? item.variants : [item.product];
+    return variants.some(v =>
+      (v.status && v.status !== 'active') ||
+      ebayFailedIds.has(String(v._id))
+    );
+  }
+  renderItems.sort((a, b) => Number(itemHasIssue(b)) - Number(itemHasIssue(a)));
+
   function toggleVariant(asin, checked) {
     const next = new Set(selectedAsins);
     if (checked) next.add(asin); else next.delete(asin);
