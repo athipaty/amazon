@@ -50,6 +50,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   function toggleExpand(idx) {
     setAllExpanded(prev => !prev);
@@ -285,9 +286,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const active = variants[activeIdx];
 
   function confirmDeleteAll() {
-    if (window.confirm(`Stop tracking all ${variants.length} variants of "${active.title}"?`)) {
-      variants.forEach(v => onDelete(v._id));
-    }
+    variants.forEach(v => onDelete(v._id));
   }
 
   const specEntries = active.specs
@@ -335,8 +334,22 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             </button>
           </div>
         </div>
-        <button onClick={confirmDeleteAll} title="Stop tracking all variants"
-          className="text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">✕</button>
+        {confirmingDelete ? (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-[11px] text-gray-500 whitespace-nowrap">Remove all {variants.length} variants?</span>
+            <button
+              onClick={confirmDeleteAll}
+              className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap"
+            >Yes</button>
+            <button
+              onClick={() => setConfirmingDelete(false)}
+              className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+            >No</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmingDelete(true)} title="Stop tracking all variants"
+            className="text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">✕</button>
+        )}
       </div>
 
       {/* ── Product status banner ── */}
