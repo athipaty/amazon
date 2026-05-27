@@ -48,15 +48,12 @@ function fmtVal(v) {
 
 export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds }) {
   const [activeIdx, setActiveIdx] = useState(0);
-  const [expandedIds, setExpandedIds] = useState(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
 
-  function toggleExpand(id, idx) {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); setActiveIdx(idx); }
-      return next;
-    });
+  function toggleExpand(idx) {
+    setAllExpanded(prev => !prev);
+    setActiveIdx(idx);
   }
   const [editingEbay, setEditingEbay] = useState(false);
   const [ebayInput, setEbayInput] = useState('');
@@ -389,12 +386,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           const ebayPush = ebayPushResults[v._id];
           const isActive = i === activeIdx;
 
-          const isExpanded = expandedIds.has(v._id);
-
           return (
             <div
               key={v._id}
-              onClick={() => toggleExpand(v._id, i)}
+              onClick={() => toggleExpand(i)}
               title={label}
               className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
                 isActive
@@ -411,7 +406,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               </span>
 
               {/* ── Expanded details ── */}
-              {isExpanded && (
+              {allExpanded && (
                 <>
                   {v.status === 'out_of_stock' && (
                     <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>
