@@ -391,12 +391,19 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               key={v._id}
               onClick={() => toggleExpand(i)}
               title={label}
-              className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
+              className={`relative flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
                 isActive
                   ? 'border-[#e53238] bg-[#fff5f5]'
                   : 'border-gray-200 hover:border-gray-400'
               }`}
             >
+              {/* ── Sync indicator — always visible top-right ── */}
+              {livePrice != null && (
+                <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-green-500' : 'text-red-500'}`}>
+                  {synced ? '✓' : '✗'}
+                </span>
+              )}
+
               {/* ── Collapsed: image + label only ── */}
               {v.image && (
                 <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />
@@ -422,7 +429,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                     <span className="text-[9px] font-mono text-yellow-500">…</span>
                   ) : livePrice != null ? (
                     <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>
-                      {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
+                      {v.currency}{livePrice.toFixed(2)}
                     </span>
                   ) : null}
                   {autoSyncErrors[v._id] && (
