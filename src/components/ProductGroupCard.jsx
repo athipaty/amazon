@@ -369,7 +369,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Variant swatches ── */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+      <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1">
         {variants.map((v, i) => {
           const label = v.variant || `Variant ${i + 1}`;
           const calcPrice = Math.floor(v.current * 1.45) + 0.99;
@@ -385,51 +385,51 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               key={v._id}
               onClick={() => setActiveIdx(i)}
               title={label}
-              className={`flex flex-col items-start gap-0.5 px-1.5 py-1.5 rounded-lg border text-xs transition-colors min-w-[40px] cursor-pointer ${
+              className={`flex flex-col items-start gap-0.5 px-1 py-1 rounded-lg border text-xs transition-colors min-w-[28px] cursor-pointer ${
                 isActive
                   ? 'border-[#e53238] bg-[#fff5f5]'
                   : 'border-gray-200 hover:border-gray-400'
               }`}
             >
               {v.image && (
-                <img src={v.image} alt={label} className="w-6 h-6 object-contain rounded self-center mb-0.5 flex-shrink-0" />
+                <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded self-center mb-0.5 flex-shrink-0" />
               )}
-              {/* Line 1: color name */}
-              <span className={`font-medium truncate max-w-[70px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
+              {/* Variant name */}
+              <span className={`font-medium truncate max-w-[60px] text-[10px] ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
                 {label}
               </span>
               {v.status === 'out_of_stock' && (
-                <span className="text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 leading-tight">Out of stock</span>
+                <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>
               )}
               {(v.status === 'unavailable' || v.status === 'error') && (
-                <span className="text-[9px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-tight">Unavailable</span>
+                <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>
               )}
-              {/* Line 2: Amazon price */}
-              <span className="text-[10px] text-gray-400 font-mono">
-                Amazon {v.currency}{v.current.toFixed(2)}
+              {/* Amazon price */}
+              <span className="text-[9px] text-gray-400 font-mono">
+                {v.currency}{v.current.toFixed(2)}
               </span>
-              {/* Line 3: calculated eBay price */}
-              <span className={`text-[10px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>
-                Calc {v.currency}{calcPrice.toFixed(2)}
+              {/* Calc price */}
+              <span className={`text-[9px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>
+                {v.currency}{calcPrice.toFixed(2)}
               </span>
-              {/* Line 4: live eBay price + match indicator */}
+              {/* Live eBay price + sync indicator */}
               {isRefreshing ? (
-                <span className="text-[10px] font-mono text-yellow-500">eBay syncing…</span>
+                <span className="text-[9px] font-mono text-yellow-500">…</span>
               ) : livePrice != null ? (
-                <span className={`text-[10px] font-mono flex items-center gap-0.5 ${synced ? 'text-green-600' : 'text-red-500'}`}>
-                  eBay {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
+                <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>
+                  {v.currency}{livePrice.toFixed(2)} {synced ? '✓' : '✗'}
                 </span>
               ) : null}
-              {/* Auto-sync error — show exact eBay error so we know why it failed */}
+              {/* Auto-sync error */}
               {autoSyncErrors[v._id] && (
-                <span className="text-[9px] text-red-600 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-tight break-all max-w-[110px]">
-                  ⚠ {autoSyncErrors[v._id]}
+                <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight break-all max-w-[60px]">
+                  ⚠ err
                 </span>
               )}
-              {/* Line 5: next check countdown */}
+              {/* Countdown */}
               {v.nextCheck && (
-                <span className="text-[10px] text-gray-500 font-mono">
-                  ⏱ {countdowns[i] || 'soon'}
+                <span className="text-[9px] text-gray-400 font-mono">
+                  ⏱{countdowns[i] || '…'}
                 </span>
               )}
               {/* eBay reconnect link after a failed push */}
