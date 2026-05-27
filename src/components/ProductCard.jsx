@@ -22,18 +22,25 @@ function useCountdown(target) {
 
 function PrimeVariantBadges({ isPrime, variant, upc }) {
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {isPrime
-        ? <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded leading-none">prime</span>
-        : <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">no prime</span>
-      }
+    <div className="flex flex-col gap-1">
+      {/* Prime + UPC row */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {isPrime
+          ? <span className="text-[10px] font-extrabold italic tracking-wide text-white bg-[#00A8E0] px-1.5 py-0.5 rounded leading-none">prime</span>
+          : <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">no prime</span>
+        }
+        {upc && (
+          <span className="text-[10px] text-gray-400 font-mono">UPC: {upc}</span>
+        )}
+      </div>
+      {/* Size — prominent pill */}
       {variant && (
-        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded leading-none truncate max-w-[80px]" title={variant}>
-          {variant}
+        <span
+          className="inline-block self-start text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full leading-tight"
+          title={variant}
+        >
+          📦 {variant}
         </span>
-      )}
-      {upc && (
-        <span className="text-[10px] text-gray-400 font-mono">UPC: {upc}</span>
       )}
     </div>
   );
