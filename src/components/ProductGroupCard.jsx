@@ -298,9 +298,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 : ebayListingTitle}
             </p>
           )}
-          <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
-            {variants.length} variants
-          </span>
+          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
+              {variants.length} variants
+            </span>
+            <button
+              onClick={generateEbayTitle}
+              disabled={generatingTitle}
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap disabled:opacity-60"
+            >
+              {generatingTitle ? '⏳' : '✨'} eBay Title
+            </button>
+          </div>
         </div>
         <button onClick={confirmDeleteAll} title="Stop tracking all variants"
           className="text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">✕</button>
@@ -448,13 +457,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       {/* ── Action buttons ── */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={generateEbayTitle}
-          disabled={generatingTitle}
-          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap disabled:opacity-60"
-        >
-          {generatingTitle ? '⏳ Generating…' : '✨ eBay Title'}
-        </button>
         <a href={active.url?.startsWith('http') ? active.url : `https://${active.url}`}
           target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
