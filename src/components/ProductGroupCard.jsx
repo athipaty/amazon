@@ -459,13 +459,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                     : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
                 }`}
               >
-                <span className={isRefreshing ? 'animate-spin inline-block' : ''}>🔄</span>
-                <span>
-                  {isRefreshing ? 'Checking…'
-                    : result === 'ok' && ebayPush === 'ok' ? 'Updated ✓'
-                    : result === 'ok' && ebayPush === 'fail' ? 'eBay sync ⚠'
-                    : result === 'fail' ? 'Failed ✗'
-                    : 'Refresh'}
+                <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
+                  {result === 'ok' && ebayPush === 'ok' ? '✓'
+                    : result === 'ok' && ebayPush === 'fail' ? '⚠'
+                    : result === 'fail' ? '✗'
+                    : '🔄'}
                 </span>
               </button>
             </div>
