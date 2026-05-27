@@ -448,6 +448,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       {/* ── Action buttons ── */}
       <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={generateEbayTitle}
+          disabled={generatingTitle}
+          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap disabled:opacity-60"
+        >
+          {generatingTitle ? '⏳ Generating…' : '✨ eBay Title'}
+        </button>
         <a href={active.url?.startsWith('http') ? active.url : `https://${active.url}`}
           target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
@@ -516,13 +523,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         {linkStatus === 'fail' && (
           <span className="text-xs text-red-500 whitespace-nowrap">Price push failed ⚠</span>
         )}
-        <button
-          onClick={generateEbayTitle}
-          disabled={generatingTitle}
-          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap disabled:opacity-60"
-        >
-          {generatingTitle ? '⏳ Generating…' : '✨ eBay Title'}
-        </button>
         <button onClick={() => setShowSpecs(s => !s)}
           className="ml-auto inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap px-2 py-1 rounded-full hover:bg-gray-100">
           <span className="text-[10px]">{showSpecs ? '▲' : '▼'}</span> specs
