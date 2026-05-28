@@ -264,7 +264,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       const updated = await saveRes.json();
       onUpdate?.(updated);
     } catch (e) {
-      setAutoListError(e.message.slice(0, 150));
+      setAutoListError(e.message.slice(0, 300));
     } finally {
       setAutoListing(false);
       setAutoListStep('');

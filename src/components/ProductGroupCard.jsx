@@ -319,7 +319,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         onUpdate?.(updated);
       }
     } catch (e) {
-      setAutoListError(e.message.slice(0, 150));
+      setAutoListError(e.message.slice(0, 300));
     } finally {
       setAutoListing(false);
       setAutoListStep('');
