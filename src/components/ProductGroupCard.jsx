@@ -37,7 +37,7 @@ function useCountdown(target) {
   return remaining;
 }
 
-const SKIP_SPEC_KEYS = new Set(['asin']);
+const SKIP_SPEC_KEYS = new Set(['asin', 'upc']);
 function fmtKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 function fmtVal(v) {
   if (v == null) return null;
@@ -82,7 +82,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       .then(data => {
         if (Array.isArray(data)) {
           const match = data.find(l => String(l.listingId) === String(groupEbayId));
-          setEbayListingTitle(match?.title || null);
+          const raw = match?.title || null;
+          setEbayListingTitle(raw ? raw.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : null);
         }
       })
       .catch(() => {});

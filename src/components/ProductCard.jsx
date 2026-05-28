@@ -109,7 +109,7 @@ function PriceHistory({ history, currency }) {
   );
 }
 
-const SKIP_SPEC_KEYS = new Set(['asin']);
+const SKIP_SPEC_KEYS = new Set(['asin', 'upc']);
 
 function fmtKey(k) {
   return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

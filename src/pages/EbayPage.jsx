@@ -312,7 +312,7 @@ function SearchTab({ initialUpc, initialTitle, initialQ }) {
         </button>
       </form>
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-      {!searched && !loading && (
+      {!searched && !loading && !error && (
         <div className="text-center mt-24 text-gray-400">
           <p className="text-4xl mb-3">🏷️</p>
           <p className="text-base font-medium">Search for a product above.</p>
