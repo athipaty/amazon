@@ -20,9 +20,9 @@
   body { font-family: 'DM Sans', Arial, sans-serif; color: #222; background: var(--white); max-width: 760px; margin: 0 auto; }
 
   /* ── Hero ── */
-  .hero { position: relative; background: var(--navy); overflow: hidden; }
-  .hero img { width: 100%; display: block; max-height: 420px; object-fit: cover; opacity: .72; }
-  .hero-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 32px 28px; background: linear-gradient(to top, rgba(10,32,64,.92) 0%, rgba(10,32,64,.28) 60%, transparent 100%); }
+  .hero { background: var(--navy); }
+  .hero img { width: 100%; display: block; object-fit: contain; background: var(--navy); }
+  .hero-text { padding: 24px 28px 30px; }
   .hero-badge { display: inline-block; background: var(--blue-light); color: var(--white); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px; width: fit-content; }
   .hero h1 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; color: var(--white); line-height: 1.2; margin-bottom: 8px; }
   .hero p { font-size: 13px; color: rgba(255,255,255,.85); line-height: 1.55; }
@@ -112,7 +112,7 @@
 ════════════════════════════════════ -->
 <div class="hero">
   <img src="https://res.cloudinary.com/dil2ttxah/image/upload/v1779896438/ebay-listings/zevo-insect-trap/zevo-51fgClyjF7L.jpg" alt="Zevo Compact Flying Insect Trap" />
-  <div class="hero-overlay">
+  <div class="hero-text">
     <span class="hero-badge">Indoor Insect Control</span>
     <h1>Zevo Flying Insect Trap — Light-Powered Protection</h1>
     <p>Blue + UV light lures flying insects 24/7 · Trap &amp; Lock adhesive · No chemicals, no odors, no mess</p>
