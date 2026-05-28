@@ -209,6 +209,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
     setAutoListError('');
     setLinkStatus('');
     try {
+      // Step 1: Generate SEO title
       setAutoListStep('title');
       const titleRes = await fetch(`${API}/api/ebay/seo-title`, {
         method: 'POST',
@@ -218,17 +219,34 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       const titleData = await titleRes.json();
       const ebayTitle = titleData.title || title;
 
+      // Step 2: Upload images to Cloudinary so eBay can access them
+      setAutoListStep('images');
+      const rawImages = [...new Set([
+        ...(product.images || []),
+        ...(product.image ? [product.image] : []),
+      ])].slice(0, 6);
+      let cloudinaryUrls = [];
+      if (rawImages.length) {
+        const slug = (product.specs?.asin || String(_id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrls: rawImages, slug }),
+        });
+        const uploadData = await uploadRes.json();
+        cloudinaryUrls = uploadData.cloudinaryUrls || [];
+      }
+
+      // Step 3: Create eBay listing via Trading API
       setAutoListStep('listing');
       const calcPrice = (Math.floor(current * 1.45) + 0.99).toFixed(2);
-      const listRes = await fetch(`${API}/api/ebay/create-listing`, {
+      const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sku: product.specs?.asin || String(_id).slice(-12),
           title: ebayTitle,
           price: calcPrice,
-          imageUrl: product.image,
-          imageUrls: product.images || [],
+          imageUrls: cloudinaryUrls,
           upc: product.upc,
           specs: product.specs || {},
         }),
@@ -236,6 +254,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       const listData = await listRes.json();
       if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
 
+      // Step 4: Save listing ID back to product
       setAutoListStep('saving');
       const saveRes = await fetch(`${API}/api/tracker/${_id}/ebay`, {
         method: 'PATCH',
@@ -353,7 +372,10 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
             <button onClick={autoListOnEbay} disabled={autoListing}
               className="w-full py-2 rounded-lg bg-[#e53238] text-xs font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5">
               {autoListing
-                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
+                ? (autoListStep === 'title' ? '✍️ Generating title…'
+                  : autoListStep === 'images' ? '📸 Uploading images…'
+                  : autoListStep === 'listing' ? '📤 Creating listing…'
+                  : '💾 Saving…')
                 : '🚀 Auto-List on eBay'}
             </button>
             <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
