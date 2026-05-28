@@ -369,14 +369,15 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            <button onClick={autoListOnEbay} disabled={autoListing}
-              className="w-full py-2 rounded-lg bg-[#e53238] text-xs font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5">
+            <button onClick={autoListOnEbay} disabled={autoListing || !product.isPrime}
+              title={!product.isPrime ? 'Prime required to list on eBay' : undefined}
+              className="w-full py-2 rounded-lg bg-[#e53238] text-xs font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
               {autoListing
                 ? (autoListStep === 'title' ? '✍️ Generating title…'
                   : autoListStep === 'images' ? '📸 Uploading images…'
                   : autoListStep === 'listing' ? '📤 Creating listing…'
                   : '💾 Saving…')
-                : '🚀 Auto-List on eBay'}
+                : !product.isPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
             <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
               className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors py-0.5">

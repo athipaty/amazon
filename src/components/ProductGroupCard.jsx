@@ -622,15 +622,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            <button onClick={autoListOnEbay} disabled={autoListing}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-[#c0272d] disabled:opacity-50 transition-colors whitespace-nowrap">
+            {(() => { const hasPrime = variants.some(v => v.isPrime); return (
+            <button onClick={autoListOnEbay} disabled={autoListing || !hasPrime}
+              title={!hasPrime ? 'Prime required to list on eBay' : undefined}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
               {autoListing
                 ? (autoListStep === 'title' ? '✍️ Title…'
                   : autoListStep === 'images' ? '📸 Images…'
                   : autoListStep === 'listing' ? '📤 Listing…'
                   : '💾 Saving…')
-                : '🚀 Auto-List on eBay'}
+                : !hasPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
+            ); })()}
             <button onClick={() => openEbayEdit('')}
               className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors">
               + link existing listing
