@@ -162,6 +162,9 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
   const [ebayInput, setEbayInput] = useState('');
   const [savingEbay, setSavingEbay] = useState(false);
   const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
+  const [autoListing, setAutoListing] = useState(false);
+  const [autoListStep, setAutoListStep] = useState(''); // 'title' | 'listing' | 'saving'
+  const [autoListError, setAutoListError] = useState('');
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const countdown = useCountdown(product.nextCheck);
@@ -199,6 +202,54 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
         setTimeout(() => setLinkStatus(''), 5000);
       }
     } finally { setSavingEbay(false); }
+  }
+
+  async function autoListOnEbay() {
+    setAutoListing(true);
+    setAutoListError('');
+    setLinkStatus('');
+    try {
+      setAutoListStep('title');
+      const titleRes = await fetch(`${API}/api/ebay/seo-title`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, specs: product.specs }),
+      });
+      const titleData = await titleRes.json();
+      const ebayTitle = titleData.title || title;
+
+      setAutoListStep('listing');
+      const calcPrice = (Math.floor(current * 1.45) + 0.99).toFixed(2);
+      const listRes = await fetch(`${API}/api/ebay/create-listing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sku: product.specs?.asin || String(_id).slice(-12),
+          title: ebayTitle,
+          price: calcPrice,
+          imageUrl: product.image,
+          imageUrls: product.images || [],
+          upc: product.upc,
+          specs: product.specs || {},
+        }),
+      });
+      const listData = await listRes.json();
+      if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
+
+      setAutoListStep('saving');
+      const saveRes = await fetch(`${API}/api/tracker/${_id}/ebay`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ebayListingId: listData.listingId }),
+      });
+      const updated = await saveRes.json();
+      onUpdate?.(updated);
+    } catch (e) {
+      setAutoListError(e.message.slice(0, 150));
+    } finally {
+      setAutoListing(false);
+      setAutoListStep('');
+    }
   }
 
   const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
@@ -298,10 +349,21 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
               className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg" title="Change listing">✏️</button>
           </div>
         ) : (
-          <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
-            className="w-full py-2 rounded-lg border border-dashed border-gray-200 text-xs text-gray-400 hover:border-[#e53238] hover:text-[#e53238] transition-colors">
-            + Link eBay Listing
-          </button>
+          <div className="flex flex-col gap-1">
+            <button onClick={autoListOnEbay} disabled={autoListing}
+              className="w-full py-2 rounded-lg bg-[#e53238] text-xs font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5">
+              {autoListing
+                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
+                : '🚀 Auto-List on eBay'}
+            </button>
+            <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
+              className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors py-0.5">
+              + link existing listing
+            </button>
+            {autoListError && (
+              <p className="text-[10px] text-red-500 leading-tight break-words">{autoListError}</p>
+            )}
+          </div>
         )}
 
         {linkStatus === 'pushing' && <p className="text-xs text-blue-500 text-center">Pushing price…</p>}
