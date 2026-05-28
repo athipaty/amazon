@@ -64,6 +64,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
   const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
   const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
+  const [autoListing, setAutoListing] = useState(false);
+  const [autoListStep, setAutoListStep] = useState('');
+  const [autoListError, setAutoListError] = useState('');
   const [ebayListingTitle, setEbayListingTitle] = useState(null);
   const [generatedEbayTitle, setGeneratedEbayTitle] = useState(null);
   const [generatingTitle, setGeneratingTitle] = useState(false);
@@ -243,6 +246,84 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         setTimeout(() => setLinkStatus(''), 5000);
       }
     } finally { setSavingEbay(false); }
+  }
+
+  async function autoListOnEbay() {
+    setAutoListing(true);
+    setAutoListError('');
+    try {
+      // Step 1: Generate SEO title from first variant
+      setAutoListStep('title');
+      const titleRes = await fetch(`${API}/api/ebay/seo-title`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: active.title, specs: active.specs }),
+      });
+      const titleData = await titleRes.json();
+      const ebayTitle = titleData.title || active.title;
+
+      // Step 2: Upload all unique variant images to Cloudinary
+      setAutoListStep('images');
+      const rawImages = [...new Set(
+        variants.flatMap(v => [v.image, ...(v.images || [])]).filter(Boolean)
+      )].slice(0, 8);
+      let cloudinaryUrls = [];
+      if (rawImages.length) {
+        const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrls: rawImages, slug }),
+        });
+        const uploadData = await uploadRes.json();
+        cloudinaryUrls = uploadData.cloudinaryUrls || [];
+      }
+
+      // Step 3: Create multi-variation eBay listing
+      setAutoListStep('listing');
+      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["']/)) ? 'Size'
+        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|pink|purple|yellow|orange|brown|natural|carbonized)\b/i)) ? 'Color'
+        : 'Style';
+
+      const variantPayload = variants.map(v => ({
+        label: v.variant || `Variant ${variants.indexOf(v) + 1}`,
+        price: (Math.floor(v.current * 1.45) + 0.99).toFixed(2),
+        quantity: 1,
+      }));
+
+      const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: ebayTitle,
+          price: (Math.floor(active.current * 1.45) + 0.99).toFixed(2),
+          imageUrls: cloudinaryUrls,
+          upc: active.upc,
+          specs: active.specs || {},
+          variants: variantPayload,
+          variantDimension,
+        }),
+      });
+      const listData = await listRes.json();
+      if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
+
+      // Step 4: Save listing ID to all variants
+      setAutoListStep('saving');
+      for (const v of variants) {
+        const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ebayListingId: listData.listingId }),
+        });
+        const updated = await saveRes.json();
+        onUpdate?.(updated);
+      }
+    } catch (e) {
+      setAutoListError(e.message.slice(0, 150));
+    } finally {
+      setAutoListing(false);
+      setAutoListStep('');
+    }
   }
 
   async function generateEbayTitle() {
@@ -540,10 +621,24 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
           </div>
         ) : (
-          <button onClick={() => openEbayEdit('')}
-            className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-[#e53238] hover:text-[#e53238] transition-colors whitespace-nowrap">
-            + Link My Listing
-          </button>
+          <div className="flex flex-col gap-1">
+            <button onClick={autoListOnEbay} disabled={autoListing}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-[#c0272d] disabled:opacity-50 transition-colors whitespace-nowrap">
+              {autoListing
+                ? (autoListStep === 'title' ? '✍️ Title…'
+                  : autoListStep === 'images' ? '📸 Images…'
+                  : autoListStep === 'listing' ? '📤 Listing…'
+                  : '💾 Saving…')
+                : '🚀 Auto-List on eBay'}
+            </button>
+            <button onClick={() => openEbayEdit('')}
+              className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors">
+              + link existing listing
+            </button>
+            {autoListError && (
+              <p className="text-[10px] text-red-500 leading-tight break-words max-w-[200px]">{autoListError}</p>
+            )}
+          </div>
         )}
         {linkStatus === 'pushing' && (
           <span className="text-xs text-blue-500 whitespace-nowrap">Pushing prices…</span>
