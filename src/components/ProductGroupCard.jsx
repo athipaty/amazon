@@ -68,9 +68,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [autoListStep, setAutoListStep] = useState('');
   const [autoListError, setAutoListError] = useState('');
   const [ebayListingTitle, setEbayListingTitle] = useState(null);
-  const [generatedEbayTitle, setGeneratedEbayTitle] = useState(null);
-  const [generatingTitle, setGeneratingTitle] = useState(false);
-  const [copiedTitle, setCopiedTitle] = useState(false);
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
@@ -485,31 +482,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
-  async function generateEbayTitle() {
-    setGeneratingTitle(true);
-    setGeneratedEbayTitle(null);
-    setCopiedTitle(false);
-    try {
-      const r = await fetch(`${API}/api/tracker/ebay-title`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: active.title, specs: active.specs, variant: active.variant, upc: active.upc }),
-      });
-      const data = await r.json();
-      setGeneratedEbayTitle(data.title || null);
-    } catch {
-      setGeneratedEbayTitle(null);
-    } finally {
-      setGeneratingTitle(false);
-    }
-  }
-
-  function copyTitle() {
-    if (!generatedEbayTitle) return;
-    navigator.clipboard.writeText(generatedEbayTitle);
-    setCopiedTitle(true);
-    setTimeout(() => setCopiedTitle(false), 2000);
-  }
 
   const countdowns = [
     useCountdown(variants[0]?.nextCheck),
@@ -580,13 +552,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 </span>
               );
             })()}
-            <button
-              onClick={generateEbayTitle}
-              disabled={generatingTitle}
-              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap disabled:opacity-60"
-            >
-              {generatingTitle ? '⏳' : '✨'} eBay Title
-            </button>
           </div>
         </div>
         {confirmingDelete ? (
@@ -918,27 +883,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         </button>
       </div>
 
-      {/* ── Generated eBay title ── */}
-      {generatedEbayTitle && (
-        <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-lg px-3 py-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wide mb-0.5">
-              eBay Title · <span className={generatedEbayTitle.length > 80 ? 'text-red-500' : 'text-violet-500'}>{generatedEbayTitle.length}/80</span>
-            </p>
-            <p className="text-xs text-gray-800 break-words">{generatedEbayTitle}</p>
-          </div>
-          <button
-            onClick={copyTitle}
-            className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
-              copiedTitle
-                ? 'bg-green-100 text-green-600 border border-green-200'
-                : 'bg-violet-100 text-violet-600 border border-violet-300 hover:bg-violet-200'
-            }`}
-          >
-            {copiedTitle ? 'Copied ✓' : 'Copy'}
-          </button>
-        </div>
-      )}
 
       {/* ── Specs panel ── */}
       {showSpecs && (
