@@ -163,8 +163,11 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
   const [savingEbay, setSavingEbay] = useState(false);
   const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
   const [autoListing, setAutoListing] = useState(false);
-  const [autoListStep, setAutoListStep] = useState(''); // 'title' | 'listing' | 'saving'
+  const [autoListStep, setAutoListStep] = useState('');
   const [autoListError, setAutoListError] = useState('');
+  const [revisingDesc, setRevisingDesc] = useState(false);
+  const [reviseStatus, setReviseStatus] = useState(''); // '' | 'ok' | 'fail'
+  const [reviseError, setReviseError] = useState('');
   const { _id, title, url, currency, current, lowest, history } = product;
 
   const countdown = useCountdown(product.nextCheck);
@@ -287,6 +290,48 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
   }
 
   const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
+
+  async function reviseDescription() {
+    if (!product.ebayListingId) return;
+    setRevisingDesc(true);
+    setReviseStatus('');
+    setReviseError('');
+    try {
+      // 1. Get fresh images from tracker
+      const rawImages = [...new Set([product.image, ...(product.images || [])].filter(Boolean))].slice(0, 8);
+      // 2. Upload to Cloudinary
+      let imageUrls = rawImages;
+      if (rawImages.length) {
+        const slug = (product.specs?.asin || String(_id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const up = await fetch(`${API}/api/ebay/upload-images`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrls: rawImages, slug: slug + '-rdesc' }),
+        });
+        imageUrls = (await up.json()).cloudinaryUrls || rawImages;
+      }
+      // 3. Generate HTML description
+      const descRes = await fetch(`${API}/api/ebay/generate-description`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, specs: product.specs || {}, imageUrls }),
+      });
+      const { html } = await descRes.json();
+      if (!html) throw new Error('Description generation failed');
+      // 4. Patch the live listing
+      const patchRes = await fetch(`${API}/api/ebay/listing/${product.ebayListingId}/revise-description`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: html }),
+      });
+      const patchData = await patchRes.json();
+      if (!patchRes.ok) throw new Error(patchData.error || 'Failed to update listing');
+      setReviseStatus('ok');
+      setTimeout(() => setReviseStatus(''), 6000);
+    } catch (e) {
+      setReviseStatus('fail');
+      setReviseError(e.message.slice(0, 200));
+    } finally {
+      setRevisingDesc(false);
+    }
+  }
 
   const calcPrice  = Math.floor(current * 1.45) + 0.99;
   const ebayFee    = +(calcPrice * 0.129 + 0.30).toFixed(2);
@@ -413,11 +458,19 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
             <button onClick={() => setEditingEbay(false)} disabled={savingEbay} className="p-2.5 bg-gray-100 text-gray-500 rounded-lg">✕</button>
           </div>
         ) : product.ebayListingId ? (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e53238]/20 bg-[#fff5f5]">
-            <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
-              className="flex-1 text-sm font-semibold text-[#e53238]">My eBay Listing →</a>
-            <button onClick={() => { setEbayInput(product.ebayListingId); setEditingEbay(true); }}
-              className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg" title="Change listing">✏️</button>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e53238]/20 bg-[#fff5f5]">
+              <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
+                className="flex-1 text-sm font-semibold text-[#e53238]">My eBay Listing →</a>
+              <button onClick={() => { setEbayInput(product.ebayListingId); setEditingEbay(true); }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg" title="Change listing">✏️</button>
+            </div>
+            <button onClick={reviseDescription} disabled={revisingDesc}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-xs font-semibold text-blue-600 hover:bg-blue-100 disabled:opacity-50 transition-colors">
+              {revisingDesc ? '📝 Generating & updating…' : '📝 Update Description'}
+            </button>
+            {reviseStatus === 'ok'   && <p className="text-xs text-green-600 text-center">Description updated ✓</p>}
+            {reviseStatus === 'fail' && <p className="text-xs text-red-500 break-words">{reviseError || 'Failed ⚠'}</p>}
           </div>
         ) : (
           <div className="flex flex-col gap-1">
