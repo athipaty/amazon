@@ -342,10 +342,25 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setFixPhotosStatus('');
     setFixPhotosError('');
     try {
-      // Upload ALL images per variant separately
+      // Step 1: Refresh images from Amazon for each variant (gets full hi-res set, not just what was scraped)
+      const refreshed = await Promise.all(
+        variants.map(v =>
+          fetch(`${API}/api/tracker/${v._id}/refresh-images`, { method: 'POST' })
+            .then(r => r.json())
+            .catch(() => null)
+        )
+      );
+
+      // Merge refreshed image list back into variant data
+      const variantsWithFreshImages = variants.map((v, i) => ({
+        ...v,
+        images: refreshed[i]?.images?.length ? refreshed[i].images : (v.images?.length ? v.images : [v.image].filter(Boolean)),
+      }));
+
+      // Step 2: Upload ALL images per variant separately
       const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
       const variantCloudinaryImages = [];
-      for (const v of variants) {
+      for (const v of variantsWithFreshImages) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
         if (!varImgs.length) { variantCloudinaryImages.push([]); continue; }
         const varSlug = slug + '-fix-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
