@@ -12,6 +12,7 @@ export default function AmazonPage() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+  const [sellingLimits, setSellingLimits] = useState(null);
   const [checking, setChecking] = useState(false);
   const [preview, setPreview] = useState(null); // { title, price, currency, image, variants, groupId }
   const [selectedAsins, setSelectedAsins] = useState(new Set());
@@ -26,6 +27,7 @@ export default function AmazonPage() {
   useEffect(() => {
     loadProducts();
     checkEbayStatus();
+    fetchSellingLimits();
 
     socketRef.current = io(API);
     const socket = socketRef.current;
@@ -62,6 +64,13 @@ export default function AmazonPage() {
       const { data } = await axios.get(`${API}/api/ebay/auth/status`);
       setEbayConnected(data.connected === true);
     } catch { setEbayConnected(false); }
+  }
+
+  async function fetchSellingLimits() {
+    try {
+      const { data } = await axios.get(`${API}/api/ebay/selling-limits`);
+      setSellingLimits(data);
+    } catch {}
   }
 
   async function loadProducts() {
@@ -232,6 +241,51 @@ export default function AmazonPage() {
           {checking ? 'Checking…' : 'Check All'}
         </button>
       </header>
+
+      {/* ── eBay Selling Limits Widget ── */}
+      {sellingLimits && (
+        <div className="mb-5 bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-wrap gap-4 items-center">
+          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide flex-shrink-0">Monthly Limit</p>
+
+          {/* Items */}
+          <div className="flex-1 min-w-[160px]">
+            <div className="flex justify-between items-baseline mb-1">
+              <span className="text-xs font-semibold text-gray-700">Items</span>
+              <span className="text-xs text-gray-500">
+                <span className="font-bold text-gray-900">{sellingLimits.items.used}</span>
+                <span className="text-gray-400"> / {sellingLimits.items.limit}</span>
+              </span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${sellingLimits.items.used / sellingLimits.items.limit > 0.85 ? 'bg-red-500' : sellingLimits.items.used / sellingLimits.items.limit > 0.6 ? 'bg-yellow-400' : 'bg-green-500'}`}
+                style={{ width: `${Math.min(100, (sellingLimits.items.used / sellingLimits.items.limit) * 100).toFixed(1)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">{sellingLimits.items.remaining} remaining</p>
+          </div>
+
+          {/* Revenue */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex justify-between items-baseline mb-1">
+              <span className="text-xs font-semibold text-gray-700">Revenue</span>
+              <span className="text-xs text-gray-500">
+                <span className="font-bold text-gray-900">${sellingLimits.revenue.usedUsd.toFixed(0)}</span>
+                <span className="text-gray-400"> / ${sellingLimits.revenue.limitUsd.toFixed(0)} USD</span>
+              </span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd > 0.85 ? 'bg-red-500' : sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd > 0.6 ? 'bg-yellow-400' : 'bg-blue-500'}`}
+                style={{ width: `${Math.min(100, (sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd) * 100).toFixed(1)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">${sellingLimits.revenue.remaining.toFixed(0)} remaining · 1 SGD ≈ {sellingLimits.revenue.rate.toFixed(3)} USD</p>
+          </div>
+
+          <button onClick={fetchSellingLimits} className="text-[10px] text-gray-400 hover:text-gray-600 flex-shrink-0" title="Refresh">↻</button>
+        </div>
+      )}
 
       <div className="mb-5">
         <form className="flex gap-2" onSubmit={handleAdd}>
