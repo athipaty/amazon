@@ -326,7 +326,12 @@ export default function AmazonPage() {
           {/* Revenue */}
           <div className="flex-1 min-w-[200px]">
             <div className="flex justify-between items-baseline mb-1">
-              <span className="text-xs font-semibold text-gray-700">Revenue</span>
+              <span className="text-xs font-semibold text-gray-700">
+                Revenue
+                {sellingLimits.revenue.source === 'estimated' && (
+                  <span className="ml-1 text-[9px] text-orange-400 font-normal">~est</span>
+                )}
+              </span>
               <span className="text-xs text-gray-500">
                 <span className="font-bold text-gray-900">${sellingLimits.revenue.usedUsd.toFixed(0)}</span>
                 <span className="text-gray-400"> / ${sellingLimits.revenue.limitUsd.toFixed(0)} USD</span>
@@ -338,7 +343,12 @@ export default function AmazonPage() {
                 style={{ width: `${Math.min(100, (sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd) * 100).toFixed(1)}%` }}
               />
             </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">${sellingLimits.revenue.remaining.toFixed(0)} remaining · 1 SGD ≈ {sellingLimits.revenue.rate.toFixed(3)} USD</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {sellingLimits.revenue.source === 'estimated'
+                ? <><a href={`${API}/api/ebay/auth/login`} className="text-blue-500 hover:underline">Reconnect eBay</a> to enable live revenue tracking</>
+                : <>${sellingLimits.revenue.remaining.toFixed(0)} remaining · 1 SGD ≈ {sellingLimits.revenue.rate.toFixed(3)} USD</>
+              }
+            </p>
           </div>
 
           <button onClick={fetchSellingLimits} className="text-[10px] text-gray-400 hover:text-gray-600 flex-shrink-0" title="Refresh">↻</button>
