@@ -556,68 +556,127 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           const ebayPush = ebayPushResults[v._id];
           const isActive = i === activeIdx;
 
+          // ── DETAIL MODE: full card with labeled price rows ──────────
+          if (detailMode) return (
+            <div
+              key={v._id}
+              onClick={() => toggleExpand(i)}
+              className={`relative flex flex-col rounded-xl border-2 transition-colors cursor-pointer overflow-hidden ${
+                isActive ? 'border-[#e53238] shadow-sm' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {/* Image */}
+              <div className={`flex items-center justify-center p-2 ${isActive ? 'bg-[#fff5f5]' : 'bg-gray-50'}`}>
+                {v.image
+                  ? <img src={v.image} alt={label} className="w-16 h-16 object-contain" />
+                  : <div className="w-16 h-16 bg-gray-100 rounded-lg" />
+                }
+              </div>
+
+              {/* Label */}
+              <div className={`px-2 py-1 text-center border-b ${isActive ? 'bg-[#fff5f5] border-[#fcc]' : 'bg-white border-gray-100'}`}>
+                <span className={`text-xs font-bold ${isActive ? 'text-[#e53238]' : 'text-gray-800'}`}>{label}</span>
+                {v.status === 'out_of_stock' && <span className="ml-1 text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1">OOS</span>}
+                {(v.status === 'unavailable' || v.status === 'error') && <span className="ml-1 text-[9px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-1">N/A</span>}
+              </div>
+
+              {/* Price rows */}
+              <div className="px-2.5 py-2 flex flex-col gap-1 bg-white">
+                {/* Amazon */}
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
+                  <span className="text-sm font-bold text-gray-900">{v.currency}{v.current.toFixed(2)}</span>
+                </div>
+
+                {/* Calculated eBay */}
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Cal</span>
+                  <span className="text-sm font-semibold text-blue-700">{v.currency}{calcPrice.toFixed(2)}</span>
+                </div>
+
+                {/* Live eBay price */}
+                {isRefreshing ? (
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
+                    <span className="text-xs text-yellow-500">…</span>
+                  </div>
+                ) : livePrice != null ? (
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
+                    <span className={`text-sm font-bold ${synced ? 'text-green-600' : 'text-red-500'}`}>
+                      {v.currency}{livePrice.toFixed(2)}
+                      <span className="text-[9px] ml-0.5">{synced ? '✓' : '✗'}</span>
+                    </span>
+                  </div>
+                ) : null}
+
+                {/* Countdown + refresh */}
+                <div className="flex items-center justify-between mt-0.5 pt-1.5 border-t border-gray-100">
+                  {v.nextCheck
+                    ? <span className="text-[10px] text-gray-400 font-mono">⏱ {countdowns[i] || '…'}</span>
+                    : <span />
+                  }
+                  {autoSyncErrors[v._id] && (
+                    <span className="text-[9px] text-orange-500">⚠</span>
+                  )}
+                  {ebayPush === 'fail' && (
+                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
+                      className="text-[9px] text-yellow-700 underline">Reconnect</a>
+                  )}
+                  <button
+                    onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
+                    disabled={isRefreshing}
+                    className={`text-xs px-2 py-0.5 rounded transition-all ${
+                      isRefreshing ? 'text-blue-600 bg-blue-50 border border-blue-200 cursor-not-allowed'
+                      : result === 'ok' && ebayPush === 'ok' ? 'text-green-600 bg-green-50 border border-green-200 hover:bg-green-100'
+                      : result === 'ok' && ebayPush === 'fail' ? 'text-yellow-700 bg-yellow-50 border border-yellow-300'
+                      : result === 'fail' ? 'text-red-500 bg-red-50 border border-red-200'
+                      : 'text-gray-400 bg-gray-100 border border-gray-200 hover:text-gray-600'
+                    }`}
+                  >
+                    <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
+                      {result === 'ok' && ebayPush === 'ok' ? '✓' : result === 'ok' && ebayPush === 'fail' ? '⚠' : result === 'fail' ? '✗' : '🔄'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+
+          // ── COMPACT MODE: original tiny grid tile ──────────────────
           return (
             <div
               key={v._id}
               onClick={() => toggleExpand(i)}
               title={label}
               className={`relative flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
-                isActive
-                  ? 'border-[#e53238] bg-[#fff5f5]'
-                  : 'border-gray-200 hover:border-gray-400'
+                isActive ? 'border-[#e53238] bg-[#fff5f5]' : 'border-gray-200 hover:border-gray-400'
               }`}
             >
-              {/* ── Sync indicator — always visible top-right ── */}
               {livePrice != null && (
                 <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-green-500' : 'text-red-500'}`}>
                   {synced ? '✓' : '✗'}
                 </span>
               )}
-
-              {/* ── Collapsed: image + label only ── */}
-              {v.image && (
-                <img src={v.image} alt={label} className={`object-contain rounded flex-shrink-0 ${detailMode ? 'w-12 h-12' : 'w-5 h-5'}`} />
-              )}
-              <span className={`font-medium truncate text-center ${detailMode ? 'text-xs max-w-[80px]' : 'max-w-[60px] text-[10px]'} ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
-                {label}
-              </span>
-
-              {/* ── Expanded details ── */}
-              {(allExpanded || detailMode) && (
+              {v.image && <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />}
+              <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>{label}</span>
+              {allExpanded && (
                 <>
-                  {v.status === 'out_of_stock' && (
-                    <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>
-                  )}
-                  {(v.status === 'unavailable' || v.status === 'error') && (
-                    <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>
-                  )}
+                  {v.status === 'out_of_stock' && <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>}
+                  {(v.status === 'unavailable' || v.status === 'error') && <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>}
                   <span className="text-[9px] text-gray-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
-                  <span className={`text-[9px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>
-                    {v.currency}{calcPrice.toFixed(2)}
-                  </span>
-                  {isRefreshing ? (
-                    <span className="text-[9px] font-mono text-yellow-500">…</span>
-                  ) : livePrice != null ? (
-                    <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>
-                      {v.currency}{livePrice.toFixed(2)}
-                    </span>
-                  ) : null}
-                  {autoSyncErrors[v._id] && (
-                    <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">⚠ err</span>
-                  )}
-                  {v.nextCheck && (
-                    <span className="text-[9px] text-gray-400 font-mono">⏱{countdowns[i] || '…'}</span>
-                  )}
+                  <span className={`text-[9px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>{v.currency}{calcPrice.toFixed(2)}</span>
+                  {isRefreshing ? <span className="text-[9px] font-mono text-yellow-500">…</span>
+                    : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
+                    : null}
+                  {autoSyncErrors[v._id] && <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">⚠ err</span>}
+                  {v.nextCheck && <span className="text-[9px] text-gray-400 font-mono">⏱{countdowns[i] || '…'}</span>}
                   {ebayPush === 'fail' && (
-                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
-                      className="text-[9px] text-yellow-700 underline whitespace-nowrap">
-                      Reconnect →
-                    </a>
+                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()} className="text-[9px] text-yellow-700 underline whitespace-nowrap">Reconnect →</a>
                   )}
                   <button
                     onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
                     disabled={isRefreshing}
-                    title={`Refresh ${label}`}
                     className={`mt-0.5 self-stretch flex items-center justify-center rounded text-[10px] py-0.5 transition-all ${
                       isRefreshing ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
                       : result === 'ok' && ebayPush === 'ok' ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
@@ -627,10 +686,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                     }`}
                   >
                     <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
-                      {result === 'ok' && ebayPush === 'ok' ? '✓'
-                        : result === 'ok' && ebayPush === 'fail' ? '⚠'
-                        : result === 'fail' ? '✗'
-                        : '🔄'}
+                      {result === 'ok' && ebayPush === 'ok' ? '✓' : result === 'ok' && ebayPush === 'fail' ? '⚠' : result === 'fail' ? '✗' : '🔄'}
                     </span>
                   </button>
                 </>
