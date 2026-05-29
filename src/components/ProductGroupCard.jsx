@@ -265,27 +265,27 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const titleData = await titleRes.json();
       const ebayTitle = titleData.title || active.title;
 
-      // Step 2: Upload images — variant primaries first (in order) so index maps back to variant
+      // Step 2: Upload ALL images per variant separately so each variant gets its own photo set
       setAutoListStep('images');
       const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
-      const variantPrimaries = variants.map(v => v.image).filter(Boolean);
-      const extraImages = [...new Set(
-        variants.flatMap(v => (v.images || []).filter(Boolean))
-          .filter(url => !variantPrimaries.includes(url))
-      )];
-      const rawImages = [...new Set([...variantPrimaries, ...extraImages])].slice(0, 8);
-      let cloudinaryUrls = [];
-      if (rawImages.length) {
-        const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrls: rawImages, slug }),
-        });
-        const uploadData = await uploadRes.json();
-        cloudinaryUrls = uploadData.cloudinaryUrls || [];
+
+      const variantCloudinaryImages = [];
+      for (const v of variants) {
+        const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
+        if (!varImgs.length) { variantCloudinaryImages.push([]); continue; }
+        const varSlug = slug + '-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+        try {
+          const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrls: varImgs, slug: varSlug }),
+          });
+          const uploadData = await uploadRes.json();
+          variantCloudinaryImages.push(uploadData.cloudinaryUrls || []);
+        } catch { variantCloudinaryImages.push([]); }
       }
-      // cloudinaryUrls[0..variantPrimaries.length-1] map 1-to-1 with variants
-      const variantCloudinaryUrls = cloudinaryUrls.slice(0, variantPrimaries.length);
+      // Combine all for the main listing gallery (deduplicated, max 12)
+      const cloudinaryUrls = [...new Set(variantCloudinaryImages.flat())].slice(0, 12);
 
       // Step 3: Create multi-variation eBay listing
       setAutoListStep('listing');
@@ -297,7 +297,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         label: v.variant || `Variant ${i + 1}`,
         price: (Math.floor(v.current * 1.45) + 0.99).toFixed(2),
         quantity: 1,
-        image: variantCloudinaryUrls[i] || null,
+        images: variantCloudinaryImages[i] || [],
+        image: variantCloudinaryImages[i]?.[0] || null,
       }));
 
       const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
@@ -341,18 +342,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setFixPhotosStatus('');
     setFixPhotosError('');
     try {
-      // Upload each variant's primary image to Cloudinary in order
+      // Upload ALL images per variant separately
       const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
-      const variantPrimaries = variants.map(v => v.image).filter(Boolean);
-      let cloudinaryUrls = [];
-      if (variantPrimaries.length) {
-        const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrls: variantPrimaries, slug: slug + '-fix' }),
-        });
-        const uploadData = await uploadRes.json();
-        cloudinaryUrls = uploadData.cloudinaryUrls || [];
+      const variantCloudinaryImages = [];
+      for (const v of variants) {
+        const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
+        if (!varImgs.length) { variantCloudinaryImages.push([]); continue; }
+        const varSlug = slug + '-fix-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+        try {
+          const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrls: varImgs, slug: varSlug }),
+          });
+          variantCloudinaryImages.push((await uploadRes.json()).cloudinaryUrls || []);
+        } catch { variantCloudinaryImages.push([]); }
       }
 
       const variantDimension = variants.some(v => (v.variant || '').match(/\d+["']/)) ? 'Size'
@@ -361,8 +365,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
-        image: cloudinaryUrls[i] || null,
-      })).filter(v => v.image);
+        images: variantCloudinaryImages[i] || [],
+        image: variantCloudinaryImages[i]?.[0] || null,
+      })).filter(v => v.images.length);
 
       const res = await fetch(`${API}/api/ebay/listing/variation-photos`, {
         method: 'POST',
