@@ -67,7 +67,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [autoListing, setAutoListing] = useState(false);
   const [autoListStep, setAutoListStep] = useState('');
   const [autoListError, setAutoListError] = useState('');
-  const [ebayListingTitle, setEbayListingTitle] = useState(null);
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
@@ -80,20 +79,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
   const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
   const autoSyncDone = useRef(false);
-
-  useEffect(() => {
-    if (!groupEbayId) { setEbayListingTitle(null); return; }
-    fetch(`${API}/api/ebay/all-active-listings`)
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const match = data.find(l => String(l.listingId) === String(groupEbayId));
-          const raw = match?.title || null;
-          setEbayListingTitle(raw ? raw.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : null);
-        }
-      })
-      .catch(() => {});
-  }, [groupEbayId]);
 
   async function fetchEbayPrices() {
     if (!groupEbayId) return;
@@ -522,17 +507,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         }
         <div className="flex-1 min-w-0">
           <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
-          {ebayListingTitle && (
-            <p
-              className={`text-xs mt-0.5 truncate ${ebayListingTitle.length > 80 ? 'text-red-500' : 'text-gray-500'}`}
-              title={`${ebayListingTitle} (${ebayListingTitle.length}/80)`}
-            >
-              <span className="font-semibold text-[#e53238] mr-1">eBay</span>
-              {ebayListingTitle.length > 80
-                ? <>{ebayListingTitle.slice(0, 80)}<span className="text-red-400"> +{ebayListingTitle.length - 80} over</span></>
-                : ebayListingTitle}
-            </p>
-          )}
           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
             {variants.length > 1 && (
               <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
