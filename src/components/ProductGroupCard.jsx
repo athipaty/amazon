@@ -508,11 +508,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <div className="flex-1 min-w-0">
           <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug line-clamp-3 lg:line-clamp-none' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            {variants.length > 1 && (
-              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
-                {variants.length} variants
-              </span>
-            )}
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
             {detailMode && (() => {
               const totalProfit = variants.reduce((sum, v) => {
