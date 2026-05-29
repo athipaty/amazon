@@ -46,7 +46,7 @@ function fmtVal(v) {
   return String(v);
 }
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
@@ -121,7 +121,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const livePrice = getLivePrice(v.variant || '');
       return livePrice != null && Math.abs(livePrice - calcPrice) >= 0.02;
     });
-    if (!mismatches.length) return;
+    // Notify parent sidebar: price issue detected
+    if (mismatches.length) onPriceMismatch?.(groupEbayId, true);
+    if (!mismatches.length) { onPriceMismatch?.(groupEbayId, false); return; }
 
     const ids = new Set(mismatches.map(v => v._id));
     setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
@@ -144,8 +146,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
     })).finally(() => {
       setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n; });
-      // Re-fetch actual eBay prices to confirm what really changed (don't trust optimistic update)
-      setTimeout(fetchEbayPrices, 4000);
+      // Re-fetch actual eBay prices to confirm sync — clears price issue if all fixed
+      setTimeout(() => {
+        fetchEbayPrices();
+        onPriceMismatch?.(groupEbayId, false); // optimistically clear; will re-trigger if still mismatched
+      }, 4000);
     });
   }, [ebayLivePrices]); // autoSyncDone ref prevents looping when fetchEbayPrices re-sets ebayLivePrices
 

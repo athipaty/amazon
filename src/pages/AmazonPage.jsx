@@ -52,6 +52,7 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                 <div className="flex items-center justify-between mt-1">
                   <div className="flex items-center gap-1">
                     {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed OK</span></>}
+                    {status === 'price'    && <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0 animate-pulse" /><span className="text-[10px] text-yellow-600 font-semibold">Price issue</span></>}
                     {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
                     {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span></>}
                     {item.type === 'group' && <span className="ml-1 text-[9px] text-gray-300">{item.variants.length}v</span>}
@@ -96,6 +97,7 @@ export default function AmazonPage() {
   const [previewGroupId, setPreviewGroupId] = useState(null);
   const [ebayConnected, setEbayConnected] = useState(true);
   const [ebayFailedIds, setEbayFailedIds] = useState(new Set());
+  const [priceMismatchIds, setPriceMismatchIds] = useState(new Set()); // eBay listing IDs with price mismatch
   const [selectedKey, setSelectedKey] = useState(null);
   const socketRef = useRef(null);
 
@@ -217,18 +219,23 @@ export default function AmazonPage() {
   }
   function getItemStatus(item) {
     if (item.type === 'group') {
-      const hasListing = item.variants.some(v => v.ebayListingId);
+      const ebayId     = item.variants.find(v => v.ebayListingId)?.ebayListingId;
+      const hasListing = !!ebayId;
       const hasFail    = item.variants.some(v => ebayFailedIds.has(String(v._id)));
       const hasOOS     = item.variants.some(v => v.status === 'out_of_stock' || v.status === 'unavailable');
+      const hasPrice   = hasListing && priceMismatchIds.has(String(ebayId));
       if (!hasListing) return 'unlisted';
       if (hasFail || hasOOS) return 'issue';
+      if (hasPrice) return 'price';
       return 'ok';
     }
     const p = item.product;
-    const hasFail = ebayFailedIds.has(String(p._id));
-    const hasOOS  = p.status === 'out_of_stock' || p.status === 'unavailable';
+    const hasFail  = ebayFailedIds.has(String(p._id));
+    const hasOOS   = p.status === 'out_of_stock' || p.status === 'unavailable';
+    const hasPrice = p.ebayListingId && priceMismatchIds.has(String(p.ebayListingId));
     if (!p.ebayListingId) return 'unlisted';
     if (hasFail || hasOOS) return 'issue';
+    if (hasPrice) return 'price';
     return 'ok';
   }
 
@@ -251,6 +258,8 @@ export default function AmazonPage() {
 
   // Sort: items with any issue bubble to the top
   function itemHasIssue(item) {
+    const s = getItemStatus(item);
+    if (s === 'issue' || s === 'price') return true;
     const variants = item.type === 'group' ? item.variants : [item.product];
     return variants.some(v =>
       (v.status && v.status !== 'active') ||
@@ -278,6 +287,16 @@ export default function AmazonPage() {
 
   function handleUpdate(updated) {
     setProducts(prev => prev.map(p => p._id === updated._id ? updated : p));
+  }
+
+  function handlePriceMismatch(ebayListingId, hasMismatch) {
+    if (!ebayListingId) return;
+    setPriceMismatchIds(prev => {
+      const next = new Set(prev);
+      if (hasMismatch) next.add(String(ebayListingId));
+      else next.delete(String(ebayListingId));
+      return next;
+    });
   }
 
   async function handleCheckOne(id) {
@@ -493,7 +512,7 @@ export default function AmazonPage() {
           <div className="flex lg:hidden flex-col gap-2">
             {renderItems.map((item, i) =>
               item.type === 'group'
-                ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} />
+                ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} onPriceMismatch={handlePriceMismatch} />
                 : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(item.product._id))} />
             )}
           </div>
@@ -516,7 +535,7 @@ export default function AmazonPage() {
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
-                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
                   : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
               )}
             </div>
