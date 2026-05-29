@@ -274,63 +274,179 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
 
   const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
 
-  return (
-    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col gap-3 ${detailMode ? 'p-5 shadow-sm' : 'lg:flex-row lg:items-center gap-2 lg:gap-4 p-3 lg:px-4 lg:py-3'} ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+  const calcPrice = Math.floor(current * 1.45) + 0.99;
 
-      {/* ── Image + Title + Badges ── */}
-      <div className={`flex items-start min-w-0 ${detailMode ? 'gap-5' : 'gap-3'}`}>
+  // ── DETAIL MODE: expanded card matching group card style ──────────
+  if (detailMode) return (
+    <div className={`bg-white rounded-xl border shadow-sm flex flex-col gap-0 overflow-hidden ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+
+      {/* Top section: image + info */}
+      <div className="flex items-start gap-5 p-5">
         {product.image
-          ? <img src={product.image} alt={title} className={`object-contain rounded-xl bg-gray-50 flex-shrink-0 ${detailMode ? 'w-28 h-28' : 'w-12 h-12 rounded-lg'}`} />
-          : <div className={`rounded-xl bg-gray-100 flex-shrink-0 ${detailMode ? 'w-28 h-28' : 'w-12 h-12 rounded-lg'}`} />
+          ? <img src={product.image} alt={title} className="w-32 h-32 object-contain rounded-xl bg-gray-50 flex-shrink-0 border border-gray-100" />
+          : <div className="w-32 h-32 rounded-xl bg-gray-100 flex-shrink-0" />
         }
-        <div className={`min-w-0 ${detailMode ? 'flex-1' : 'flex-1 lg:w-56 lg:flex-none'}`}>
-          <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug' : 'text-sm truncate'}`} title={title}>{title}</p>
-          <div className="mt-1">
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-semibold text-gray-800 leading-snug mb-2">{title}</p>
+          <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} upc={product.upc} />
+
+          {/* Price rows */}
+          <div className="flex flex-col gap-1.5 mt-3">
+            {/* Amazon */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none w-14 text-center flex-shrink-0">Amazon</span>
+              <span className={`text-lg font-black ${isAtLowest ? 'text-green-700' : 'text-gray-900'}`}>{currency}{current.toLocaleString()}</span>
+              {hasDrop && <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">▼{dropPct}%</span>}
+              {isAtLowest && <span className="text-xs text-green-600 font-semibold">✅ Lowest ever</span>}
+            </div>
+            {/* Calculated eBay */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded leading-none w-14 text-center flex-shrink-0">Cal eBay</span>
+              <span className="text-lg font-bold text-blue-700">{currency}{calcPrice.toFixed(2)}</span>
+            </div>
+            {/* eBay listing status */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none w-14 text-center flex-shrink-0">eBay</span>
+              {product.ebayListingId
+                ? <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
+                    className="text-sm font-semibold text-[#e53238] hover:underline flex items-center gap-1">
+                    Listed ↗ {ebayFailed && <span className="text-orange-500 text-xs">⚠</span>}
+                  </a>
+                : <span className="text-sm text-gray-400">Not listed</span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Price history + countdown */}
+      <div className="px-5 pb-4 flex items-center gap-4 flex-wrap border-t border-gray-50 pt-3">
+        <PriceHistory history={history} currency={currency} />
+        <div className="flex items-center gap-3 ml-auto text-xs text-gray-400">
+          <span>{lowestText}</span>
+          {product.nextCheck && <span className="font-mono">⏱ {countdown || 'soon'}</span>}
+        </div>
+      </div>
+
+      {/* eBay sync failure */}
+      {ebayFailed && (
+        <div className="mx-5 mb-3 flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
+          <span>⚠️</span> eBay price sync failed — check your listing or reconnect eBay.
+        </div>
+      )}
+
+      {/* eBay listing actions */}
+      <div className="px-5 pb-4">
+        {editingEbay ? (
+          <div className="flex items-center gap-1">
+            <input autoFocus type="text" placeholder="Listing ID or URL" value={ebayInput}
+              onChange={e => setEbayInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
+              className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-[#e53238]"
+              disabled={savingEbay} />
+            <button onClick={saveEbayListing} disabled={savingEbay} className="p-2.5 bg-[#e53238] text-white rounded-lg disabled:opacity-40">✓</button>
+            <button onClick={() => setEditingEbay(false)} disabled={savingEbay} className="p-2.5 bg-gray-100 text-gray-500 rounded-lg">✕</button>
+          </div>
+        ) : product.ebayListingId ? (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e53238]/20 bg-[#fff5f5]">
+            <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
+              className="flex-1 text-sm font-semibold text-[#e53238]">My eBay Listing →</a>
+            <button onClick={() => { setEbayInput(product.ebayListingId); setEditingEbay(true); }}
+              className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg" title="Change listing">✏️</button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <button onClick={autoListOnEbay} disabled={autoListing || !product.isPrime}
+              title={!product.isPrime ? 'Prime required' : undefined}
+              className="w-full py-2.5 rounded-lg bg-[#e53238] text-sm font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
+              {autoListing
+                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'images' ? '📸 Uploading images…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
+                : !product.isPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
+            </button>
+            <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
+              className="text-xs text-gray-400 text-center hover:text-[#e53238] transition-colors py-1">
+              + link existing listing
+            </button>
+            {autoListError && <p className="text-xs text-red-500 leading-tight break-words">{autoListError}</p>}
+          </div>
+        )}
+        {linkStatus === 'pushing' && <p className="text-xs text-blue-500 text-center mt-1">Pushing price…</p>}
+        {linkStatus === 'ok'      && <p className="text-xs text-green-600 text-center mt-1">Price updated ✓</p>}
+        {linkStatus === 'fail'    && <p className="text-xs text-red-500 text-center mt-1">Price push failed ⚠</p>}
+      </div>
+
+      {/* Bottom action bar */}
+      <div className="border-t border-gray-100 px-5 py-3 flex items-center gap-2">
+        <a href={url?.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center py-2 rounded-lg border border-orange-200 bg-orange-50 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition-colors">
+          🛒 Amazon
+        </a>
+        <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(product.upc || title)}&_sop=15`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-[#e53238] hover:bg-red-100 transition-colors">
+          🏷️ eBay
+        </a>
+        <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }} disabled={checking}
+          className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 text-xs font-medium text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors">
+          {checking ? '⏳ …' : '🔄 Refresh'}
+        </button>
+        <button onClick={() => setShowSpecs(s => !s)}
+          className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors">
+          {showSpecs ? '▲' : '▼'} Specs
+        </button>
+        <button onClick={confirmDelete} title="Stop tracking"
+          className="px-3 py-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">✕</button>
+      </div>
+
+      {/* Specs panel */}
+      {showSpecs && (
+        <div className="border-t border-gray-100 px-5 py-4">
+          <p className="text-xs font-semibold text-gray-500 mb-2">Product Specs</p>
+          <SpecsGrid specs={product.specs} upc={product.upc} />
+        </div>
+      )}
+    </div>
+  );
+
+  // ── COMPACT MODE: original card ───────────────────────────────────
+  return (
+    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 p-3 lg:px-4 lg:py-3 ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+
+      <div className="flex items-start gap-3 min-w-0">
+        {product.image
+          ? <img src={product.image} alt={title} className="w-12 h-12 object-contain rounded-lg bg-gray-50 flex-shrink-0" />
+          : <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
+        }
+        <div className="flex-1 lg:w-56 lg:flex-none min-w-0">
+          <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
+          <div className="mt-0.5">
             <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} upc={product.upc} />
           </div>
         </div>
       </div>
 
-      {/* ── Price + drop badge + lowest (mobile inline) ── */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-baseline gap-2 flex-shrink-0">
           <span className={`text-xl font-black tracking-tight ${isAtLowest ? 'text-green-700' : 'text-gray-900'}`}>
             {currency}{current.toLocaleString()}
           </span>
-          {hasDrop && (
-            <span className="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">▼{dropPct}%</span>
-          )}
+          {hasDrop && <span className="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">▼{dropPct}%</span>}
         </div>
         <p className="lg:hidden text-xs text-gray-400">{lowestText}</p>
       </div>
 
-      {/* ── Price history ── */}
       <PriceHistory history={history} currency={currency} />
-
-      {/* ── Lowest + countdown — desktop only ── */}
       <p className="hidden lg:block text-xs text-gray-400 flex-shrink-0 w-28 text-right">{lowestText}</p>
-      {product.nextCheck && (
-        <p className="hidden lg:block text-xs text-gray-300 flex-shrink-0 w-16 text-right font-mono">
-          {countdown || 'soon'}
-        </p>
-      )}
+      {product.nextCheck && <p className="hidden lg:block text-xs text-gray-300 flex-shrink-0 w-16 text-right font-mono">{countdown || 'soon'}</p>}
+      {product.nextCheck && <p className="lg:hidden text-xs text-gray-300 font-mono">Next: {countdown || 'soon'}</p>}
 
-      {/* ── Countdown — mobile only ── */}
-      {product.nextCheck && (
-        <p className="lg:hidden text-xs text-gray-300 font-mono">Next: {countdown || 'soon'}</p>
-      )}
-
-      {/* ── eBay sync failure warning ── */}
       {ebayFailed && (
         <div className="w-full flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
           <span>⚠️</span> eBay price sync failed — check your listing or reconnect eBay.
         </div>
       )}
 
-      {/* ── Action buttons ── */}
       <div className="flex flex-col gap-2 w-full lg:w-48 lg:flex-shrink-0">
-
-        {/* Row 1: External links */}
         <div className="grid grid-cols-2 gap-2">
           <a href={url?.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center py-2 rounded-lg border border-orange-200 bg-orange-50 text-xs font-semibold text-orange-600 active:bg-orange-100">
@@ -342,29 +458,20 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
             🏷️ eBay
           </a>
         </div>
-
-        {/* Row 2: My eBay listing */}
         {editingEbay ? (
           <div className="flex items-center gap-1">
-            <input
-              autoFocus type="text" placeholder="Listing ID or URL"
-              value={ebayInput}
+            <input autoFocus type="text" placeholder="Listing ID or URL" value={ebayInput}
               onChange={e => setEbayInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
               className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-[#e53238]"
-              disabled={savingEbay}
-            />
-            <button onClick={saveEbayListing} disabled={savingEbay}
-              className="p-2.5 bg-[#e53238] text-white rounded-lg disabled:opacity-40">✓</button>
-            <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-              className="p-2.5 bg-gray-100 text-gray-500 rounded-lg">✕</button>
+              disabled={savingEbay} />
+            <button onClick={saveEbayListing} disabled={savingEbay} className="p-2.5 bg-[#e53238] text-white rounded-lg disabled:opacity-40">✓</button>
+            <button onClick={() => setEditingEbay(false)} disabled={savingEbay} className="p-2.5 bg-gray-100 text-gray-500 rounded-lg">✕</button>
           </div>
         ) : product.ebayListingId ? (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e53238]/20 bg-[#fff5f5]">
             <a href={`https://www.ebay.com/itm/${product.ebayListingId}`} target="_blank" rel="noopener noreferrer"
-              className="flex-1 text-xs font-semibold text-[#e53238]">
-              My eBay Listing →
-            </a>
+              className="flex-1 text-xs font-semibold text-[#e53238]">My eBay Listing →</a>
             <button onClick={() => { setEbayInput(product.ebayListingId); setEditingEbay(true); }}
               className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg" title="Change listing">✏️</button>
           </div>
@@ -374,30 +481,21 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
               title={!product.isPrime ? 'Prime required to list on eBay' : undefined}
               className="w-full py-2 rounded-lg bg-[#e53238] text-xs font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
               {autoListing
-                ? (autoListStep === 'title' ? '✍️ Generating title…'
-                  : autoListStep === 'images' ? '📸 Uploading images…'
-                  : autoListStep === 'listing' ? '📤 Creating listing…'
-                  : '💾 Saving…')
+                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'images' ? '📸 Uploading images…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
                 : !product.isPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
             <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
               className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors py-0.5">
               + link existing listing
             </button>
-            {autoListError && (
-              <p className="text-[10px] text-red-500 leading-tight break-words">{autoListError}</p>
-            )}
+            {autoListError && <p className="text-[10px] text-red-500 leading-tight break-words">{autoListError}</p>}
           </div>
         )}
-
         {linkStatus === 'pushing' && <p className="text-xs text-blue-500 text-center">Pushing price…</p>}
-        {linkStatus === 'ok' && <p className="text-xs text-green-600 text-center">Price updated ✓</p>}
-        {linkStatus === 'fail' && <p className="text-xs text-red-500 text-center">Price push failed ⚠</p>}
-
-        {/* Row 3: Utilities */}
+        {linkStatus === 'ok'      && <p className="text-xs text-green-600 text-center">Price updated ✓</p>}
+        {linkStatus === 'fail'    && <p className="text-xs text-red-500 text-center">Price push failed ⚠</p>}
         <div className="flex items-center gap-2">
-          <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }}
-            disabled={checking}
+          <button onClick={async () => { setChecking(true); await onCheck(_id); setChecking(false); }} disabled={checking}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-100 text-xs font-medium text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors">
             {checking ? '⏳' : '🔄'} {checking ? 'Checking…' : 'Refresh'}
           </button>
@@ -406,21 +504,16 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
             {showSpecs ? '▲' : '▼'} Specs
           </button>
           <button onClick={confirmDelete} title="Stop tracking"
-            className="px-3 py-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-            ✕
-          </button>
+            className="px-3 py-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">✕</button>
         </div>
-
       </div>
 
-      {/* ── Amazon Specs Panel ── */}
       {showSpecs && (
         <div className="w-full border-t border-gray-100 pt-3 mt-1">
           <p className="text-xs font-semibold text-gray-500 mb-2">Product Specs</p>
           <SpecsGrid specs={product.specs} upc={product.upc} />
         </div>
       )}
-
     </div>
   );
 }
