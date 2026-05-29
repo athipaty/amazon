@@ -45,10 +45,17 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
               onClick={() => onSelect(key)}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${isSelected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent'}`}
             >
-              {image
-                ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-lg bg-gray-50 flex-shrink-0 border border-gray-100" />
-                : <div className="w-11 h-11 rounded-lg bg-gray-100 flex-shrink-0" />
-              }
+              <div className="relative flex-shrink-0">
+                {image
+                  ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-lg bg-gray-50 border border-gray-100" />
+                  : <div className="w-11 h-11 rounded-lg bg-gray-100" />
+                }
+                {item.type === 'group' && item.variants.length > 1 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm">
+                    {item.variants.length}
+                  </span>
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium text-gray-800 leading-snug line-clamp-2">{title}</p>
                 <div className="flex items-center justify-between mt-1">
