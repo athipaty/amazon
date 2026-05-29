@@ -248,7 +248,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
           price: calcPrice,
           imageUrls: cloudinaryUrls,
           upc: product.upc,
-          specs: { ...(product.specs || {}), brand_name: 'Unbranded' },
+          specs: product.specs || {},
         }),
       });
       const listData = await listRes.json();

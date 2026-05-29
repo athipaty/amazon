@@ -299,7 +299,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           price: (Math.floor(active.current * 1.45) + 0.99).toFixed(2),
           imageUrls: cloudinaryUrls,
           upc: active.upc,
-          specs: { ...(active.specs || {}), brand_name: 'Unbranded' },
+          specs: active.specs || {},
           variants: variantPayload,
           variantDimension,
         }),
