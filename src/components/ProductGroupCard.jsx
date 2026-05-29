@@ -71,6 +71,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [generatedEbayTitle, setGeneratedEbayTitle] = useState(null);
   const [generatingTitle, setGeneratingTitle] = useState(false);
   const [copiedTitle, setCopiedTitle] = useState(false);
+  const [fixingPhotos, setFixingPhotos] = useState(false);
+  const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
+  const [fixPhotosError, setFixPhotosError] = useState('');
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
@@ -329,6 +332,52 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     } finally {
       setAutoListing(false);
       setAutoListStep('');
+    }
+  }
+
+  async function fixVariationPhotos() {
+    if (!groupEbayId) return;
+    setFixingPhotos(true);
+    setFixPhotosStatus('');
+    setFixPhotosError('');
+    try {
+      // Upload each variant's primary image to Cloudinary in order
+      const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const variantPrimaries = variants.map(v => v.image).filter(Boolean);
+      let cloudinaryUrls = [];
+      if (variantPrimaries.length) {
+        const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrls: variantPrimaries, slug: slug + '-fix' }),
+        });
+        const uploadData = await uploadRes.json();
+        cloudinaryUrls = uploadData.cloudinaryUrls || [];
+      }
+
+      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["']/)) ? 'Size'
+        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|pink|purple|yellow|orange|brown|natural|carbonized)\b/i)) ? 'Color'
+        : 'Style';
+
+      const variantPayload = variants.map((v, i) => ({
+        label: v.variant || `Variant ${i + 1}`,
+        image: cloudinaryUrls[i] || null,
+      })).filter(v => v.image);
+
+      const res = await fetch(`${API}/api/ebay/listing/variation-photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: groupEbayId, variantDimension, variants: variantPayload }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setFixPhotosStatus('ok');
+      setTimeout(() => setFixPhotosStatus(''), 5000);
+    } catch (e) {
+      setFixPhotosStatus('fail');
+      setFixPhotosError(e.message.slice(0, 200));
+    } finally {
+      setFixingPhotos(false);
     }
   }
 
@@ -618,13 +667,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             </div>
           </div>
         ) : groupEbayId ? (
-          <div className="inline-flex items-center gap-1.5">
-            <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-red-700 transition-colors whitespace-nowrap">
-              My Listing ↗
-            </a>
-            <button onClick={() => openEbayEdit(groupEbayId)}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
+          <div className="flex flex-col gap-1">
+            <div className="inline-flex items-center gap-1.5">
+              <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-red-700 transition-colors whitespace-nowrap">
+                My Listing ↗
+              </a>
+              <button onClick={() => openEbayEdit(groupEbayId)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
+            </div>
+            <button onClick={fixVariationPhotos} disabled={fixingPhotos}
+              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full border border-blue-300 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
+              {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
+            </button>
+            {fixPhotosStatus === 'ok' && <p className="text-[10px] text-green-600 text-center">Photos updated ✓</p>}
+            {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}
           </div>
         ) : (
           <div className="flex flex-col gap-1">
