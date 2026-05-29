@@ -274,7 +274,12 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
 
   const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
 
-  const calcPrice = Math.floor(current * 1.45) + 0.99;
+  const calcPrice  = Math.floor(current * 1.45) + 0.99;
+  const ebayFee    = +(calcPrice * 0.129 + 0.30).toFixed(2);
+  const profit     = +(calcPrice - current - ebayFee).toFixed(2);
+  const marginPct  = ((profit / calcPrice) * 100).toFixed(1);
+  const roiPct     = ((profit / current) * 100).toFixed(1);
+  const breakEven  = +((current + 0.30) / (1 - 0.129)).toFixed(2);
 
   // ── DETAIL MODE: expanded card matching group card style ──────────
   if (detailMode) return (
@@ -314,6 +319,52 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
                   </a>
                 : <span className="text-sm text-gray-400">Not listed</span>
               }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Profit breakdown */}
+      <div className="mx-5 mb-4 rounded-xl overflow-hidden border border-green-200">
+        <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-4 py-2.5 flex items-center justify-between">
+          <span className="text-sm font-bold text-white">&#128200; Profit Analysis</span>
+          <span className={`text-xl font-black ${profit >= 0 ? 'text-white' : 'text-red-200'}`}>
+            {profit >= 0 ? '+' : ''}{currency}{profit.toFixed(2)}
+          </span>
+        </div>
+        <div className="bg-white p-3">
+          {/* Fee rows */}
+          <div className="flex flex-col gap-1.5 text-xs mb-3">
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />eBay Sell Price</span>
+              <span className="font-semibold text-gray-800">{currency}{calcPrice.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />Amazon Cost</span>
+              <span className="font-semibold text-red-500">−{currency}{current.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" />eBay Fee (12.9% + $0.30)</span>
+              <span className="font-semibold text-red-500">−{currency}{ebayFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1">
+              <span className="text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />Shipping</span>
+              <span className="font-semibold text-gray-400">Free</span>
+            </div>
+          </div>
+          {/* KPIs */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`rounded-lg p-2 text-center ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+              <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Margin</p>
+              <p className={`text-lg font-black ${profit >= 0 ? 'text-green-700' : 'text-red-500'}`}>{marginPct}%</p>
+            </div>
+            <div className={`rounded-lg p-2 text-center ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+              <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">ROI</p>
+              <p className={`text-lg font-black ${profit >= 0 ? 'text-green-700' : 'text-red-500'}`}>{roiPct}%</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2 text-center">
+              <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-0.5">Break-even</p>
+              <p className="text-lg font-black text-gray-600">{currency}{breakEven.toFixed(2)}</p>
             </div>
           </div>
         </div>

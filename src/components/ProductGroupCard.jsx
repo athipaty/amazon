@@ -484,6 +484,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               </span>
             )}
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
+            {detailMode && (() => {
+              const totalProfit = variants.reduce((sum, v) => {
+                const cp = Math.floor(v.current * 1.45) + 0.99;
+                return sum + (cp - v.current - (cp * 0.129 + 0.30));
+              }, 0);
+              const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + Math.floor(v.current * 1.45) + 0.99, 0) * 100).toFixed(1);
+              return (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${totalProfit >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                  {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)} avg profit · {avgMargin}% margin
+                </span>
+              );
+            })()}
             <button
               onClick={generateEbayTitle}
               disabled={generatingTitle}
@@ -549,10 +561,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       {/* ── Variant swatches ── */}
       <div className={`grid gap-2 ${detailMode ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
         {variants.map((v, i) => {
-          const label = v.variant || `Variant ${i + 1}`;
+          const label     = v.variant || `Variant ${i + 1}`;
           const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+          const ebayFee   = +(calcPrice * 0.129 + 0.30).toFixed(2);
+          const profit    = +(calcPrice - v.current - ebayFee).toFixed(2);
+          const marginPct = ((profit / calcPrice) * 100).toFixed(1);
           const livePrice = getLivePrice(v.variant || label);
-          const synced = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;
+          const synced    = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;
           const isRefreshing = refreshingIds.has(v._id);
           const result = refreshResults[v._id];
           const ebayPush = ebayPushResults[v._id];
@@ -611,6 +626,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                     </span>
                   </div>
                 ) : null}
+
+                {/* Profit row */}
+                <div className={`flex items-center justify-between px-0 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                  <span className="text-[9px] text-gray-500 pl-1">Profit</span>
+                  <div className="flex items-center gap-1 pr-1">
+                    <span className={`text-xs font-black ${profit >= 0 ? 'text-green-700' : 'text-red-500'}`}>
+                      {profit >= 0 ? '+' : ''}{v.currency}{profit.toFixed(2)}
+                    </span>
+                    <span className={`text-[9px] ${profit >= 0 ? 'text-green-500' : 'text-red-400'}`}>{marginPct}%</span>
+                  </div>
+                </div>
 
                 {/* Countdown + refresh */}
                 <div className="flex items-center justify-between mt-0.5 pt-1.5 border-t border-gray-100">

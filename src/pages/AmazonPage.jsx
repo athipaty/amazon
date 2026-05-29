@@ -49,11 +49,28 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
               }
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium text-gray-800 leading-snug line-clamp-2">{title}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed OK</span></>}
-                  {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
-                  {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span></>}
-                  {item.type === 'group' && <span className="ml-1 text-[9px] text-gray-300">{item.variants.length}v</span>}
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-1">
+                    {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed OK</span></>}
+                    {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
+                    {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span></>}
+                    {item.type === 'group' && <span className="ml-1 text-[9px] text-gray-300">{item.variants.length}v</span>}
+                  </div>
+                  {/* Profit badge */}
+                  {(() => {
+                    const prices = item.type === 'group'
+                      ? item.variants.map(v => v.current).filter(Boolean)
+                      : [item.product.current].filter(Boolean);
+                    if (!prices.length) return null;
+                    const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    const cp = Math.floor(avgCost * 1.45) + 0.99;
+                    const p = +(cp - avgCost - (cp * 0.129 + 0.30)).toFixed(2);
+                    return (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${p >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}`}>
+                        {p >= 0 ? '+' : ''}${p.toFixed(2)}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </button>
