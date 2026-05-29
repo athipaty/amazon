@@ -247,7 +247,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
         const descRes = await fetch(`${API}/api/ebay/generate-description`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: ebayTitle, specs: product.specs || {}, imageUrls: cloudinaryUrls }),
+          body: JSON.stringify({ title: ebayTitle, specs: product.specs || {}, imageUrls: cloudinaryUrls, bullets: product.bullets || [], upc: product.upc, variant: product.variant }),
         });
         const descData = await descRes.json();
         listingDescription = descData.html || null;

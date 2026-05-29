@@ -311,7 +311,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         const descRes = await fetch(`${API}/api/ebay/generate-description`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: ebayTitle, specs: active.specs || {}, imageUrls: cloudinaryUrls }),
+          body: JSON.stringify({ title: ebayTitle, specs: active.specs || {}, imageUrls: cloudinaryUrls, bullets: active.bullets || [], upc: active.upc, variant: active.variant }),
         });
         const descData = await descRes.json();
         listingDescription = descData.html || null;
@@ -438,7 +438,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
       const descRes = await fetch(`${API}/api/ebay/generate-description`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: active.title, specs: active.specs || {}, imageUrls }),
+        body: JSON.stringify({ title: active.title, specs: active.specs || {}, imageUrls, bullets: active.bullets || [], upc: active.upc, variant: active.variant }),
       });
       const { html } = await descRes.json();
       if (!html) throw new Error('Description generation failed');
