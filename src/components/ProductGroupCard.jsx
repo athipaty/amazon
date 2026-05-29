@@ -506,7 +506,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           : <div className={`rounded-xl bg-gray-100 flex-shrink-0 ${detailMode ? 'w-32 h-32' : 'w-12 h-12'}`} />
         }
         <div className="flex-1 min-w-0">
-          <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
+          <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug line-clamp-2 lg:line-clamp-none' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
             {variants.length > 1 && (
               <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
