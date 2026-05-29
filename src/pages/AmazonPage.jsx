@@ -417,8 +417,8 @@ export default function AmazonPage() {
           <div className="hidden lg:flex gap-4 items-start">
 
             {/* LEFT: compact sidebar */}
-            <div className="w-64 flex-shrink-0 border border-gray-200 rounded-xl overflow-hidden bg-white sticky top-4 max-h-[calc(100vh-120px)] flex flex-col">
-              <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex-shrink-0">
+            <div className="w-72 flex-shrink-0 border border-gray-200 rounded-xl overflow-hidden bg-white sticky top-4 max-h-[calc(100vh-120px)] flex flex-col">
+              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
                 <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                   {renderItems.length} listing{renderItems.length !== 1 ? 's' : ''}
                 </p>
@@ -430,25 +430,47 @@ export default function AmazonPage() {
                   const image = getItemImage(item);
                   const title = getItemTitle(item);
                   const isSelected = (selectedKey || getItemKey(renderItems[0])) === key;
+
+                  // Price info
+                  const currency = item.type === 'group' ? (item.variants[0]?.currency || '$') : (item.product.currency || '$');
+                  const amazonPrice = item.type === 'group'
+                    ? (() => { const prices = item.variants.map(v => v.current).filter(Boolean); return prices.length ? Math.min(...prices) : null; })()
+                    : item.product.current;
+                  const ebayPrice = amazonPrice ? (Math.floor(amazonPrice * 1.45) + 0.99) : null;
+                  const variantCount = item.type === 'group' ? item.variants.length : null;
+
                   return (
                     <button
                       key={key}
                       onClick={() => setSelectedKey(key)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${isSelected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent'}`}
+                      className={`w-full flex items-start gap-3 px-3 py-3 text-left border-b border-gray-100 transition-colors hover:bg-gray-50 ${isSelected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent'}`}
                     >
-                      {/* Thumbnail */}
+                      {/* Bigger thumbnail */}
                       {image
-                        ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-lg bg-gray-50 flex-shrink-0 border border-gray-100" />
-                        : <div className="w-11 h-11 rounded-lg bg-gray-100 flex-shrink-0" />
+                        ? <img src={image} alt="" className="w-14 h-14 object-contain rounded-xl bg-gray-50 flex-shrink-0 border border-gray-100" />
+                        : <div className="w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0" />
                       }
-                      {/* Info */}
+
+                      {/* Info column */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-gray-800 leading-snug line-clamp-2">{title}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed OK</span></>}
+                        {/* Title */}
+                        <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2 mb-1.5">{title}</p>
+
+                        {/* Amazon price row */}
+                        {amazonPrice != null && (
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none">Amazon</span>
+                            <span className="text-sm font-bold text-gray-900">{currency}{amazonPrice.toLocaleString()}</span>
+                            {variantCount && <span className="text-[9px] text-gray-400 ml-auto">{variantCount} variants</span>}
+                          </div>
+                        )}
+
+                        {/* eBay row */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none">eBay</span>
+                          {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed</span>{ebayPrice && <span className="text-xs font-bold text-[#e53238] ml-auto">${ebayPrice.toFixed(2)}</span>}</>}
                           {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
-                          {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span></>}
-                          {item.type === 'group' && <span className="ml-1 text-[9px] text-gray-300">{item.variants.length}v</span>}
+                          {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span>{ebayPrice && <span className="text-xs font-semibold text-gray-400 ml-auto">${ebayPrice.toFixed(2)}</span>}</>}
                         </div>
                       </div>
                     </button>
