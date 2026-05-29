@@ -722,22 +722,24 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 </div>
 
                 {/* Countdown + refresh */}
-                <div className="flex items-center justify-between mt-0.5 pt-1.5 border-t border-gray-100">
-                  {v.nextCheck
-                    ? <span className="text-[10px] text-gray-400 font-mono">⏱ {countdowns[i] || '…'}</span>
-                    : <span />
-                  }
-                  {autoSyncErrors[v._id] && (
-                    <span className="text-[9px] text-orange-500">⚠</span>
-                  )}
-                  {ebayPush === 'fail' && (
-                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
-                      className="text-[9px] text-yellow-700 underline">Reconnect</a>
-                  )}
+                <div className="flex flex-col gap-1.5 mt-0.5 pt-1.5 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    {v.nextCheck
+                      ? <span className="text-[10px] text-gray-400 font-mono">⏱ {countdowns[i] || '…'}</span>
+                      : <span />
+                    }
+                    {autoSyncErrors[v._id] && (
+                      <span className="text-[9px] text-orange-500">⚠</span>
+                    )}
+                    {ebayPush === 'fail' && (
+                      <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
+                        className="text-[9px] text-yellow-700 underline">Reconnect</a>
+                    )}
+                  </div>
                   <button
                     onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
                     disabled={isRefreshing}
-                    className={`text-xs px-2 py-0.5 rounded transition-all ${
+                    className={`w-full py-2 rounded-lg text-xs font-semibold transition-all ${
                       isRefreshing ? 'text-blue-600 bg-blue-50 border border-blue-200 cursor-not-allowed'
                       : result === 'ok' && ebayPush === 'ok' ? 'text-green-600 bg-green-50 border border-green-200 hover:bg-green-100'
                       : result === 'ok' && ebayPush === 'fail' ? 'text-yellow-700 bg-yellow-50 border border-yellow-300'
