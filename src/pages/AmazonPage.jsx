@@ -90,7 +90,6 @@ export default function AmazonPage() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
-  const [sellingLimits, setSellingLimits] = useState(null);
   const [checking, setChecking] = useState(false);
   const [preview, setPreview] = useState(null); // { title, price, currency, image, variants, groupId }
   const [selectedAsins, setSelectedAsins] = useState(new Set());
@@ -102,18 +101,16 @@ export default function AmazonPage() {
   const [priceMismatchIds, setPriceMismatchIds] = useState(new Set()); // eBay listing IDs with price mismatch
   const [selectedKey, setSelectedKey] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const socketRef = useRef(null);
 
   useEffect(() => {
-    document.body.style.overflow = (detailOpen || addOpen) ? 'hidden' : '';
+    document.body.style.overflow = detailOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [detailOpen, addOpen]);
+  }, [detailOpen]);
 
   useEffect(() => {
     loadProducts();
     checkEbayStatus();
-    fetchSellingLimits();
 
     socketRef.current = io(API);
     const socket = socketRef.current;
@@ -152,12 +149,6 @@ export default function AmazonPage() {
     } catch { setEbayConnected(false); }
   }
 
-  async function fetchSellingLimits() {
-    try {
-      const { data } = await axios.get(`${API}/api/ebay/selling-limits`);
-      setSellingLimits(data);
-    } catch {}
-  }
 
   async function loadProducts() {
     try {
@@ -182,7 +173,6 @@ export default function AmazonPage() {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
         setProducts(prev => [product, ...prev]);
         setUrl('');
-        setAddOpen(false);
         setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
         setTimeout(() => setStatusMsg(''), 4000);
       }
@@ -213,7 +203,6 @@ export default function AmazonPage() {
     setUrl('');
     setAddingVariants(false);
     setAddProgress('');
-    setAddOpen(false);
   }
 
   // ── Master-detail helpers ────────────────────────────────────────
@@ -347,62 +336,8 @@ export default function AmazonPage() {
         </button>
       </header>
 
-      {/* ── eBay Selling Limits Widget ── */}
-      {sellingLimits && (
-        <div className="mb-5 bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-wrap gap-4 items-center">
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide flex-shrink-0">Monthly Limit</p>
 
-          {/* Items */}
-          <div className="flex-1 min-w-[160px]">
-            <div className="flex justify-between items-baseline mb-1">
-              <span className="text-xs font-semibold text-gray-700">Items</span>
-              <span className="text-xs text-gray-500">
-                <span className="font-bold text-gray-900">{sellingLimits.items.used}</span>
-                <span className="text-gray-400"> / {sellingLimits.items.limit}</span>
-              </span>
-            </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${sellingLimits.items.used / sellingLimits.items.limit > 0.85 ? 'bg-red-500' : sellingLimits.items.used / sellingLimits.items.limit > 0.6 ? 'bg-yellow-400' : 'bg-green-500'}`}
-                style={{ width: `${Math.min(100, (sellingLimits.items.used / sellingLimits.items.limit) * 100).toFixed(1)}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">{sellingLimits.items.remaining} remaining</p>
-          </div>
-
-          {/* Revenue */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="flex justify-between items-baseline mb-1">
-              <span className="text-xs font-semibold text-gray-700">
-                Revenue
-                {sellingLimits.revenue.source === 'estimated' && (
-                  <span className="ml-1 text-[9px] text-orange-400 font-normal">~est</span>
-                )}
-              </span>
-              <span className="text-xs text-gray-500">
-                <span className="font-bold text-gray-900">${sellingLimits.revenue.usedUsd.toFixed(0)}</span>
-                <span className="text-gray-400"> / ${sellingLimits.revenue.limitUsd.toFixed(0)} USD</span>
-              </span>
-            </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd > 0.85 ? 'bg-red-500' : sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd > 0.6 ? 'bg-yellow-400' : 'bg-blue-500'}`}
-                style={{ width: `${Math.min(100, (sellingLimits.revenue.usedUsd / sellingLimits.revenue.limitUsd) * 100).toFixed(1)}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">
-              {sellingLimits.revenue.source === 'estimated'
-                ? <><a href={`${API}/api/ebay/auth/login`} className="text-blue-500 hover:underline">Reconnect eBay</a> to enable live revenue tracking</>
-                : <>${sellingLimits.revenue.remaining.toFixed(0)} remaining · 1 SGD ≈ {sellingLimits.revenue.rate.toFixed(3)} USD</>
-              }
-            </p>
-          </div>
-
-          <button onClick={fetchSellingLimits} className="text-[10px] text-gray-400 hover:text-gray-600 flex-shrink-0" title="Refresh">↻</button>
-        </div>
-      )}
-
-      <div className="hidden lg:block mb-5">
+      <div className="mb-5">
         <form className="flex gap-2" onSubmit={handleAdd}>
           <input
             type="text"
@@ -424,7 +359,7 @@ export default function AmazonPage() {
       </div>
 
       {preview && (
-        <div className="hidden lg:block mb-5 bg-white border border-yellow-300 rounded-xl p-5">
+        <div className="mb-5 bg-white border border-yellow-300 rounded-xl p-5">
           <div className="flex justify-between items-start mb-1">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -559,13 +494,6 @@ export default function AmazonPage() {
         </>
       )}
 
-      {/* ── Mobile FAB ── */}
-      <button
-        onClick={() => setAddOpen(true)}
-        className="lg:hidden fixed bottom-20 right-4 z-30 w-12 h-12 bg-yellow-400 text-gray-900 rounded-full shadow-lg flex items-center justify-center text-2xl font-bold hover:bg-yellow-500 active:scale-95 transition-all"
-        aria-label="Add product"
-      >+</button>
-
       {/* ── Mobile detail sheet ── */}
       {detailOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
@@ -590,97 +518,6 @@ export default function AmazonPage() {
         </div>
       )}
 
-      {/* ── Mobile add sheet ── */}
-      {addOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-            <p className="text-sm font-semibold text-gray-800">Track a Product</p>
-            <button
-              onClick={() => { setAddOpen(false); setPreview(null); setSelectedAsins(new Set()); setUrl(''); setAddError(''); }}
-              className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-            >×</button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <form className="flex gap-2" onSubmit={handleAdd}>
-              <input
-                type="text"
-                placeholder="Paste an Amazon product URL to track…"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-                disabled={adding || !!preview}
-                className="flex-1 min-w-0 px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-yellow-400 transition-colors disabled:bg-gray-50"
-              />
-              <button
-                type="submit"
-                disabled={adding || !url.trim() || !!preview}
-                className="px-5 py-2.5 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-              >
-                {adding ? 'Loading…' : 'Track Price'}
-              </button>
-            </form>
-            {addError && <p className="text-red-500 text-sm mt-2">{addError}</p>}
-            {preview && (
-              <div className="mt-4 bg-white border border-yellow-300 rounded-xl p-5">
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {preview.variants.length} variants found — select which to track:
-                      </p>
-                      {preview.isPrime
-                        ? <span className="inline-flex items-center gap-1 bg-[#00A8E0] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Prime</span>
-                        : <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">✗ No Prime</span>
-                      }
-                    </div>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
-                  </div>
-                  <button
-                    onClick={() => { setPreview(null); setSelectedAsins(new Set()); }}
-                    className="text-gray-300 hover:text-gray-500 text-xl leading-none ml-3"
-                  >×</button>
-                </div>
-                <div className="flex flex-col gap-1 mt-3 max-h-60 overflow-y-auto pr-1">
-                  {preview.variants.map(v => (
-                    <label key={v.asin} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedAsins.has(v.asin)}
-                        onChange={e => toggleVariant(v.asin, e.target.checked)}
-                        className="w-4 h-4 accent-yellow-400 flex-shrink-0"
-                      />
-                      {v.image && <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded bg-gray-50 flex-shrink-0" />}
-                      <span className="text-sm text-gray-700 flex-1">{v.label}</span>
-                      {v.price != null
-                        ? <span className="text-sm font-bold text-gray-900 flex-shrink-0">{preview.currency}{v.price.toLocaleString()}</span>
-                        : <span className="text-xs text-gray-400 flex-shrink-0">price varies</span>
-                      }
-                    </label>
-                  ))}
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <button
-                    onClick={handleTrackSelected}
-                    disabled={addingVariants || selectedAsins.size === 0}
-                    className="px-4 py-2 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {addingVariants ? addProgress : `Track Selected (${selectedAsins.size})`}
-                  </button>
-                  <button
-                    onClick={() => setSelectedAsins(new Set(preview.variants.map(v => v.asin)))}
-                    disabled={addingVariants}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                  >Select All</button>
-                  <button
-                    onClick={() => setSelectedAsins(new Set())}
-                    disabled={addingVariants}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                  >None</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

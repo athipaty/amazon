@@ -684,26 +684,26 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               {/* Price rows */}
               <div className="px-2.5 py-2 flex flex-col gap-1 bg-white">
                 {/* Amazon */}
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
+                <div className="flex items-center justify-end lg:justify-between gap-1">
+                  <span className="hidden lg:inline text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
                   <span className="text-sm font-bold text-gray-900">{v.currency}{v.current.toFixed(2)}</span>
                 </div>
 
                 {/* Calculated eBay */}
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Cal</span>
+                <div className="flex items-center justify-end lg:justify-between gap-1">
+                  <span className="hidden lg:inline text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Cal</span>
                   <span className="text-sm font-semibold text-blue-700">{v.currency}{calcPrice.toFixed(2)}</span>
                 </div>
 
                 {/* Live eBay price */}
                 {isRefreshing ? (
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
+                  <div className="flex items-center justify-end lg:justify-between gap-1">
+                    <span className="hidden lg:inline text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
                     <span className="text-xs text-yellow-500">…</span>
                   </div>
                 ) : livePrice != null ? (
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
+                  <div className="flex items-center justify-end lg:justify-between gap-1">
+                    <span className="hidden lg:inline text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
                     <span className={`text-sm font-bold ${synced ? 'text-green-600' : 'text-red-500'}`}>
                       {v.currency}{livePrice.toFixed(2)}
                       <span className="text-[9px] ml-0.5">{synced ? '✓' : '✗'}</span>
