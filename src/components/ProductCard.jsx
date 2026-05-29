@@ -246,6 +246,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
         body: JSON.stringify({
           title: ebayTitle,
           price: calcPrice,
+          quantity: 2,
           imageUrls: cloudinaryUrls,
           upc: product.upc,
           specs: product.specs || {},

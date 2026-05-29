@@ -296,7 +296,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
         price: (Math.floor(v.current * 1.45) + 0.99).toFixed(2),
-        quantity: 1,
+        quantity: 2,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
       }));
