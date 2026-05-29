@@ -237,7 +237,20 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
         cloudinaryUrls = uploadData.cloudinaryUrls || [];
       }
 
-      // Step 3: Create eBay listing via Trading API
+      // Step 3: Generate HTML description
+      setAutoListStep('description');
+      let listingDescription = null;
+      try {
+        const descRes = await fetch(`${API}/api/ebay/generate-description`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: ebayTitle, specs: product.specs || {}, imageUrls: cloudinaryUrls }),
+        });
+        const descData = await descRes.json();
+        listingDescription = descData.html || null;
+      } catch { /* fall back to generic placeholder */ }
+
+      // Step 4: Create eBay listing via Trading API
       setAutoListStep('listing');
       const calcPrice = (Math.floor(current * 1.45) + 0.99).toFixed(2);
       const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
@@ -250,6 +263,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
           imageUrls: cloudinaryUrls,
           upc: product.upc,
           specs: product.specs || {},
+          ...(listingDescription ? { description: listingDescription } : {}),
         }),
       });
       const listData = await listRes.json();
@@ -411,7 +425,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
               title={!product.isPrime ? 'Prime required' : undefined}
               className="w-full py-2.5 rounded-lg bg-[#e53238] text-sm font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
               {autoListing
-                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'images' ? '📸 Uploading images…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
+                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'images' ? '📸 Uploading images…' : autoListStep === 'description' ? '📝 Writing description…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
                 : !product.isPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
             <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}
@@ -532,7 +546,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
               title={!product.isPrime ? 'Prime required to list on eBay' : undefined}
               className="w-full py-2 rounded-lg bg-[#e53238] text-xs font-semibold text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
               {autoListing
-                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'images' ? '📸 Uploading images…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
+                ? (autoListStep === 'title' ? '✍️ Generating title…' : autoListStep === 'images' ? '📸 Uploading images…' : autoListStep === 'description' ? '📝 Writing description…' : autoListStep === 'listing' ? '📤 Creating listing…' : '💾 Saving…')
                 : !product.isPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
             <button onClick={() => { setEbayInput(''); setEditingEbay(true); }}

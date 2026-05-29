@@ -301,6 +301,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         image: variantCloudinaryImages[i]?.[0] || null,
       }));
 
+      // Step 3: Generate HTML description
+      setAutoListStep('description');
+      let listingDescription = null;
+      try {
+        const descRes = await fetch(`${API}/api/ebay/generate-description`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: ebayTitle, specs: active.specs || {}, imageUrls: cloudinaryUrls }),
+        });
+        const descData = await descRes.json();
+        listingDescription = descData.html || null;
+      } catch { /* fall back to generic placeholder */ }
+
+      // Step 4: Create eBay listing
+      setAutoListStep('listing');
       const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -312,12 +327,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           specs: active.specs || {},
           variants: variantPayload,
           variantDimension,
+          ...(listingDescription ? { description: listingDescription } : {}),
         }),
       });
       const listData = await listRes.json();
       if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
 
-      // Step 4: Save listing ID to all variants
+      // Step 5: Save listing ID to all variants
       setAutoListStep('saving');
       for (const v of variants) {
         const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
@@ -794,9 +810,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               title={!hasPrime ? 'Prime required to list on eBay' : undefined}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
               {autoListing
-                ? (autoListStep === 'title' ? '✍️ Title…'
-                  : autoListStep === 'images' ? '📸 Images…'
-                  : autoListStep === 'listing' ? '📤 Listing…'
+                ? (autoListStep === 'title'       ? '✍️ Title…'
+                  : autoListStep === 'images'      ? '📸 Images…'
+                  : autoListStep === 'description' ? '📝 Description…'
+                  : autoListStep === 'listing'     ? '📤 Listing…'
                   : '💾 Saving…')
                 : !hasPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
