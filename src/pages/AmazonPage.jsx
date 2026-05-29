@@ -184,10 +184,10 @@ export default function AmazonPage() {
       ids.forEach(async id => {
         try {
           const r = await fetch(`${API}/api/ebay/listing/${id}/views`);
-          if (!r.ok) return;
-          const { views } = await r.json();
-          setEbayViews(prev => ({ ...prev, [String(id)]: views }));
-        } catch {}
+          const json = await r.json();
+          if (json._error) console.warn(`[eBay views] listing ${id}:`, json._error);
+          if (json.views != null) setEbayViews(prev => ({ ...prev, [String(id)]: json.views }));
+        } catch (e) { console.warn('[eBay views] fetch failed:', e.message); }
       });
     } catch {}
   }
