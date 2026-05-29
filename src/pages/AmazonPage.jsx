@@ -495,12 +495,12 @@ export default function AmazonPage() {
               getItemStatus={getItemStatus}
             />
 
-            {/* RIGHT: detail panel */}
+            {/* RIGHT: detail panel — always use GroupCard layout (1 card for singles, N for groups) */}
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
                   ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
-                  : <ProductCard key={selectedItem.product._id} product={selectedItem.product} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(selectedItem.product._id))} detailMode={true} />
+                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
               )}
             </div>
           </div>

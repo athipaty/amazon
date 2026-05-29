@@ -478,9 +478,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             </p>
           )}
           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
-              {variants.length} variants
-            </span>
+            {variants.length > 1 && (
+              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded leading-none">
+                {variants.length} variants
+              </span>
+            )}
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
             <button
               onClick={generateEbayTitle}
@@ -493,7 +495,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         </div>
         {confirmingDelete ? (
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="text-[11px] text-gray-500 whitespace-nowrap">Remove all {variants.length} variants?</span>
+            <span className="text-[11px] text-gray-500 whitespace-nowrap">{variants.length === 1 ? 'Stop tracking?' : `Remove all ${variants.length} variants?`}</span>
             <button
               onClick={confirmDeleteAll}
               className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap"
