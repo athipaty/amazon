@@ -341,7 +341,29 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const listData = await listRes.json();
       if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
 
-      // Step 5: Save listing ID to all variants
+      // Step 5: Verify & fix any price mismatches immediately after listing
+      setAutoListStep('verifying');
+      try {
+        await new Promise(r => setTimeout(r, 3000)); // wait for eBay to process
+        const priceRes = await fetch(`${API}/api/ebay/listing/${listData.listingId}/prices`);
+        const priceData = await priceRes.json();
+        const mismatchFixes = variantPayload.filter(vp => {
+          const live = priceData.variations?.find(lv =>
+            Object.values(lv.specs || {}).some(val => val.toLowerCase() === vp.label.toLowerCase())
+          );
+          return live && Math.abs(live.price - parseFloat(vp.price)) > 0.02;
+        });
+        for (const vp of mismatchFixes) {
+          await fetch(`${API}/api/ebay/listing/price`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId: listData.listingId, price: vp.price, variantLabel: vp.label }),
+          });
+        }
+        if (mismatchFixes.length) console.log(`Auto-fixed ${mismatchFixes.length} price mismatches on new listing ${listData.listingId}`);
+      } catch { /* non-critical — listing was created, prices can be fixed manually */ }
+
+      // Step 6: Save listing ID to all variants
       setAutoListStep('saving');
       for (const v of variants) {
         const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
@@ -866,6 +888,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   : autoListStep === 'images'      ? '📸 Images…'
                   : autoListStep === 'description' ? '📝 Description…'
                   : autoListStep === 'listing'     ? '📤 Listing…'
+                  : autoListStep === 'verifying'   ? '✅ Verifying prices…'
                   : '💾 Saving…')
                 : !hasPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
             </button>
