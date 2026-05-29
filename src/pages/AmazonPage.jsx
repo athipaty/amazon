@@ -5,7 +5,7 @@ import ProductGroupCard from '../components/ProductGroupCard';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, mobile = false }) {
+function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, apiUrl = '', mobile = false }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -17,9 +17,19 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
     }>
       {/* Header + search */}
       <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex-shrink-0">
-        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-          {items.length} listing{items.length !== 1 ? 's' : ''}
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            {items.length} listing{items.length !== 1 ? 's' : ''}
+          </p>
+          <a
+            href={`${apiUrl}/api/ebay/auth/login`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[9px] font-semibold text-[#e53238] hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-1.5 py-0.5 rounded leading-none transition-colors whitespace-nowrap"
+          >
+            Reconnect eBay
+          </a>
+        </div>
         <input
           type="text"
           placeholder="Search listings…"
@@ -491,6 +501,7 @@ export default function AmazonPage() {
               getItemImage={getItemImage}
               getItemStatus={getItemStatus}
               ebayViews={ebayViews}
+              apiUrl={API}
             />
           </div>
 
@@ -507,6 +518,7 @@ export default function AmazonPage() {
               getItemImage={getItemImage}
               getItemStatus={getItemStatus}
               ebayViews={ebayViews}
+              apiUrl={API}
             />
 
             {/* RIGHT: detail panel — always use GroupCard layout (1 card for singles, N for groups) */}
