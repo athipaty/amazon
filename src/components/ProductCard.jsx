@@ -155,7 +155,7 @@ function SpecsGrid({ specs, upc }) {
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebayFailed }) {
+export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebayFailed, detailMode = false }) {
   const [checking, setChecking] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [editingEbay, setEditingEbay] = useState(false);
@@ -275,17 +275,17 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
   const lowestText = isAtLowest ? '✅ Lowest ever' : `Low: ${currency}${lowest.toLocaleString()}`;
 
   return (
-    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 p-3 lg:px-4 lg:py-3 ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
+    <div className={`bg-white rounded-xl border transition-shadow hover:shadow-sm flex flex-col gap-3 ${detailMode ? 'p-5 shadow-sm' : 'lg:flex-row lg:items-center gap-2 lg:gap-4 p-3 lg:px-4 lg:py-3'} ${isAtLowest ? 'border-green-400' : 'border-gray-200'}`}>
 
       {/* ── Image + Title + Badges ── */}
-      <div className="flex items-start gap-3 min-w-0">
+      <div className={`flex items-start min-w-0 ${detailMode ? 'gap-5' : 'gap-3'}`}>
         {product.image
-          ? <img src={product.image} alt={title} className="w-12 h-12 object-contain rounded-lg bg-gray-50 flex-shrink-0" />
-          : <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
+          ? <img src={product.image} alt={title} className={`object-contain rounded-xl bg-gray-50 flex-shrink-0 ${detailMode ? 'w-28 h-28' : 'w-12 h-12 rounded-lg'}`} />
+          : <div className={`rounded-xl bg-gray-100 flex-shrink-0 ${detailMode ? 'w-28 h-28' : 'w-12 h-12 rounded-lg'}`} />
         }
-        <div className="flex-1 lg:w-56 lg:flex-none min-w-0">
-          <p className="text-sm font-medium text-gray-800 truncate" title={title}>{title}</p>
-          <div className="mt-0.5">
+        <div className={`min-w-0 ${detailMode ? 'flex-1' : 'flex-1 lg:w-56 lg:flex-none'}`}>
+          <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug' : 'text-sm truncate'}`} title={title}>{title}</p>
+          <div className="mt-1">
             <PrimeVariantBadges isPrime={product.isPrime} variant={product.variant} upc={product.upc} />
           </div>
         </div>

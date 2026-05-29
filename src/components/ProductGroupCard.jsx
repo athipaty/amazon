@@ -46,7 +46,7 @@ function fmtVal(v) {
   return String(v);
 }
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
@@ -456,16 +456,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const groupStatus = allUnavailable ? 'unavailable' : allOOS ? 'out_of_stock' : someIssue ? 'partial' : 'active';
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 transition-shadow hover:shadow-sm flex flex-col gap-3 p-4">
+    <div className={`bg-white rounded-xl border border-gray-200 transition-shadow hover:shadow-sm flex flex-col p-4 ${detailMode ? 'gap-5 shadow-sm' : 'gap-3'}`}>
 
       {/* ── Group header ── */}
-      <div className="flex items-start gap-3 min-w-0">
+      <div className={`flex items-start gap-3 min-w-0 ${detailMode ? 'gap-5' : ''}`}>
         {active.image
-          ? <img src={active.image} alt={active.title} className="w-12 h-12 object-contain rounded-lg bg-gray-50 flex-shrink-0" />
-          : <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0" />
+          ? <img src={active.image} alt={active.title} className={`object-contain rounded-xl bg-gray-50 flex-shrink-0 ${detailMode ? 'w-32 h-32' : 'w-12 h-12'}`} />
+          : <div className={`rounded-xl bg-gray-100 flex-shrink-0 ${detailMode ? 'w-32 h-32' : 'w-12 h-12'}`} />
         }
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-800 truncate" title={active.title}>{active.title}</p>
+          <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
           {ebayListingTitle && (
             <p
               className={`text-xs mt-0.5 truncate ${ebayListingTitle.length > 80 ? 'text-red-500' : 'text-gray-500'}`}
@@ -545,7 +545,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Variant swatches ── */}
-      <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1">
+      <div className={`grid gap-2 ${detailMode ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
         {variants.map((v, i) => {
           const label = v.variant || `Variant ${i + 1}`;
           const calcPrice = Math.floor(v.current * 1.45) + 0.99;
@@ -576,14 +576,14 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
               {/* ── Collapsed: image + label only ── */}
               {v.image && (
-                <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />
+                <img src={v.image} alt={label} className={`object-contain rounded flex-shrink-0 ${detailMode ? 'w-12 h-12' : 'w-5 h-5'}`} />
               )}
-              <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
+              <span className={`font-medium truncate text-center ${detailMode ? 'text-xs max-w-[80px]' : 'max-w-[60px] text-[10px]'} ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>
                 {label}
               </span>
 
               {/* ── Expanded details ── */}
-              {allExpanded && (
+              {(allExpanded || detailMode) && (
                 <>
                   {v.status === 'out_of_stock' && (
                     <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>

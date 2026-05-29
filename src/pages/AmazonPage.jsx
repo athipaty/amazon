@@ -407,8 +407,8 @@ export default function AmazonPage() {
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
-                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} />
-                  : <ProductCard key={selectedItem.product._id} product={selectedItem.product} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(selectedItem.product._id))} />
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
+                  : <ProductCard key={selectedItem.product._id} product={selectedItem.product} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(selectedItem.product._id))} detailMode={true} />
               )}
             </div>
           </div>
