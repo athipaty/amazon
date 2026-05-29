@@ -5,7 +5,7 @@ import ProductGroupCard from '../components/ProductGroupCard';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, mobile = false }) {
+function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, mobile = false }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -50,11 +50,18 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                   ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-lg bg-gray-50 border border-gray-100" />
                   : <div className="w-11 h-11 rounded-lg bg-gray-100" />
                 }
-                {item.type === 'group' && item.variants.length > 1 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm">
-                    {item.variants.length}
-                  </span>
-                )}
+                {(() => {
+                  const ebayId = item.type === 'group'
+                    ? item.variants.find(v => v.ebayListingId)?.ebayListingId
+                    : item.product?.ebayListingId;
+                  const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
+                  if (views == null) return null;
+                  return (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm">
+                      {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium text-gray-800 leading-snug line-clamp-2">{title}</p>
@@ -108,6 +115,7 @@ export default function AmazonPage() {
   const [priceMismatchIds, setPriceMismatchIds] = useState(new Set()); // eBay listing IDs with price mismatch
   const [selectedKey, setSelectedKey] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [ebayViews, setEbayViews] = useState({}); // listingId → view count
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -161,6 +169,16 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.get(`${API}/api/tracker`);
       setProducts(data);
+      // Fetch eBay view counts for all listed products (fire-and-forget, best-effort)
+      const ids = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
+      ids.forEach(async id => {
+        try {
+          const r = await fetch(`${API}/api/ebay/listing/${id}/views`);
+          if (!r.ok) return;
+          const { views } = await r.json();
+          setEbayViews(prev => ({ ...prev, [String(id)]: views }));
+        } catch {}
+      });
     } catch {}
   }
 
@@ -472,6 +490,7 @@ export default function AmazonPage() {
               getItemTitle={getItemTitle}
               getItemImage={getItemImage}
               getItemStatus={getItemStatus}
+              ebayViews={ebayViews}
             />
           </div>
 
@@ -487,6 +506,7 @@ export default function AmazonPage() {
               getItemTitle={getItemTitle}
               getItemImage={getItemImage}
               getItemStatus={getItemStatus}
+              ebayViews={ebayViews}
             />
 
             {/* RIGHT: detail panel — always use GroupCard layout (1 card for singles, N for groups) */}
