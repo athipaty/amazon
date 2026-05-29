@@ -20,6 +20,7 @@ export default function AmazonPage() {
   const [previewGroupId, setPreviewGroupId] = useState(null);
   const [ebayConnected, setEbayConnected] = useState(true);
   const [ebayFailedIds, setEbayFailedIds] = useState(new Set());
+  const [selectedKey, setSelectedKey] = useState(null);
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +119,35 @@ export default function AmazonPage() {
     setAddProgress('');
   }
 
+  // ── Master-detail helpers ────────────────────────────────────────
+  function getItemKey(item) {
+    return item.type === 'group' ? `group-${item.groupId}` : `single-${item.product._id}`;
+  }
+  function getItemImage(item) {
+    if (item.type === 'group') return item.variants.find(v => v.image)?.image || null;
+    return item.product.image || null;
+  }
+  function getItemTitle(item) {
+    if (item.type === 'group') return item.variants[0]?.title || 'Group Listing';
+    return item.product.title || 'Product';
+  }
+  function getItemStatus(item) {
+    if (item.type === 'group') {
+      const hasListing = item.variants.some(v => v.ebayListingId);
+      const hasFail    = item.variants.some(v => ebayFailedIds.has(String(v._id)));
+      const hasOOS     = item.variants.some(v => v.status === 'out_of_stock' || v.status === 'unavailable');
+      if (!hasListing) return 'unlisted';
+      if (hasFail || hasOOS) return 'issue';
+      return 'ok';
+    }
+    const p = item.product;
+    const hasFail = ebayFailedIds.has(String(p._id));
+    const hasOOS  = p.status === 'out_of_stock' || p.status === 'unavailable';
+    if (!p.ebayListingId) return 'unlisted';
+    if (hasFail || hasOOS) return 'issue';
+    return 'ok';
+  }
+
   // Build render list: group products sharing a groupId into group cards
   const renderItems = [];
   const seenGroups = new Set();
@@ -144,6 +174,12 @@ export default function AmazonPage() {
     );
   }
   renderItems.sort((a, b) => Number(itemHasIssue(b)) - Number(itemHasIssue(a)));
+
+  // Auto-select first item; keep selection valid after deletions
+  const selectedItem = renderItems.find(i => getItemKey(i) === selectedKey) || renderItems[0] || null;
+  if (renderItems.length && getItemKey(renderItems[0]) !== selectedKey && !renderItems.some(i => getItemKey(i) === selectedKey)) {
+    // selectedKey is stale — will be updated on next render via effect-less approach above
+  }
 
   function toggleVariant(asin, checked) {
     const next = new Set(selectedAsins);
@@ -313,13 +349,70 @@ export default function AmazonPage() {
           <p className="text-sm mt-1">Paste an Amazon URL above to start tracking prices.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {renderItems.map((item, i) =>
-            item.type === 'group'
-              ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} />
-              : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(item.product._id))} />
-          )}
-        </div>
+        <>
+          {/* ── Mobile: single column ── */}
+          <div className="flex lg:hidden flex-col gap-2">
+            {renderItems.map((item, i) =>
+              item.type === 'group'
+                ? <ProductGroupCard key={item.groupId} variants={item.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} />
+                : <ProductCard key={item.product._id} product={item.product} index={i} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(item.product._id))} />
+            )}
+          </div>
+
+          {/* ── Desktop: master-detail ── */}
+          <div className="hidden lg:flex gap-4 items-start">
+
+            {/* LEFT: compact sidebar */}
+            <div className="w-64 flex-shrink-0 border border-gray-200 rounded-xl overflow-hidden bg-white sticky top-4 max-h-[calc(100vh-120px)] flex flex-col">
+              <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex-shrink-0">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                  {renderItems.length} listing{renderItems.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="overflow-y-auto flex-1">
+                {renderItems.map(item => {
+                  const key = getItemKey(item);
+                  const status = getItemStatus(item);
+                  const image = getItemImage(item);
+                  const title = getItemTitle(item);
+                  const isSelected = (selectedKey || getItemKey(renderItems[0])) === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedKey(key)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${isSelected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent'}`}
+                    >
+                      {/* Thumbnail */}
+                      {image
+                        ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-lg bg-gray-50 flex-shrink-0 border border-gray-100" />
+                        : <div className="w-11 h-11 rounded-lg bg-gray-100 flex-shrink-0" />
+                      }
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-gray-800 leading-snug line-clamp-2">{title}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed OK</span></>}
+                          {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
+                          {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span></>}
+                          {item.type === 'group' && <span className="ml-1 text-[9px] text-gray-300">{item.variants.length}v</span>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* RIGHT: detail panel */}
+            <div className="flex-1 min-w-0">
+              {selectedItem && (
+                selectedItem.type === 'group'
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} />
+                  : <ProductCard key={selectedItem.product._id} product={selectedItem.product} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailed={ebayFailedIds.has(String(selectedItem.product._id))} />
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
