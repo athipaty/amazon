@@ -645,12 +645,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 ) : null}
 
                 {/* Profit row */}
-                <div className={`flex items-center justify-end px-0 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <div className="flex items-center gap-1 pr-1">
+                <div className={`flex items-center justify-end lg:justify-between px-1 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                  <span className={`hidden lg:inline text-[9px] font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-400'}`}>{marginPct}%</span>
+                  <div className="flex items-center gap-1">
                     <span className={`text-xs font-black ${profit >= 0 ? 'text-green-700' : 'text-red-500'}`}>
                       {profit >= 0 ? '+' : ''}{v.currency}{profit.toFixed(2)}
                     </span>
-                    <span className={`text-[9px] ${profit >= 0 ? 'text-green-500' : 'text-red-400'}`}>{marginPct}%</span>
+                    <span className={`lg:hidden text-[9px] ${profit >= 0 ? 'text-green-500' : 'text-red-400'}`}>{marginPct}%</span>
                   </div>
                 </div>
 
