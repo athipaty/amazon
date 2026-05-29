@@ -650,8 +650,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 ) : null}
 
                 {/* Profit row */}
-                <div className={`flex items-center justify-between px-0 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <span className="text-[9px] text-gray-500 pl-1">Profit</span>
+                <div className={`flex items-center justify-end px-0 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
                   <div className="flex items-center gap-1 pr-1">
                     <span className={`text-xs font-black ${profit >= 0 ? 'text-green-700' : 'text-red-500'}`}>
                       {profit >= 0 ? '+' : ''}{v.currency}{profit.toFixed(2)}
