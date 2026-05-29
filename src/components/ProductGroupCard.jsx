@@ -522,7 +522,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + Math.floor(v.current * 1.45) + 0.99, 0) * 100).toFixed(1);
               return (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${totalProfit >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                  {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)} avg profit · {avgMargin}% margin
+                  {avgMargin}% margin
                 </span>
               );
             })()}
