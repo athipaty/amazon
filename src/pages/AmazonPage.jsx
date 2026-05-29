@@ -86,6 +86,8 @@ export default function AmazonPage() {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
         setProducts(prev => [product, ...prev]);
         setUrl('');
+        setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
+        setTimeout(() => setStatusMsg(''), 4000);
       }
     } catch (err) {
       setAddError(err.response?.data?.error || err.message || 'Failed to reach the server.');
@@ -220,9 +222,15 @@ export default function AmazonPage() {
         <div className="mb-5 bg-white border border-yellow-300 rounded-xl p-5">
           <div className="flex justify-between items-start mb-1">
             <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {preview.variants.length} variants found — select which to track:
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-semibold text-gray-900">
+                  {preview.variants.length} variants found — select which to track:
+                </p>
+                {preview.isPrime
+                  ? <span className="inline-flex items-center gap-1 bg-[#00A8E0] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Prime</span>
+                  : <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">✗ No Prime</span>
+                }
+              </div>
               <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
             </div>
             <button
