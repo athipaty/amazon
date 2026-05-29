@@ -262,14 +262,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const titleData = await titleRes.json();
       const ebayTitle = titleData.title || active.title;
 
-      // Step 2: Upload all unique variant images to Cloudinary
+      // Step 2: Upload images — variant primaries first (in order) so index maps back to variant
       setAutoListStep('images');
-      const rawImages = [...new Set(
-        variants.flatMap(v => [v.image, ...(v.images || [])]).filter(Boolean)
-      )].slice(0, 8);
+      const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const variantPrimaries = variants.map(v => v.image).filter(Boolean);
+      const extraImages = [...new Set(
+        variants.flatMap(v => (v.images || []).filter(Boolean))
+          .filter(url => !variantPrimaries.includes(url))
+      )];
+      const rawImages = [...new Set([...variantPrimaries, ...extraImages])].slice(0, 8);
       let cloudinaryUrls = [];
       if (rawImages.length) {
-        const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
         const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -278,6 +281,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         const uploadData = await uploadRes.json();
         cloudinaryUrls = uploadData.cloudinaryUrls || [];
       }
+      // cloudinaryUrls[0..variantPrimaries.length-1] map 1-to-1 with variants
+      const variantCloudinaryUrls = cloudinaryUrls.slice(0, variantPrimaries.length);
 
       // Step 3: Create multi-variation eBay listing
       setAutoListStep('listing');
@@ -285,10 +290,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|pink|purple|yellow|orange|brown|natural|carbonized)\b/i)) ? 'Color'
         : 'Style';
 
-      const variantPayload = variants.map(v => ({
-        label: v.variant || `Variant ${variants.indexOf(v) + 1}`,
+      const variantPayload = variants.map((v, i) => ({
+        label: v.variant || `Variant ${i + 1}`,
         price: (Math.floor(v.current * 1.45) + 0.99).toFixed(2),
         quantity: 1,
+        image: variantCloudinaryUrls[i] || null,
       }));
 
       const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
