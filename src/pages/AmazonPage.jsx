@@ -172,6 +172,10 @@ export default function AmazonPage() {
       setTimeout(() => setOptimizeProgress(null), 4000);
     });
 
+    socket.on('tracker:listing:ended', () => {
+      loadProducts();
+    });
+
     socket.on('tracker:price:drop', ({ product }) => {
       setProducts(prev => prev.map(p => p._id === product._id ? product : p));
     });
