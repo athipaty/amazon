@@ -162,6 +162,16 @@ export default function AmazonPage() {
       loadProducts();
     });
 
+    socket.on('ebay:optimize:progress', ({ done, total }) => {
+      setOptimizeProgress({ done, total });
+    });
+
+    socket.on('ebay:optimize:done', ({ total }) => {
+      setOptimizeProgress({ done: total, total });
+      setOptimizing(false);
+      setTimeout(() => setOptimizeProgress(null), 4000);
+    });
+
     socket.on('tracker:price:drop', ({ product }) => {
       setProducts(prev => prev.map(p => p._id === product._id ? product : p));
     });
@@ -372,6 +382,20 @@ export default function AmazonPage() {
     }
   }
 
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizeProgress, setOptimizeProgress] = useState(null); // { done, total }
+  async function handleOptimizeAll() {
+    setOptimizing(true);
+    setOptimizeProgress({ done: 0, total: 0 });
+    try {
+      const { data } = await axios.post(`${API}/api/ebay/batch-optimize`);
+      setOptimizeProgress({ done: 0, total: data.total });
+    } catch {
+      setOptimizing(false);
+      setOptimizeProgress(null);
+    }
+  }
+
   const [retrying, setRetrying] = useState(false);
   async function handleRetryErrors() {
     setRetrying(true);
@@ -389,6 +413,19 @@ export default function AmazonPage() {
     <div className="px-4 py-4 md:px-6 md:py-7">
       <header className="flex justify-between items-center mb-4 md:mb-7 gap-3">
         <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
+        <button
+          onClick={handleOptimizeAll}
+          disabled={optimizing || checking}
+          className="px-3 py-1.5 md:px-4 md:py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+        >
+          {optimizing
+            ? optimizeProgress?.total > 0
+              ? `Optimizing… ${optimizeProgress.done}/${optimizeProgress.total}`
+              : 'Starting…'
+            : optimizeProgress
+              ? `✓ Done ${optimizeProgress.done}/${optimizeProgress.total}`
+              : 'Optimize All'}
+        </button>
         {products.some(p => p.status === 'error' || p.status === 'unavailable' || p.status === 'out_of_stock') && (
           <button
             onClick={handleRetryErrors}
