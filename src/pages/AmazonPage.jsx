@@ -437,50 +437,53 @@ export default function AmazonPage() {
     <div className="px-4 py-4 md:px-6 md:py-7">
       {showDashboard && <ProfitDashboard onClose={() => setShowDashboard(false)} />}
 
-      <header className="flex justify-between items-center mb-4 md:mb-7 gap-3">
-        <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
-        <button
-          onClick={() => setShowDashboard(true)}
-          className="px-3 py-1.5 md:px-4 md:py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors whitespace-nowrap"
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={handleFixPolicies}
-          disabled={fixingPolicies || checking}
-          className="px-3 py-1.5 md:px-4 md:py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-        >
-          {fixingPolicies ? 'Checking…' : policyResult ? `✓ ${policyResult.fixed} fixed, ${policyResult.alreadyCorrect} OK` : 'Fix Policies'}
-        </button>
-        <button
-          onClick={handleOptimizeAll}
-          disabled={optimizing || checking}
-          className="px-3 py-1.5 md:px-4 md:py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-        >
-          {optimizing
-            ? optimizeProgress?.total > 0
-              ? `Optimizing… ${optimizeProgress.done}/${optimizeProgress.total}`
-              : 'Starting…'
-            : optimizeProgress
-              ? `✓ Done ${optimizeProgress.done}/${optimizeProgress.total}`
-              : 'Optimize All'}
-        </button>
-        {products.some(p => p.status === 'error' || p.status === 'unavailable' || p.status === 'out_of_stock') && (
+      <header className="mb-4 md:mb-7">
+        {/* Main row: title + Check All always visible */}
+        <div className="flex justify-between items-center gap-3">
+          <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
           <button
-            onClick={handleRetryErrors}
-            disabled={retrying || checking}
-            className="px-3 py-1.5 md:px-4 md:py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            onClick={handleCheckNow}
+            disabled={checking}
+            className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
           >
-            {retrying ? 'Retrying…' : `Retry Errors (${products.filter(p => p.status === 'error' || p.status === 'unavailable' || p.status === 'out_of_stock').length})`}
+            {checking ? 'Checking…' : 'Check All'}
           </button>
-        )}
-        <button
-          onClick={handleCheckNow}
-          disabled={checking}
-          className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-        >
-          {checking ? 'Checking…' : 'Check All'}
-        </button>
+        </div>
+
+        {/* Admin buttons row: scrollable on mobile */}
+        <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={() => setShowDashboard(true)}
+            className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-medium hover:bg-indigo-100 transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={handleOptimizeAll}
+            disabled={optimizing || checking}
+            className="px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            {optimizing
+              ? optimizeProgress?.total > 0 ? `Optimizing… ${optimizeProgress.done}/${optimizeProgress.total}` : 'Starting…'
+              : optimizeProgress ? `✓ Done ${optimizeProgress.done}/${optimizeProgress.total}` : 'Optimize All'}
+          </button>
+          <button
+            onClick={handleFixPolicies}
+            disabled={fixingPolicies || checking}
+            className="px-3 py-1.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg text-xs font-medium hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            {fixingPolicies ? 'Checking…' : policyResult ? `✓ ${policyResult.fixed} fixed, ${policyResult.alreadyCorrect} OK` : 'Fix Policies'}
+          </button>
+          {products.some(p => ['error','unavailable','out_of_stock'].includes(p.status)) && (
+            <button
+              onClick={handleRetryErrors}
+              disabled={retrying || checking}
+              className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+            >
+              {retrying ? 'Retrying…' : `Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
+            </button>
+          )}
+        </div>
       </header>
 
 
