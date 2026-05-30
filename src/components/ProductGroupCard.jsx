@@ -71,9 +71,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
-  const [revisingDesc, setRevisingDesc] = useState(false);
-  const [reviseDescStatus, setReviseDescStatus] = useState(''); // '' | 'ok' | 'fail'
-  const [reviseDescError, setReviseDescError] = useState('');
   const [competitorData, setCompetitorData] = useState(null); // { lowest, avg, count }
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
@@ -444,45 +441,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
-  async function reviseDescription() {
-    if (!groupEbayId) return;
-    setRevisingDesc(true);
-    setReviseDescStatus('');
-    setReviseDescError('');
-    try {
-      const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
-      const rawImages = [...new Set([active.image, ...(active.images || [])].filter(Boolean))].slice(0, 8);
-      let imageUrls = rawImages;
-      if (rawImages.length) {
-        const up = await fetch(`${API}/api/ebay/upload-images`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrls: rawImages, slug: slug + '-rdesc' }),
-        });
-        imageUrls = (await up.json()).cloudinaryUrls || rawImages;
-      }
-      const descRes = await fetch(`${API}/api/ebay/generate-description`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: active.title, specs: active.specs || {}, imageUrls, bullets: active.bullets || [], upc: active.upc, variant: active.variant }),
-      });
-      const { html } = await descRes.json();
-      if (!html) throw new Error('Description generation failed');
-      const patchRes = await fetch(`${API}/api/ebay/listing/${groupEbayId}/revise-description`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: html }),
-      });
-      const patchData = await patchRes.json();
-      if (!patchRes.ok) throw new Error(patchData.error || 'Failed');
-      setReviseDescStatus('ok');
-      setTimeout(() => setReviseDescStatus(''), 6000);
-    } catch (e) {
-      setReviseDescStatus('fail');
-      setReviseDescError(e.message.slice(0, 200));
-    } finally {
-      setRevisingDesc(false);
-    }
-  }
-
-
   const countdowns = [
     useCountdown(variants[0]?.nextCheck),
     useCountdown(variants[1]?.nextCheck),
@@ -830,12 +788,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             </button>
             {fixPhotosStatus === 'ok' && <p className="text-[10px] text-green-600 text-center">Photos updated ✓</p>}
             {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}
-            <button onClick={reviseDescription} disabled={revisingDesc}
-              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full border border-violet-300 text-violet-600 hover:bg-violet-50 disabled:opacity-40 transition-colors whitespace-nowrap">
-              {revisingDesc ? '📝 Updating…' : '📝 Update Description'}
-            </button>
-            {reviseDescStatus === 'ok' && <p className="text-[10px] text-green-600 text-center">Description updated ✓</p>}
-            {reviseDescStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{reviseDescError || 'Failed ⚠'}</p>}
           </div>
         ) : (
           <div className="flex flex-col gap-1">
