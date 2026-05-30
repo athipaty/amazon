@@ -644,17 +644,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   <span className="text-sm font-semibold text-blue-700">{v.currency}{calcPrice.toFixed(2)}</span>
                 </div>
 
-                {/* Competitor market price */}
-                {competitorData && (() => {
-                  const diff = ((calcPrice - competitorData.lowest) / competitorData.lowest) * 100;
-                  const color = diff <= 0 ? 'text-green-600' : diff <= 20 ? 'text-amber-600' : 'text-red-500';
-                  const bg    = diff <= 0 ? 'bg-green-50' : diff <= 20 ? 'bg-amber-50' : 'bg-red-50';
+                {/* Competitor market price — uses median to avoid outlier skew */}
+                {competitorData?.median && (() => {
+                  const ref  = competitorData.median;
+                  const diff = ((calcPrice - ref) / ref) * 100;
+                  const color = diff <= 0 ? 'text-green-600' : diff <= 25 ? 'text-amber-600' : 'text-red-500';
+                  const bg    = diff <= 0 ? 'bg-green-50' : diff <= 25 ? 'bg-amber-50' : 'bg-red-50';
                   return (
                     <div className="flex items-center justify-end lg:justify-between gap-1">
                       <span className={`hidden lg:inline text-[9px] font-bold px-1.5 py-0.5 rounded leading-none flex-shrink-0 ${color} ${bg}`}>Mkt</span>
-                      <span className={`text-[11px] font-semibold ${color}`} title={`${competitorData.count} active listings · avg $${competitorData.avg}`}>
-                        ${competitorData.lowest.toFixed(2)}
-                        <span className="text-[9px] ml-0.5 opacity-70">{diff > 0 ? `+${diff.toFixed(0)}%` : `✓`}</span>
+                      <span className={`text-[11px] font-semibold ${color}`} title={`${competitorData.count} listings · low $${competitorData.lowest} · avg $${competitorData.avg}`}>
+                        ${ref.toFixed(2)}
+                        <span className="text-[9px] ml-0.5 opacity-70">{diff > 0 ? `+${diff.toFixed(0)}%` : '✓'}</span>
                       </span>
                     </div>
                   );
