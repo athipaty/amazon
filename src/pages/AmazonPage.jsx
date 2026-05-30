@@ -70,7 +70,7 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                     ? item.variants.find(v => v.ebayListingId)?.ebayListingId
                     : item.product?.ebayListingId;
                   const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
-                  if (views == null) return null;
+                  if (!views) return null;
                   return (
                     <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm">
                       {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
