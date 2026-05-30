@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { calcEbayPrice, calcEbayFee } from '../utils/pricing';
 
 function useCountdown(target) {
   const [remaining, setRemaining] = useState('');
@@ -195,7 +196,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
       setEditingEbay(false);
       if (id) {
         setLinkStatus('pushing');
-        const calcPrice = Math.floor(current * 1.45) + 0.99;
+        const calcPrice = calcEbayPrice(current);
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -255,7 +256,7 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
 
       // Step 4: Create eBay listing via Trading API
       setAutoListStep('listing');
-      const calcPrice = (Math.floor(current * 1.45) + 0.99).toFixed(2);
+      const calcPrice = (calcEbayPrice(current)).toFixed(2);
       const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -333,8 +334,8 @@ export default function ProductCard({ product, onCheck, onDelete, onUpdate, ebay
     }
   }
 
-  const calcPrice  = Math.floor(current * 1.45) + 0.99;
-  const ebayFee    = +(calcPrice * 0.129 + 0.30).toFixed(2);
+  const calcPrice  = calcEbayPrice(current);
+  const ebayFee    = calcEbayFee(calcPrice);
   const profit     = +(calcPrice - current - ebayFee).toFixed(2);
   const marginPct  = ((profit / calcPrice) * 100).toFixed(1);
   const roiPct     = ((profit / current) * 100).toFixed(1);

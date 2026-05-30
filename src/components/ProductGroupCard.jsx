@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { calcEbayPrice, calcEbayFee } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -99,7 +100,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     autoSyncDone.current = true;
 
     const mismatches = variants.filter(v => {
-      const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+      const calcPrice = calcEbayPrice(v.current);
       const livePrice = getLivePrice(v.variant || '');
       return livePrice != null && Math.abs(livePrice - calcPrice) >= 0.02;
     });
@@ -112,7 +113,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setAutoSyncErrors({});
 
     Promise.all(mismatches.map(async v => {
-      const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+      const calcPrice = calcEbayPrice(v.current);
       try {
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
@@ -227,7 +228,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         setLinkStatus('pushing');
         let anyFail = false;
         for (const v of variants) {
-          const calcPrice = Math.floor(v.current * 1.45) + 0.99;
+          const calcPrice = calcEbayPrice(v.current);
           const r = await fetch(`${API}/api/ebay/listing/price`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -285,7 +286,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
-        price: (Math.floor(v.current * 1.45) + 0.99).toFixed(2),
+        price: (calcEbayPrice(v.current)).toFixed(2),
         quantity: 2,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
@@ -311,7 +312,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: ebayTitle,
-          price: (Math.floor(active.current * 1.45) + 0.99).toFixed(2),
+          price: (calcEbayPrice(active.current)).toFixed(2),
           imageUrls: cloudinaryUrls,
           upc: active.upc,
           specs: active.specs || {},
@@ -511,10 +512,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
             {detailMode && (() => {
               const totalProfit = variants.reduce((sum, v) => {
-                const cp = Math.floor(v.current * 1.45) + 0.99;
-                return sum + (cp - v.current - (cp * 0.129 + 0.30));
+                const cp = calcEbayPrice(v.current);
+                return sum + (cp - v.current - calcEbayFee(cp));
               }, 0);
-              const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + Math.floor(v.current * 1.45) + 0.99, 0) * 100).toFixed(1);
+              const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + calcEbayPrice(v.current), 0) * 100).toFixed(1);
               return (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${totalProfit >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                   {avgMargin}% margin
@@ -580,8 +581,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       <div className={`grid gap-2 ${detailMode ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
         {variants.map((v, i) => {
           const label     = v.variant || `Variant ${i + 1}`;
-          const calcPrice = Math.floor(v.current * 1.45) + 0.99;
-          const ebayFee   = +(calcPrice * 0.129 + 0.30).toFixed(2);
+          const calcPrice = calcEbayPrice(v.current);
+          const ebayFee   = calcEbayFee(calcPrice);
           const profit    = +(calcPrice - v.current - ebayFee).toFixed(2);
           const marginPct = ((profit / calcPrice) * 100).toFixed(1);
           const livePrice = getLivePrice(v.variant || label);
