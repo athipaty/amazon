@@ -131,11 +131,18 @@ export default function AmazonPage() {
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
+  const previewRef = useRef(null);
 
   useEffect(() => {
     document.body.style.overflow = detailOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [detailOpen]);
+
+  useEffect(() => {
+    if (preview && previewRef.current) {
+      previewRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [preview]);
 
   useEffect(() => {
     loadProducts().then(fetchEbayViews);
@@ -210,7 +217,7 @@ export default function AmazonPage() {
       if (data.variants && data.variants.length > 1) {
         setPreview(data);
         setPreviewGroupId(data.groupId || null);
-        setSelectedAsins(new Set(data.variants.map(v => v.asin)));
+        setSelectedAsins(new Set());
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
         setProducts(prev => [product, ...prev]);
@@ -401,7 +408,7 @@ export default function AmazonPage() {
       </div>
 
       {preview && (
-        <div className="mb-5 bg-white border border-yellow-300 rounded-xl p-5">
+        <div ref={previewRef} className="mb-5 bg-white border border-yellow-300 rounded-xl p-5">
           <div className="flex justify-between items-start mb-1">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -447,28 +454,33 @@ export default function AmazonPage() {
             ))}
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={handleTrackSelected}
-              disabled={addingVariants || selectedAsins.size === 0}
-              className="px-4 py-2 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {addingVariants ? addProgress : `Track Selected (${selectedAsins.size})`}
-            </button>
-            <button
-              onClick={() => setSelectedAsins(new Set(preview.variants.map(v => v.asin)))}
-              disabled={addingVariants}
-              className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-            >
-              Select All
-            </button>
-            <button
-              onClick={() => setSelectedAsins(new Set())}
-              disabled={addingVariants}
-              className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-            >
-              None
-            </button>
+          <div className="flex flex-col gap-2 mt-4">
+            {selectedAsins.size === 0 && !addingVariants && (
+              <p className="text-sm text-amber-600 font-medium">Select at least one variant to track</p>
+            )}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleTrackSelected}
+                disabled={addingVariants || selectedAsins.size === 0}
+                className="px-4 py-2 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {addingVariants ? addProgress : selectedAsins.size === 0 ? 'Track Selected' : `Track Selected (${selectedAsins.size})`}
+              </button>
+              <button
+                onClick={() => setSelectedAsins(new Set(preview.variants.map(v => v.asin)))}
+                disabled={addingVariants}
+                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              >
+                Select All
+              </button>
+              <button
+                onClick={() => setSelectedAsins(new Set())}
+                disabled={addingVariants}
+                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              >
+                None
+              </button>
+            </div>
           </div>
         </div>
       )}
