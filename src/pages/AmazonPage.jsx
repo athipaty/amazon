@@ -407,16 +407,60 @@ const [optimizing, setOptimizing] = useState(false);
   }
 
   const [retrying, setRetrying] = useState(false);
+  const [retryProgress, setRetryProgress] = useState(null); // { done, total }
   async function handleRetryErrors() {
+    const errorProducts = products.filter(p => ['error', 'unavailable', 'out_of_stock'].includes(p.status));
+    if (!errorProducts.length) return;
     setRetrying(true);
+    setRetryProgress({ done: 0, total: errorProducts.length });
     try {
       await axios.post(`${API}/api/tracker/retry-errors`);
-      const { data } = await axios.post(`${API}/api/tracker/check`);
-      if (data.products) setProducts(data.products);
+      let done = 0;
+      for (const p of errorProducts) {
+        try {
+          const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`);
+          setProducts(prev => prev.map(q => q._id === p._id ? data : q));
+          if (data?.current != null && data?.ebayListingId) {
+            const price = calcEbayPrice(data.current);
+            await fetch(`${API}/api/ebay/listing/price`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ listingId: data.ebayListingId, price, variantLabel: data.variant || '' }),
+            }).catch(() => {});
+          }
+        } catch {}
+        done++;
+        setRetryProgress({ done, total: errorProducts.length });
+      }
     } catch {
     } finally {
       setRetrying(false);
+      setTimeout(() => setRetryProgress(null), 4000);
     }
+  }
+
+  const [syncingEbay, setSyncingEbay] = useState(false);
+  const [ebaySyncProgress, setEbaySyncProgress] = useState(null); // { done, total }
+  async function handleSyncAllEbay() {
+    const linked = products.filter(p => p.ebayListingId && p.current != null);
+    if (!linked.length) return;
+    setSyncingEbay(true);
+    setEbaySyncProgress({ done: 0, total: linked.length });
+    let done = 0;
+    for (const p of linked) {
+      try {
+        const price = calcEbayPrice(p.current);
+        await fetch(`${API}/api/ebay/listing/price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: p.ebayListingId, price, variantLabel: p.variant || '' }),
+        });
+      } catch {}
+      done++;
+      setEbaySyncProgress({ done, total: linked.length });
+    }
+    setSyncingEbay(false);
+    setTimeout(() => setEbaySyncProgress(null), 4000);
   }
 
   return (
@@ -459,7 +503,21 @@ const [optimizing, setOptimizing] = useState(false);
               disabled={retrying || checking}
               className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
             >
-              {retrying ? 'Retrying…' : `Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
+              {retrying
+                ? retryProgress ? `Retrying… ${retryProgress.done}/${retryProgress.total}` : 'Retrying…'
+                : retryProgress ? `✓ Done ${retryProgress.done}/${retryProgress.total}`
+                : `Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
+            </button>
+          )}
+          {products.some(p => p.ebayListingId) && (
+            <button
+              onClick={handleSyncAllEbay}
+              disabled={syncingEbay || checking}
+              className="px-3 py-1.5 bg-[#fff0f0] border border-[#fcc] text-[#e53238] rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+            >
+              {syncingEbay
+                ? ebaySyncProgress ? `Syncing eBay… ${ebaySyncProgress.done}/${ebaySyncProgress.total}` : 'Starting…'
+                : ebaySyncProgress ? `✓ Synced ${ebaySyncProgress.done}/${ebaySyncProgress.total}` : 'Sync All eBay'}
             </button>
           )}
         </div>
