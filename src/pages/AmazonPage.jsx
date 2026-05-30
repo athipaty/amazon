@@ -124,6 +124,7 @@ export default function AmazonPage() {
   const [addProgress, setAddProgress] = useState('');
   const [previewGroupId, setPreviewGroupId] = useState(null);
   const [ebayConnected, setEbayConnected] = useState(true);
+  const [ebayTokenDaysLeft, setEbayTokenDaysLeft] = useState(null);
   const [ebayFailedIds, setEbayFailedIds] = useState(new Set());
   const [priceMismatchIds, setPriceMismatchIds] = useState(new Set()); // eBay listing IDs with price mismatch
   const [selectedKey, setSelectedKey] = useState(null);
@@ -197,6 +198,7 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.get(`${API}/api/ebay/auth/status`);
       setEbayConnected(data.connected === true);
+      setEbayTokenDaysLeft(data.refreshTokenDaysLeft ?? null);
     } catch { setEbayConnected(false); }
   }
 
@@ -553,6 +555,13 @@ export default function AmazonPage() {
           <span className="flex-shrink-0">⚠️</span>
           eBay token expired — prices won't sync until you
           <a href={`${API}/api/ebay/auth/login`} className="underline font-semibold ml-1">reconnect eBay</a>.
+        </div>
+      )}
+      {ebayConnected && ebayTokenDaysLeft !== null && ebayTokenDaysLeft <= 30 && (
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-sm border ${ebayTokenDaysLeft <= 7 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+          <span className="flex-shrink-0">⚠️</span>
+          eBay token expires in <strong className="mx-1">{ebayTokenDaysLeft} day{ebayTokenDaysLeft !== 1 ? 's' : ''}</strong> —
+          <a href={`${API}/api/ebay/auth/login`} className="underline font-semibold ml-1">reconnect now</a> to avoid disruption.
         </div>
       )}
 
