@@ -665,7 +665,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   <div className="flex items-center justify-end lg:justify-between gap-1">
                     <span className="hidden lg:inline text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
                     <span className={`text-sm font-bold ${synced ? 'text-green-600' : 'text-red-500'}`}>
-                      <span className="text-[9px] mr-0.5">{synced ? '✓' : '✗'}</span>{v.currency}{livePrice.toFixed(2)}
+                      {v.currency}{livePrice.toFixed(2)}
                     </span>
                   </div>
                 ) : null}
