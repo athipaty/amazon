@@ -638,12 +638,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   <span className="text-sm font-bold text-gray-900">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
                 </div>
 
-                {/* Calculated eBay */}
-                <div className="flex items-center justify-end lg:justify-between gap-1">
-                  <span className="hidden lg:inline text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Cal</span>
-                  <span className="text-sm font-semibold text-blue-700">{v.currency}{calcPrice.toFixed(2)}</span>
-                </div>
-
                 {/* Competitor market price — uses median to avoid outlier skew */}
                 {competitorData?.median && (() => {
                   const ref  = competitorData.median;
@@ -744,7 +738,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   {v.status === 'out_of_stock' && <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>}
                   {(v.status === 'unavailable' || v.status === 'error') && <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>}
                   <span className="text-[9px] text-gray-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
-                  <span className={`text-[9px] font-mono font-semibold ${isActive ? 'text-[#e53238]' : 'text-gray-600'}`}>{v.currency}{calcPrice.toFixed(2)}</span>
                   {isRefreshing ? <span className="text-[9px] font-mono text-yellow-500">…</span>
                     : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
                     : null}
