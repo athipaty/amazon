@@ -127,6 +127,7 @@ export default function AmazonPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
   const socketRef = useRef(null);
+  const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
 
   useEffect(() => {
     document.body.style.overflow = detailOpen ? 'hidden' : '';
@@ -134,7 +135,7 @@ export default function AmazonPage() {
   }, [detailOpen]);
 
   useEffect(() => {
-    loadProducts();
+    loadProducts().then(fetchEbayViews);
     checkEbayStatus();
 
     socketRef.current = io(API);
@@ -164,7 +165,8 @@ export default function AmazonPage() {
     });
 
     const poll = setInterval(loadProducts, 30000);
-    return () => { socket.disconnect(); clearInterval(poll); };
+    const viewsPoll = setInterval(fetchEbayViews, 60 * 60 * 1000); // re-fetch views every hour
+    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); };
   }, []);
 
   async function checkEbayStatus() {
@@ -179,17 +181,19 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.get(`${API}/api/tracker`);
       setProducts(data);
-      // Fetch eBay view counts for all listed products (fire-and-forget, best-effort)
-      const ids = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
-      ids.forEach(async id => {
-        try {
-          const r = await fetch(`${API}/api/ebay/listing/${id}/views`);
-          const json = await r.json();
-          if (json._error) console.warn(`[eBay views] listing ${id}:`, json._error);
-          if (json.views != null) setEbayViews(prev => ({ ...prev, [String(id)]: json.views }));
-        } catch (e) { console.warn('[eBay views] fetch failed:', e.message); }
-      });
+      ebayIdsRef.current = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
     } catch {}
+  }
+
+  async function fetchEbayViews() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listings/views?ids=${ids.join(',')}`);
+      const json = await r.json();
+      if (json._error) console.warn('[eBay views] batch error:', json._error);
+      if (json.views) setEbayViews(json.views);
+    } catch (e) { console.warn('[eBay views] batch fetch failed:', e.message); }
   }
 
   async function handleAdd(e) {
