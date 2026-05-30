@@ -635,7 +635,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 {/* Amazon */}
                 <div className="flex items-center justify-end lg:justify-between gap-1">
                   <span className="hidden lg:inline text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
-                  <span className="text-sm font-bold text-gray-900">{v.currency}{v.current.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-gray-900">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
                 </div>
 
                 {/* Calculated eBay */}
