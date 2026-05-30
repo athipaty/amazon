@@ -372,10 +372,32 @@ export default function AmazonPage() {
     }
   }
 
+  const [retrying, setRetrying] = useState(false);
+  async function handleRetryErrors() {
+    setRetrying(true);
+    try {
+      await axios.post(`${API}/api/tracker/retry-errors`);
+      const { data } = await axios.post(`${API}/api/tracker/check`);
+      if (data.products) setProducts(data.products);
+    } catch {
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   return (
     <div className="px-4 py-4 md:px-6 md:py-7">
       <header className="flex justify-between items-center mb-4 md:mb-7 gap-3">
         <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
+        {products.some(p => p.status === 'error' || p.status === 'unavailable' || p.status === 'out_of_stock') && (
+          <button
+            onClick={handleRetryErrors}
+            disabled={retrying || checking}
+            className="px-3 py-1.5 md:px-4 md:py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          >
+            {retrying ? 'Retrying…' : `Retry Errors (${products.filter(p => p.status === 'error' || p.status === 'unavailable' || p.status === 'out_of_stock').length})`}
+          </button>
+        )}
         <button
           onClick={handleCheckNow}
           disabled={checking}
