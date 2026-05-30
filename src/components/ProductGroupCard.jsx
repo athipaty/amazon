@@ -74,6 +74,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [revisingDesc, setRevisingDesc] = useState(false);
   const [reviseDescStatus, setReviseDescStatus] = useState(''); // '' | 'ok' | 'fail'
   const [reviseDescError, setReviseDescError] = useState('');
+  const [competitorData, setCompetitorData] = useState(null); // { lowest, avg, count }
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
@@ -92,6 +93,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   useEffect(() => {
     fetchEbayPrices();
+    // Fetch competitor prices once on mount — uses UPC if available, else title
+    const primary = variants.find(v => v.upc) || variants[0];
+    if (!primary) return;
+    const params = new URLSearchParams();
+    if (primary.upc) params.set('upc', primary.upc);
+    else if (primary.title) params.set('title', primary.title.split(' ').slice(0, 6).join(' '));
+    fetch(`${API}/api/ebay/competitors?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.count > 0) setCompetitorData(d); })
+      .catch(() => {});
   }, [groupEbayId]);
 
   // Auto-fix mismatched eBay prices as soon as live prices are fetched
@@ -629,6 +640,22 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   <span className="hidden lg:inline text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Cal</span>
                   <span className="text-sm font-semibold text-blue-700">{v.currency}{calcPrice.toFixed(2)}</span>
                 </div>
+
+                {/* Competitor market price */}
+                {competitorData && (() => {
+                  const diff = ((calcPrice - competitorData.lowest) / competitorData.lowest) * 100;
+                  const color = diff <= 0 ? 'text-green-600' : diff <= 20 ? 'text-amber-600' : 'text-red-500';
+                  const bg    = diff <= 0 ? 'bg-green-50' : diff <= 20 ? 'bg-amber-50' : 'bg-red-50';
+                  return (
+                    <div className="flex items-center justify-end lg:justify-between gap-1">
+                      <span className={`hidden lg:inline text-[9px] font-bold px-1.5 py-0.5 rounded leading-none flex-shrink-0 ${color} ${bg}`}>Mkt</span>
+                      <span className={`text-[11px] font-semibold ${color}`} title={`${competitorData.count} active listings · avg $${competitorData.avg}`}>
+                        ${competitorData.lowest.toFixed(2)}
+                        <span className="text-[9px] ml-0.5 opacity-70">{diff > 0 ? `+${diff.toFixed(0)}%` : `✓`}</span>
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Live eBay price */}
                 {isRefreshing ? (
