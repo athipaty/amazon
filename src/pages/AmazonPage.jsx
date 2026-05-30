@@ -392,22 +392,7 @@ export default function AmazonPage() {
 
   const [showDashboard, setShowDashboard] = useState(false);
 
-  const [fixingPolicies, setFixingPolicies] = useState(false);
-  const [policyResult, setPolicyResult] = useState(null); // { fixed, alreadyCorrect, failed }
-  async function handleFixPolicies() {
-    setFixingPolicies(true);
-    setPolicyResult(null);
-    try {
-      const { data } = await axios.post(`${API}/api/ebay/fix-policies`);
-      setPolicyResult(data);
-      setTimeout(() => setPolicyResult(null), 6000);
-    } catch {
-    } finally {
-      setFixingPolicies(false);
-    }
-  }
-
-  const [optimizing, setOptimizing] = useState(false);
+const [optimizing, setOptimizing] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState(null); // { done, total }
   async function handleOptimizeAll() {
     setOptimizing(true);
@@ -468,14 +453,7 @@ export default function AmazonPage() {
               ? optimizeProgress?.total > 0 ? `Optimizing… ${optimizeProgress.done}/${optimizeProgress.total}` : 'Starting…'
               : optimizeProgress ? `✓ Done ${optimizeProgress.done}/${optimizeProgress.total}` : 'Optimize All'}
           </button>
-          <button
-            onClick={handleFixPolicies}
-            disabled={fixingPolicies || checking}
-            className="px-3 py-1.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg text-xs font-medium hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {fixingPolicies ? 'Checking…' : policyResult ? `✓ ${policyResult.fixed} fixed, ${policyResult.alreadyCorrect} OK` : 'Fix Policies'}
-          </button>
-          {products.some(p => ['error','unavailable','out_of_stock'].includes(p.status)) && (
+{products.some(p => ['error','unavailable','out_of_stock'].includes(p.status)) && (
             <button
               onClick={handleRetryErrors}
               disabled={retrying || checking}
