@@ -445,19 +445,23 @@ const [optimizing, setOptimizing] = useState(false);
     const linked = products.filter(p => p.ebayListingId && p.current != null);
     if (!linked.length) return;
     setSyncingEbay(true);
-    setEbaySyncProgress({ done: 0, total: linked.length });
+    const total = linked.length;
+    setEbaySyncProgress({ done: 0, total });
     let done = 0;
-    for (const p of linked) {
-      try {
-        const price = calcEbayPrice(p.current);
-        await fetch(`${API}/api/ebay/listing/price`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listingId: p.ebayListingId, price, variantLabel: p.variant || '' }),
-        });
-      } catch {}
-      done++;
-      setEbaySyncProgress({ done, total: linked.length });
+    const BATCH = 8;
+    for (let i = 0; i < linked.length; i += BATCH) {
+      await Promise.all(linked.slice(i, i + BATCH).map(async p => {
+        try {
+          const price = calcEbayPrice(p.current);
+          await fetch(`${API}/api/ebay/listing/price`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId: p.ebayListingId, price, variantLabel: p.variant || '' }),
+          });
+        } catch {}
+        done++;
+        setEbaySyncProgress({ done, total });
+      }));
     }
     setSyncingEbay(false);
     setTimeout(() => setEbaySyncProgress(null), 4000);
