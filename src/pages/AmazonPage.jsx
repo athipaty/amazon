@@ -414,7 +414,7 @@ const [optimizing, setOptimizing] = useState(false);
     setRetrying(true);
     setRetryProgress({ done: 0, total: errorProducts.length });
     try {
-      await axios.post(`${API}/api/tracker/retry-errors`);
+      await axios.post(`${API}/api/tracker/retry-errors`).catch(() => {}); // non-fatal
       let done = 0;
       for (const p of errorProducts) {
         try {
