@@ -93,16 +93,19 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   useEffect(() => {
     fetchEbayPrices();
-    // Fetch competitor prices once on mount — uses UPC if available, else title
+    // Stagger competitor fetches (0–3s random) so 34 cards don't all fire at once
     const primary = variants.find(v => v.upc) || variants[0];
     if (!primary) return;
     const params = new URLSearchParams();
     if (primary.upc) params.set('upc', primary.upc);
     else if (primary.title) params.set('title', primary.title.split(' ').slice(0, 6).join(' '));
-    fetch(`${API}/api/ebay/competitors?${params}`)
-      .then(r => r.json())
-      .then(d => { if (d.count > 0) setCompetitorData(d); })
-      .catch(() => {});
+    const t = setTimeout(() => {
+      fetch(`${API}/api/ebay/competitors?${params}`)
+        .then(r => r.json())
+        .then(d => { if (d.count > 0) setCompetitorData(d); })
+        .catch(() => {});
+    }, Math.random() * 3000);
+    return () => clearTimeout(t);
   }, [groupEbayId]);
 
   // Auto-fix mismatched eBay prices as soon as live prices are fetched
