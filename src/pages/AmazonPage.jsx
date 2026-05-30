@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import ProductGroupCard from '../components/ProductGroupCard';
+import ProfitDashboard from '../components/ProfitDashboard';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -388,6 +389,8 @@ export default function AmazonPage() {
     }
   }
 
+  const [showDashboard, setShowDashboard] = useState(false);
+
   const [fixingPolicies, setFixingPolicies] = useState(false);
   const [policyResult, setPolicyResult] = useState(null); // { fixed, alreadyCorrect, failed }
   async function handleFixPolicies() {
@@ -432,8 +435,16 @@ export default function AmazonPage() {
 
   return (
     <div className="px-4 py-4 md:px-6 md:py-7">
+      {showDashboard && <ProfitDashboard onClose={() => setShowDashboard(false)} />}
+
       <header className="flex justify-between items-center mb-4 md:mb-7 gap-3">
         <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
+        <button
+          onClick={() => setShowDashboard(true)}
+          className="px-3 py-1.5 md:px-4 md:py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors whitespace-nowrap"
+        >
+          Dashboard
+        </button>
         <button
           onClick={handleFixPolicies}
           disabled={fixingPolicies || checking}
