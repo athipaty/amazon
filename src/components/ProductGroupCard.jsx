@@ -158,7 +158,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     try {
       const updated = await onCheck(id);
       if (updated?.current != null && groupEbayId) {
-        const newCalcPrice = Math.floor(updated.current * 1.45) + 0.99;
+        const newCalcPrice = calcEbayPrice(updated.current);
         const variantLabel = variants.find(v => v._id === id)?.variant || '';
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',

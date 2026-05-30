@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import axios from 'axios';
 import ProductGroupCard from '../components/ProductGroupCard';
 import ProfitDashboard from '../components/ProfitDashboard';
+import { calcEbayPrice, calcEbayFee } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -94,8 +95,8 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                       : [item.product.current].filter(Boolean);
                     if (!prices.length) return null;
                     const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
-                    const cp = Math.floor(avgCost * 1.45) + 0.99;
-                    const p = +(cp - avgCost - (cp * 0.129 + 0.30)).toFixed(2);
+                    const cp = calcEbayPrice(avgCost);
+                    const p = +(cp - avgCost - calcEbayFee(cp)).toFixed(2);
                     return (
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${p >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}`}>
                         {p >= 0 ? '+' : ''}${p.toFixed(2)}
