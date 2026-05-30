@@ -388,6 +388,21 @@ export default function AmazonPage() {
     }
   }
 
+  const [fixingPolicies, setFixingPolicies] = useState(false);
+  const [policyResult, setPolicyResult] = useState(null); // { fixed, alreadyCorrect, failed }
+  async function handleFixPolicies() {
+    setFixingPolicies(true);
+    setPolicyResult(null);
+    try {
+      const { data } = await axios.post(`${API}/api/ebay/fix-policies`);
+      setPolicyResult(data);
+      setTimeout(() => setPolicyResult(null), 6000);
+    } catch {
+    } finally {
+      setFixingPolicies(false);
+    }
+  }
+
   const [optimizing, setOptimizing] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState(null); // { done, total }
   async function handleOptimizeAll() {
@@ -419,6 +434,13 @@ export default function AmazonPage() {
     <div className="px-4 py-4 md:px-6 md:py-7">
       <header className="flex justify-between items-center mb-4 md:mb-7 gap-3">
         <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
+        <button
+          onClick={handleFixPolicies}
+          disabled={fixingPolicies || checking}
+          className="px-3 py-1.5 md:px-4 md:py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+        >
+          {fixingPolicies ? 'Checking…' : policyResult ? `✓ ${policyResult.fixed} fixed, ${policyResult.alreadyCorrect} OK` : 'Fix Policies'}
+        </button>
         <button
           onClick={handleOptimizeAll}
           disabled={optimizing || checking}
