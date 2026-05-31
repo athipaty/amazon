@@ -323,7 +323,7 @@ export default function AmazonPage() {
     }
   }
 
-  // Sort: items with any issue bubble to the top
+  // Sort: items with any issue bubble to the top, then by most eBay views
   function itemHasIssue(item) {
     const s = getItemStatus(item);
     if (s === 'issue' || s === 'price') return true;
@@ -333,7 +333,18 @@ export default function AmazonPage() {
       ebayFailedIds.has(String(v._id))
     );
   }
-  renderItems.sort((a, b) => Number(itemHasIssue(b)) - Number(itemHasIssue(a)));
+  function itemEbayViews(item) {
+    const variants = item.type === 'group' ? item.variants : [item.product];
+    return variants.reduce((max, v) => {
+      const views = v.ebayListingId ? (ebayViews[String(v.ebayListingId)] ?? 0) : 0;
+      return Math.max(max, views);
+    }, 0);
+  }
+  renderItems.sort((a, b) => {
+    const issueDiff = Number(itemHasIssue(b)) - Number(itemHasIssue(a));
+    if (issueDiff !== 0) return issueDiff;
+    return itemEbayViews(b) - itemEbayViews(a);
+  });
 
   // Auto-select first item; keep selection valid after deletions
   const selectedItem = renderItems.find(i => getItemKey(i) === selectedKey) || renderItems[0] || null;
