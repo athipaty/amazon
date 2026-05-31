@@ -443,33 +443,6 @@ const [optimizing, setOptimizing] = useState(false);
     }
   }
 
-  const [syncingEbay, setSyncingEbay] = useState(false);
-  const [ebaySyncProgress, setEbaySyncProgress] = useState(null); // { done, total }
-  async function handleSyncAllEbay() {
-    const linked = products.filter(p => p.ebayListingId && p.current != null);
-    if (!linked.length) return;
-    setSyncingEbay(true);
-    const total = linked.length;
-    setEbaySyncProgress({ done: 0, total });
-    let done = 0;
-    const BATCH = 8;
-    for (let i = 0; i < linked.length; i += BATCH) {
-      await Promise.all(linked.slice(i, i + BATCH).map(async p => {
-        try {
-          const price = calcEbayPrice(p.current);
-          await fetch(`${API}/api/ebay/listing/price`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ listingId: p.ebayListingId, price, variantLabel: p.variant || '' }),
-          });
-        } catch {}
-        done++;
-        setEbaySyncProgress({ done, total });
-      }));
-    }
-    setSyncingEbay(false);
-    setTimeout(() => setEbaySyncProgress(null), 4000);
-  }
 
   return (
     <div className="px-4 py-4 md:px-6 md:py-7">
@@ -515,17 +488,6 @@ const [optimizing, setOptimizing] = useState(false);
                 ? retryProgress ? `Retrying… ${retryProgress.done}/${retryProgress.total}` : 'Retrying…'
                 : retryProgress ? `✓ Done ${retryProgress.done}/${retryProgress.total}`
                 : `Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
-            </button>
-          )}
-          {products.some(p => p.ebayListingId) && (
-            <button
-              onClick={handleSyncAllEbay}
-              disabled={syncingEbay || checking}
-              className="px-3 py-1.5 bg-[#fff0f0] border border-[#fcc] text-[#e53238] rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
-            >
-              {syncingEbay
-                ? ebaySyncProgress ? `Syncing eBay… ${ebaySyncProgress.done}/${ebaySyncProgress.total}` : 'Starting…'
-                : ebaySyncProgress ? `✓ Synced ${ebaySyncProgress.done}/${ebaySyncProgress.total}` : 'Sync All eBay'}
             </button>
           )}
         </div>
