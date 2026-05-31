@@ -132,6 +132,7 @@ export default function AmazonPage() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
+  const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
@@ -150,6 +151,7 @@ export default function AmazonPage() {
   useEffect(() => {
     loadProducts().then(fetchEbayViews);
     checkEbayStatus();
+    fetchSellingLimits();
 
     socketRef.current = io(API);
     const socket = socketRef.current;
@@ -210,6 +212,13 @@ export default function AmazonPage() {
       const { data } = await axios.get(`${API}/api/tracker`);
       setProducts(data);
       ebayIdsRef.current = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
+    } catch {}
+  }
+
+  async function fetchSellingLimits() {
+    try {
+      const { data } = await axios.get(`${API}/api/ebay/selling-limits`);
+      setSellingLimits(data.items);
     } catch {}
   }
 
@@ -480,7 +489,18 @@ const [optimizing, setOptimizing] = useState(false);
       <header className="mb-4 md:mb-7">
         {/* Main row: title + Check All always visible */}
         <div className="flex justify-between items-center gap-3">
-          <h1 className="text-lg md:text-xl font-bold text-gray-900">Amazon Price Tracker</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">Amazon Price Tracker</h1>
+            {sellingLimits && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                sellingLimits.remaining <= 10 ? 'bg-red-100 text-red-600' :
+                sellingLimits.remaining <= 30 ? 'bg-yellow-100 text-yellow-700' :
+                'bg-green-100 text-green-700'
+              }`}>
+                {sellingLimits.used} / {sellingLimits.limit}
+              </span>
+            )}
+          </div>
           <button
             onClick={handleCheckNow}
             disabled={checking}
