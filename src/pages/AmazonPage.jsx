@@ -418,6 +418,24 @@ export default function AmazonPage() {
 
 
 
+  const [saleMode, setSaleMode] = useState(false);
+  const [saleModeResult, setSaleModeResult] = useState(null);
+  const [saleModeConfirm, setSaleModeConfirm] = useState(false);
+  async function handleSaleMode() {
+    if (!saleModeConfirm) { setSaleModeConfirm(true); return; }
+    setSaleModeConfirm(false);
+    setSaleMode(true);
+    setSaleModeResult(null);
+    try {
+      const { data } = await axios.post(`${API}/api/ebay/sale-mode`);
+      setSaleModeResult(data);
+    } catch (e) {
+      setSaleModeResult({ error: e.response?.data?.error || e.message });
+    } finally {
+      setSaleMode(false);
+    }
+  }
+
   const [promoting, setPromoting] = useState(false);
   const [promoteConfirm, setPromoteConfirm] = useState(false);
   const [promoteResult, setPromoteResult] = useState(null);
@@ -530,6 +548,14 @@ const [optimizing, setOptimizing] = useState(false);
             Dashboard
           </button>
 
+          <button
+            onClick={handleSaleMode}
+            onBlur={() => setSaleModeConfirm(false)}
+            disabled={saleMode || checking}
+            className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${saleModeConfirm ? 'bg-green-500 border-green-600 text-white hover:bg-green-600' : 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'}`}
+          >
+            {saleMode ? 'Repricing…' : saleModeResult?.error ? '⚠ Failed' : saleModeResult ? `✓ Done ${saleModeResult.done}/${saleModeResult.total}` : saleModeConfirm ? 'Tap again to confirm' : 'Sale Mode (2% profit)'}
+          </button>
           <button
             onClick={promoteConfirm ? handlePromoteTop10 : handlePromoteTop10}
             onBlur={() => setPromoteConfirm(false)}

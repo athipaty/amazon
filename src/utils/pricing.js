@@ -1,19 +1,13 @@
-const EBAY_FEE_RATE = 0.1325;
+const EBAY_FEE_RATE  = 0.1325;
 const EBAY_FEE_FIXED = 0.30;
-const MIN_PROFIT = 4.50;
+const PROMO_RATE     = 0.05; // 5% promoted listings
+const TARGET_MARGIN  = 0.02; // 2% net profit after all fees
 
+// Price = (cost + fixed_fee) / (1 - ebay_fee% - promo% - margin%)
+// Gives ~2% net profit after eBay fee + promo fee
 export function calcEbayPrice(amazonPrice) {
-  let multiplier;
-  if (amazonPrice < 10)      multiplier = 2.2;
-  else if (amazonPrice < 20) multiplier = 1.7;
-  else if (amazonPrice < 35) multiplier = 1.55;
-  else if (amazonPrice < 60) multiplier = 1.45;
-  else                        multiplier = 1.35;
-
-  const tieredPrice = amazonPrice * multiplier;
-  // Hard floor: ensure minimum profit after eBay fees
-  const minPrice = (amazonPrice + MIN_PROFIT + EBAY_FEE_FIXED) / (1 - EBAY_FEE_RATE);
-  return Math.floor(Math.max(tieredPrice, minPrice)) + 0.99;
+  const price = (amazonPrice + EBAY_FEE_FIXED) / (1 - EBAY_FEE_RATE - PROMO_RATE - TARGET_MARGIN);
+  return Math.floor(price) + 0.99;
 }
 
 export function calcEbayFee(ebayPrice) {
