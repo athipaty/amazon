@@ -419,14 +419,16 @@ export default function AmazonPage() {
 
 
   const [promoting, setPromoting] = useState(false);
+  const [promoteConfirm, setPromoteConfirm] = useState(false);
   const [promoteResult, setPromoteResult] = useState(null);
   async function handlePromoteTop10() {
+    if (!promoteConfirm) { setPromoteConfirm(true); return; }
     const TOP10 = [
       '358621386943','358612464241','358621121281','358616619840',
       '358612736744','358612728763','358612697825','358612395004',
       '358612424167','358616343406',
     ];
-    if (!window.confirm('Set up Promoted Listings at 2% for your top 10 margin items?')) return;
+    setPromoteConfirm(false);
     setPromoting(true);
     setPromoteResult(null);
     try {
@@ -529,11 +531,12 @@ const [optimizing, setOptimizing] = useState(false);
           </button>
 
           <button
-            onClick={handlePromoteTop10}
+            onClick={promoteConfirm ? handlePromoteTop10 : handlePromoteTop10}
+            onBlur={() => setPromoteConfirm(false)}
             disabled={promoting || checking}
-            className="px-3 py-1.5 bg-yellow-50 border border-yellow-300 text-yellow-700 rounded-lg text-xs font-medium hover:bg-yellow-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+            className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${promoteConfirm ? 'bg-yellow-400 border-yellow-500 text-white hover:bg-yellow-500' : 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100'}`}
           >
-            {promoting ? 'Setting up…' : promoteResult?.error ? `⚠ Failed` : promoteResult ? `✓ Promoted ${promoteResult.done}/${promoteResult.total}` : 'Promote Top 10 (2%)'}
+            {promoting ? 'Setting up…' : promoteResult?.error ? '⚠ Failed' : promoteResult ? `✓ Promoted ${promoteResult.done}/${promoteResult.total}` : promoteConfirm ? 'Tap again to confirm' : 'Promote Top 10 (2%)'}
           </button>
           <button
             onClick={handleOptimizeAll}
