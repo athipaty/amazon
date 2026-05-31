@@ -418,6 +418,27 @@ export default function AmazonPage() {
 
 
 
+  const [promoting, setPromoting] = useState(false);
+  const [promoteResult, setPromoteResult] = useState(null);
+  async function handlePromoteTop10() {
+    const TOP10 = [
+      '358621386943','358612464241','358621121281','358616619840',
+      '358612736744','358612728763','358612697825','358612395004',
+      '358612424167','358616343406',
+    ];
+    if (!window.confirm('Set up Promoted Listings at 2% for your top 10 margin items?')) return;
+    setPromoting(true);
+    setPromoteResult(null);
+    try {
+      const { data } = await axios.post(`${API}/api/ebay/promoted-listings/setup`, { listingIds: TOP10, adRate: 2.0 });
+      setPromoteResult(data);
+    } catch (e) {
+      setPromoteResult({ error: e.response?.data?.error || e.message });
+    } finally {
+      setPromoting(false);
+    }
+  }
+
 const [optimizing, setOptimizing] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState(null); // { done, total }
   async function handleOptimizeAll() {
@@ -507,7 +528,14 @@ const [optimizing, setOptimizing] = useState(false);
             Dashboard
           </button>
 
-<button
+          <button
+            onClick={handlePromoteTop10}
+            disabled={promoting || checking}
+            className="px-3 py-1.5 bg-yellow-50 border border-yellow-300 text-yellow-700 rounded-lg text-xs font-medium hover:bg-yellow-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            {promoting ? 'Setting up…' : promoteResult?.error ? `⚠ Failed` : promoteResult ? `✓ Promoted ${promoteResult.done}/${promoteResult.total}` : 'Promote Top 10 (2%)'}
+          </button>
+          <button
             onClick={handleOptimizeAll}
             disabled={optimizing || checking}
             className="px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
