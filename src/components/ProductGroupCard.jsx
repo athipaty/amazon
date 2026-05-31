@@ -272,10 +272,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
 
       const variantCloudinaryImages = [];
+      const variantCloudinaryFolders = [];
       for (const v of variants) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
-        if (!varImgs.length) { variantCloudinaryImages.push([]); continue; }
+        if (!varImgs.length) { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); continue; }
         const varSlug = slug + '-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+        const varFolder = `ebay-listings/${varSlug}`;
         try {
           const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
             method: 'POST',
@@ -284,7 +286,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           });
           const uploadData = await uploadRes.json();
           variantCloudinaryImages.push(uploadData.cloudinaryUrls || []);
-        } catch { variantCloudinaryImages.push([]); }
+          variantCloudinaryFolders.push(varFolder);
+        } catch { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); }
       }
       // Combine all for the main listing gallery (deduplicated, max 12)
       const cloudinaryUrls = [...new Set(variantCloudinaryImages.flat())].slice(0, 12);
@@ -359,11 +362,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       // Step 6: Save listing ID to all variants
       setAutoListStep('saving');
-      for (const v of variants) {
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
         const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ebayListingId: listData.listingId }),
+          body: JSON.stringify({ ebayListingId: listData.listingId, cloudinaryFolder: variantCloudinaryFolders[i] || null }),
         });
         const updated = await saveRes.json();
         onUpdate?.(updated);
