@@ -359,6 +359,10 @@ export default function AmazonPage() {
   }
 
   async function handleDelete(id) {
+    const product = products.find(p => p._id === id);
+    if (product?.ebayListingId) {
+      await axios.delete(`${API}/api/ebay/listing/${product.ebayListingId}`).catch(() => {});
+    }
     await axios.delete(`${API}/api/tracker/${id}`);
     setProducts(prev => prev.filter(p => p._id !== id));
   }
