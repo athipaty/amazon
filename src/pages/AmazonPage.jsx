@@ -407,21 +407,6 @@ export default function AmazonPage() {
 
   const [showDashboard, setShowDashboard] = useState(false);
 
-  const [settingQty, setSettingQty] = useState(false);
-  const [qtyResult, setQtyResult] = useState(null);
-  async function handleSetQty1() {
-    if (!window.confirm('Set quantity to 1 on ALL active eBay listings?')) return;
-    setSettingQty(true);
-    setQtyResult(null);
-    try {
-      const { data } = await axios.post(`${API}/api/ebay/bulk-set-quantity`, { quantity: 1 });
-      setQtyResult(data);
-    } catch {
-      setQtyResult({ error: true });
-    } finally {
-      setSettingQty(false);
-    }
-  }
 
   const [autoEnding, setAutoEnding] = useState(false);
   const [autoEndDone, setAutoEndDone] = useState(false);
@@ -520,14 +505,7 @@ const [optimizing, setOptimizing] = useState(false);
           >
             {autoEnding ? 'Checking…' : autoEndDone ? '✓ Done' : 'End 0-View Listings'}
           </button>
-          <button
-            onClick={handleSetQty1}
-            disabled={settingQty || checking}
-            className="px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg text-xs font-medium hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {settingQty ? 'Setting qty…' : qtyResult?.error ? '⚠ Failed' : qtyResult ? `✓ Qty set (${qtyResult.done}/${qtyResult.total})` : 'Set All Qty → 1'}
-          </button>
-          <button
+<button
             onClick={handleOptimizeAll}
             disabled={optimizing || checking}
             className="px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
