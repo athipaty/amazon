@@ -417,18 +417,6 @@ export default function AmazonPage() {
   const [showDashboard, setShowDashboard] = useState(false);
 
 
-  const [autoEnding, setAutoEnding] = useState(false);
-  const [autoEndDone, setAutoEndDone] = useState(false);
-  async function handleAutoEnd() {
-    if (!window.confirm('End all eBay listings that are 7+ days old with 0 views?')) return;
-    setAutoEnding(true);
-    setAutoEndDone(false);
-    try {
-      await axios.post(`${API}/api/ebay/auto-end-zero-views`);
-      setAutoEndDone(true);
-    } catch {}
-    finally { setAutoEnding(false); }
-  }
 
 const [optimizing, setOptimizing] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState(null); // { done, total }
@@ -518,13 +506,7 @@ const [optimizing, setOptimizing] = useState(false);
           >
             Dashboard
           </button>
-          <button
-            onClick={handleAutoEnd}
-            disabled={autoEnding || checking}
-            className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {autoEnding ? 'Checking…' : autoEndDone ? '✓ Done' : 'End 0-View Listings'}
-          </button>
+
 <button
             onClick={handleOptimizeAll}
             disabled={optimizing || checking}
