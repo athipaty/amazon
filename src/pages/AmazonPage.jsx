@@ -421,7 +421,15 @@ export default function AmazonPage() {
   const [saleMode, setSaleMode] = useState(false);
   const [saleModeResult, setSaleModeResult] = useState(null);
   const [saleModeConfirm, setSaleModeConfirm] = useState(false);
+  const [saleModeActive, setSaleModeActive] = useState(() => localStorage.getItem('saleModeActive') === 'true');
   async function handleSaleMode() {
+    // If sale is already ON, clicking turns it off (just clears the badge)
+    if (saleModeActive && !saleModeConfirm) {
+      setSaleModeActive(false);
+      localStorage.removeItem('saleModeActive');
+      setSaleModeResult(null);
+      return;
+    }
     if (!saleModeConfirm) { setSaleModeConfirm(true); return; }
     setSaleModeConfirm(false);
     setSaleMode(true);
@@ -429,6 +437,10 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.post(`${API}/api/ebay/sale-mode`);
       setSaleModeResult(data);
+      if (!data.error) {
+        setSaleModeActive(true);
+        localStorage.setItem('saleModeActive', 'true');
+      }
     } catch (e) {
       setSaleModeResult({ error: e.response?.data?.error || e.message });
     } finally {
@@ -544,9 +556,21 @@ const [optimizing, setOptimizing] = useState(false);
             onClick={handleSaleMode}
             onBlur={() => setSaleModeConfirm(false)}
             disabled={saleMode || checking}
-            className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${saleModeConfirm ? 'bg-green-500 border-green-600 text-white hover:bg-green-600' : 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'}`}
+            className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5
+              ${saleMode ? 'bg-green-50 border-green-300 text-green-700' :
+                saleModeConfirm ? 'bg-green-500 border-green-600 text-white hover:bg-green-600' :
+                saleModeActive ? 'bg-red-500 border-red-600 text-white hover:bg-red-600' :
+                'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'}`}
           >
-            {saleMode ? 'Repricing…' : saleModeResult?.error ? '⚠ Failed' : saleModeResult ? `✓ Done ${saleModeResult.done}/${saleModeResult.total}` : saleModeConfirm ? 'Tap again to confirm' : 'Sale Mode (2% profit)'}
+            {saleModeActive && !saleMode && !saleModeConfirm && (
+              <span className="bg-white text-red-500 text-[9px] font-black px-1 py-0.5 rounded leading-none">SALE</span>
+            )}
+            {saleMode ? 'Repricing…'
+              : saleModeResult?.error ? '⚠ Failed'
+              : saleModeResult ? `✓ Done ${saleModeResult.done}/${saleModeResult.total}`
+              : saleModeConfirm ? 'Tap again to confirm'
+              : saleModeActive ? 'Sale ON — tap to end'
+              : 'Sale Mode (2% profit)'}
           </button>
           <button
             onClick={promoteConfirm ? handlePromoteTop10 : handlePromoteTop10}
