@@ -149,6 +149,13 @@ export default function AmazonPage() {
   }, [preview]);
 
   useEffect(() => {
+    // Sync sale mode from DB — DB is source of truth for cron consistency
+    axios.get(`${API}/api/tracker/settings`).then(({ data }) => {
+      setSaleModeActive(data.saleModeActive);
+      if (data.saleModeActive) localStorage.setItem('saleModeActive', 'true');
+      else localStorage.removeItem('saleModeActive');
+    }).catch(() => {});
+
     loadProducts().then(fetchEbayViews);
     checkEbayStatus();
     fetchSellingLimits();
@@ -429,10 +436,10 @@ export default function AmazonPage() {
     setSaleModeResult(null);
 
     if (saleModeActive) {
-      // Turn OFF: reprice back to normal (same formula = standard 2% margin)
+      // Turn OFF: reprice back to normal and clear DB flag
       setSaleModeResetting(true);
       try {
-        const { data } = await axios.post(`${API}/api/ebay/sale-mode`);
+        const { data } = await axios.post(`${API}/api/ebay/sale-mode`, { active: false });
         setSaleModeResult(data);
         if (!data.error) {
           setSaleModeActive(false);
@@ -444,10 +451,10 @@ export default function AmazonPage() {
         setSaleModeResetting(false);
       }
     } else {
-      // Turn ON: reprice at sale pricing
+      // Turn ON: reprice at sale pricing and set DB flag
       setSaleMode(true);
       try {
-        const { data } = await axios.post(`${API}/api/ebay/sale-mode`);
+        const { data } = await axios.post(`${API}/api/ebay/sale-mode`, { active: true });
         setSaleModeResult(data);
         if (!data.error) {
           setSaleModeActive(true);
