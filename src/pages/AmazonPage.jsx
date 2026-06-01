@@ -149,12 +149,19 @@ export default function AmazonPage() {
     }
   }, [preview]);
 
+  const [discoveryBanner, setDiscoveryBanner] = useState(null); // [{ asin, title, profit, ebayListingId }]
+
   useEffect(() => {
-    // Sync sale mode from DB — DB is source of truth for cron consistency
+    // Sync sale mode + discovery results from DB
     axios.get(`${API}/api/tracker/settings`).then(({ data }) => {
       setSaleModeActive(data.saleModeActive);
       if (data.saleModeActive) localStorage.setItem('saleModeActive', 'true');
       else localStorage.removeItem('saleModeActive');
+      // Show morning banner if discovery ran recently (last 12h) and added products
+      if (data.lastDiscoveryAdded?.length && data.lastDiscoveryRun) {
+        const age = Date.now() - new Date(data.lastDiscoveryRun).getTime();
+        if (age < 12 * 60 * 60 * 1000) setDiscoveryBanner(data.lastDiscoveryAdded);
+      }
     }).catch(() => {});
 
     loadProducts().then(fetchEbayViews);
@@ -187,6 +194,13 @@ export default function AmazonPage() {
 
     socket.on('tracker:listing:ended', () => {
       loadProducts();
+    });
+
+    socket.on('tracker:discovery:done', ({ added }) => {
+      if (added?.length) {
+        setDiscoveryBanner(added);
+        loadProducts();
+      }
     });
 
     socket.on('tracker:price:drop', ({ product }) => {
@@ -745,6 +759,29 @@ const [optimizing, setOptimizing] = useState(false);
           <span className="flex-shrink-0">⚠️</span>
           eBay token expires in <strong className="mx-1">{ebayTokenDaysLeft} day{ebayTokenDaysLeft !== 1 ? 's' : ''}</strong> —
           <a href={`${API}/api/ebay/auth/login`} className="underline font-semibold ml-1">reconnect now</a> to avoid disruption.
+        </div>
+      )}
+
+      {discoveryBanner?.length > 0 && (
+        <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-5 text-sm text-green-800">
+          <span className="flex-shrink-0 text-base">🤖</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold mb-1">Auto-discovery added {discoveryBanner.length} new listing{discoveryBanner.length !== 1 ? 's' : ''} overnight</p>
+            <ul className="space-y-0.5">
+              {discoveryBanner.map((item, i) => (
+                <li key={i} className="text-xs text-green-700 truncate">
+                  <span className="font-medium">+${item.profit?.toFixed(2)}</span> — {item.title}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button
+            onClick={() => {
+              setDiscoveryBanner(null);
+              axios.post(`${API}/api/tracker/settings/dismiss-discovery`).catch(() => {});
+            }}
+            className="flex-shrink-0 text-green-400 hover:text-green-600 text-lg leading-none"
+          >✕</button>
         </div>
       )}
 
