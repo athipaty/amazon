@@ -490,14 +490,6 @@ const [optimizing, setOptimizing] = useState(false);
           try {
             const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`);
             setProducts(prev => prev.map(q => q._id === p._id ? data : q));
-            if (data?.current != null && data?.ebayListingId) {
-              const price = calcEbayPrice(data.current);
-              await fetch(`${API}/api/ebay/listing/price`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ listingId: data.ebayListingId, price, variantLabel: data.variant || '' }),
-              }).catch(() => {});
-            }
           } catch {}
           done++;
           setRetryProgress({ done, total });
