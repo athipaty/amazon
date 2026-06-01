@@ -560,6 +560,13 @@ const [optimizing, setOptimizing] = useState(false);
                 {sellingLimits.used} / {sellingLimits.limit}
               </span>
             )}
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tracking-wide whitespace-nowrap ${
+              saleModeActive
+                ? 'bg-red-500 text-white'
+                : 'bg-gray-100 text-gray-400'
+            }`}>
+              {saleModeActive ? 'SALE MODE' : 'NORMAL'}
+            </span>
           </div>
           <button
             onClick={handleCheckNow}
