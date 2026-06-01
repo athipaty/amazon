@@ -182,15 +182,6 @@ export default function AmazonPage() {
       loadProducts();
     });
 
-    socket.on('ebay:optimize:progress', ({ done, total }) => {
-      setOptimizeProgress({ done, total });
-    });
-
-    socket.on('ebay:optimize:done', ({ total }) => {
-      setOptimizeProgress({ done: total, total });
-      setOptimizing(false);
-      setTimeout(() => setOptimizeProgress(null), 4000);
-    });
 
     socket.on('tracker:listing:ended', () => {
       loadProducts();
@@ -498,21 +489,7 @@ export default function AmazonPage() {
   }
 
 
-const [optimizing, setOptimizing] = useState(false);
-  const [optimizeProgress, setOptimizeProgress] = useState(null); // { done, total }
-  async function handleOptimizeAll() {
-    setOptimizing(true);
-    setOptimizeProgress({ done: 0, total: 0 });
-    try {
-      const { data } = await axios.post(`${API}/api/ebay/batch-optimize`);
-      setOptimizeProgress({ done: 0, total: data.total });
-    } catch {
-      setOptimizing(false);
-      setOptimizeProgress(null);
-    }
-  }
-
-  const [retrying, setRetrying] = useState(false);
+const [retrying, setRetrying] = useState(false);
   const [retryProgress, setRetryProgress] = useState(null); // { done, total }
   async function handleRetryErrors() {
     const errorProducts = products.filter(p => ['error', 'unavailable', 'out_of_stock'].includes(p.status));
@@ -608,15 +585,6 @@ const [optimizing, setOptimizing] = useState(false);
               : saleModeConfirm ? 'Tap again to confirm'
               : saleModeActive ? 'Sale ON — tap to end'
               : 'Sale Mode (2% profit)'}
-          </button>
-          <button
-            onClick={handleOptimizeAll}
-            disabled={optimizing || checking}
-            className="px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {optimizing
-              ? optimizeProgress?.total > 0 ? `Optimizing… ${optimizeProgress.done}/${optimizeProgress.total}` : 'Starting…'
-              : optimizeProgress ? `✓ Done ${optimizeProgress.done}/${optimizeProgress.total}` : 'Optimize All'}
           </button>
 {products.some(p => ['error','unavailable','out_of_stock'].includes(p.status)) && (
             <button
