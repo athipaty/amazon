@@ -286,21 +286,30 @@ export default function AmazonPage() {
     setAddingVariants(true);
     setAddError('');
     const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
-    const added = [];
+    let failCount = 0;
     for (let i = 0; i < toAdd.length; i++) {
       setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
       try {
-        const { data } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
-        added.push(data);
-      } catch {}
+        await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
+      } catch (err) {
+        if (err.response?.status !== 409) {
+          // 409 = already tracking, safe to ignore; anything else = real failure
+          failCount++;
+          console.warn(`Failed to add variant ${toAdd[i].asin}:`, err.response?.data?.error || err.message);
+        }
+      }
+      // Small delay between calls so ScraperAPI doesn't rate-limit sequential requests
+      if (i < toAdd.length - 1) await new Promise(r => setTimeout(r, 400));
     }
-    setProducts(prev => [...added.reverse(), ...prev]);
+    // Reload from server — avoids duplicate race with the 30s poll that may have fired mid-add
+    await loadProducts();
     setPreview(null);
     setSelectedAsins(new Set());
     setPreviewGroupId(null);
     setUrl('');
     setAddingVariants(false);
     setAddProgress('');
+    if (failCount > 0) setAddError(`${failCount} variant(s) failed to add — they may have timed out. Try adding them individually.`);
   }
 
   // ── Master-detail helpers ────────────────────────────────────────
