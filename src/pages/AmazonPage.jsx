@@ -136,6 +136,7 @@ export default function AmazonPage() {
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
+  const deletingEbayIds = useRef(new Set()); // dedup concurrent eBay END calls for grouped variants
 
   useEffect(() => {
     document.body.style.overflow = detailOpen ? 'hidden' : '';
@@ -377,7 +378,12 @@ export default function AmazonPage() {
   async function handleDelete(id) {
     const product = products.find(p => p._id === id);
     if (product?.ebayListingId) {
-      await axios.delete(`${API}/api/ebay/listing/${product.ebayListingId}`).catch(() => {});
+      const lid = String(product.ebayListingId);
+      if (!deletingEbayIds.current.has(lid)) {
+        deletingEbayIds.current.add(lid);
+        await axios.delete(`${API}/api/ebay/listing/${lid}`).catch(() => {});
+        deletingEbayIds.current.delete(lid);
+      }
     }
     await axios.delete(`${API}/api/tracker/${id}`);
     setProducts(prev => prev.filter(p => p._id !== id));

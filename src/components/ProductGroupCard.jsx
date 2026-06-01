@@ -52,6 +52,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   function toggleExpand(idx) {
     setAllExpanded(prev => !prev);
@@ -460,8 +462,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   const active = variants[activeIdx];
 
-  function confirmDeleteAll() {
-    variants.forEach(v => onDelete(v._id));
+  async function confirmDeleteAll() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await Promise.all(variants.map(v => onDelete(v._id)));
+    } catch (e) {
+      setDeleteError(e.response?.data?.error || e.message || 'Delete failed');
+      setDeleting(false);
+    }
   }
 
   const specEntries = active.specs
@@ -500,7 +509,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             })()}
           </div>
         </div>
-        {confirmingDelete ? (
+        {deleting ? (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <svg className="animate-spin w-3.5 h-3.5 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+            </svg>
+            <span className="text-[11px] text-red-400">Deleting…</span>
+          </div>
+        ) : deleteError ? (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-[11px] text-red-500 max-w-[140px] truncate" title={deleteError}>⚠ {deleteError}</span>
+            <button onClick={() => { setDeleteError(null); setConfirmingDelete(false); }}
+              className="text-[11px] text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+        ) : confirmingDelete ? (
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className="text-[11px] text-gray-500 whitespace-nowrap">{variants.length === 1 ? 'Stop tracking?' : `Remove all ${variants.length} variants?`}</span>
             <button
