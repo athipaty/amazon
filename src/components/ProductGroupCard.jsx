@@ -47,7 +47,7 @@ function fmtVal(v) {
   return String(v);
 }
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
@@ -111,7 +111,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     autoSyncDone.current = true;
 
     const mismatches = variants.filter(v => {
-      const calcPrice = calcEbayPrice(v.current);
+      const calcPrice = calcEbayPrice(v.current, saleMode);
       const livePrice = getLivePrice(v.variant || '');
       return livePrice != null && Math.abs(livePrice - calcPrice) >= 0.02;
     });
@@ -124,7 +124,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setAutoSyncErrors({});
 
     Promise.all(mismatches.map(async v => {
-      const calcPrice = calcEbayPrice(v.current);
+      const calcPrice = calcEbayPrice(v.current, saleMode);
       try {
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
@@ -155,7 +155,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     try {
       const updated = await onCheck(id);
       if (updated?.current != null && groupEbayId) {
-        const newCalcPrice = calcEbayPrice(updated.current);
+        const newCalcPrice = calcEbayPrice(updated.current, saleMode);
         const variantLabel = variants.find(v => v._id === id)?.variant || '';
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
@@ -239,7 +239,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         setLinkStatus('pushing');
         let anyFail = false;
         for (const v of variants) {
-          const calcPrice = calcEbayPrice(v.current);
+          const calcPrice = calcEbayPrice(v.current, saleMode);
           const r = await fetch(`${API}/api/ebay/listing/price`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -300,7 +300,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
-        price: (calcEbayPrice(v.current)).toFixed(2),
+        price: (calcEbayPrice(v.current, saleMode)).toFixed(2),
         quantity: 2,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
@@ -326,7 +326,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: ebayTitle,
-          price: (calcEbayPrice(active.current)).toFixed(2),
+          price: (calcEbayPrice(active.current, saleMode)).toFixed(2),
           imageUrls: cloudinaryUrls,
           upc: active.upc,
           specs: active.specs || {},
@@ -488,10 +488,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
             {detailMode && (() => {
               const totalProfit = variants.reduce((sum, v) => {
-                const cp = calcEbayPrice(v.current);
+                const cp = calcEbayPrice(v.current, saleMode);
                 return sum + (cp - v.current - calcEbayFee(cp));
               }, 0);
-              const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + calcEbayPrice(v.current), 0) * 100).toFixed(1);
+              const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + calcEbayPrice(v.current, saleMode), 0) * 100).toFixed(1);
               return (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${totalProfit >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                   {avgMargin}% margin
@@ -557,7 +557,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       <div className={`grid gap-2 ${detailMode ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
         {variants.map((v, i) => {
           const label     = v.variant || `Variant ${i + 1}`;
-          const calcPrice = calcEbayPrice(v.current);
+          const calcPrice = calcEbayPrice(v.current, saleMode);
           const ebayFee   = calcEbayFee(calcPrice);
           const profit    = +(calcPrice - v.current - ebayFee).toFixed(2);
           const marginPct = ((profit / calcPrice) * 100).toFixed(1);

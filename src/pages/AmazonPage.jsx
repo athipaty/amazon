@@ -392,7 +392,7 @@ export default function AmazonPage() {
 
   async function handleCheckOne(id) {
     try {
-      const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
+      const { data } = await axios.post(`${API}/api/tracker/check/${id}`, { saleMode: saleModeActive });
       setProducts(prev => prev.map(p => p._id === id ? data : p));
       return data;
     } catch (err) {
@@ -513,7 +513,7 @@ const [optimizing, setOptimizing] = useState(false);
       for (let i = 0; i < errorProducts.length; i += BATCH) {
         await Promise.all(errorProducts.slice(i, i + BATCH).map(async p => {
           try {
-            const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`);
+            const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`, { saleMode: saleModeActive });
             setProducts(prev => prev.map(q => q._id === p._id ? data : q));
           } catch {}
           done++;
@@ -788,8 +788,8 @@ const [optimizing, setOptimizing] = useState(false);
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
-                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
-                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} />
               )}
             </div>
           </div>
@@ -813,8 +813,8 @@ const [optimizing, setOptimizing] = useState(false);
           <div className="flex-1 overflow-y-auto p-4 pb-6">
             {selectedItem && (
               selectedItem.type === 'group'
-                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} />
+                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} />
             )}
           </div>
         </div>
