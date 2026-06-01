@@ -7,7 +7,7 @@ import { calcEbayPrice, calcEbayFee } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false }) {
+function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -95,7 +95,7 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                       : [item.product.current].filter(Boolean);
                     if (!prices.length) return null;
                     const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
-                    const cp = calcEbayPrice(avgCost, saleModeActive);
+                    const cp = calcEbayPrice(avgCost, saleMode);
                     const p = +(cp - avgCost - calcEbayFee(cp)).toFixed(2);
                     return (
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${p >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}`}>
@@ -771,6 +771,7 @@ const [optimizing, setOptimizing] = useState(false);
               ebayViews={ebayViews}
               apiUrl={API}
               ebayConnected={ebayConnected}
+              saleMode={saleModeActive}
             />
           </div>
 
@@ -789,6 +790,7 @@ const [optimizing, setOptimizing] = useState(false);
               ebayViews={ebayViews}
               apiUrl={API}
               ebayConnected={ebayConnected}
+              saleMode={saleModeActive}
             />
 
             {/* RIGHT: detail panel — always use GroupCard layout (1 card for singles, N for groups) */}
