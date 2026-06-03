@@ -83,7 +83,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
-  const [competitorData, setCompetitorData] = useState(null); // { lowest, avg, count }
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
@@ -102,19 +101,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   useEffect(() => {
     fetchEbayPrices();
-    // Stagger competitor fetches (0–3s random) so 34 cards don't all fire at once
-    const primary = variants.find(v => v.upc) || variants[0];
-    if (!primary) return;
-    const params = new URLSearchParams();
-    if (primary.upc) params.set('upc', primary.upc);
-    else if (primary.title) params.set('title', primary.title.split(' ').slice(0, 6).join(' '));
-    const t = setTimeout(() => {
-      fetch(`${API}/api/ebay/competitors?${params}`)
-        .then(r => r.json())
-        .then(d => { if (d.count > 0) setCompetitorData(d); })
-        .catch(() => {});
-    }, Math.random() * 3000);
-    return () => clearTimeout(t);
   }, [groupEbayId]);
 
   // Auto-fix mismatched eBay prices as soon as live prices are fetched
@@ -639,22 +625,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   <span className="text-sm font-bold text-gray-900">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
                 </div>
 
-                {/* Competitor market price — uses median to avoid outlier skew */}
-                {competitorData?.median && (() => {
-                  const ref  = competitorData.median;
-                  const diff = ((calcPrice - ref) / ref) * 100;
-                  const color = diff <= 0 ? 'text-green-600' : diff <= 25 ? 'text-amber-600' : 'text-red-500';
-                  const bg    = diff <= 0 ? 'bg-green-50' : diff <= 25 ? 'bg-amber-50' : 'bg-red-50';
-                  return (
-                    <div className="flex items-center justify-end lg:justify-between gap-1">
-                      <span className={`hidden lg:inline text-[9px] font-bold px-1.5 py-0.5 rounded leading-none flex-shrink-0 ${color} ${bg}`}>Mkt</span>
-                      <span className={`text-[11px] font-semibold ${color}`} title={`${competitorData.count} listings · low $${competitorData.lowest} · avg $${competitorData.avg}`}>
-                        ${ref.toFixed(2)}
-                        <span className="text-[9px] ml-0.5 opacity-70">{diff > 0 ? `+${diff.toFixed(0)}%` : '✓'}</span>
-                      </span>
-                    </div>
-                  );
-                })()}
 
                 {/* Live eBay price */}
                 {isRefreshing ? (
