@@ -303,7 +303,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
         price: (calcEbayPrice(v.current, saleMode)).toFixed(2),
-        quantity: 2,
+        quantity: 1,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
       }));
