@@ -47,7 +47,17 @@ function fmtVal(v) {
   return String(v);
 }
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
+const AUTO_LIST_STEP_LABELS = {
+  images: '📸 Uploading images…',
+  title: '✍️ Writing title…',
+  description: '📝 Writing description…',
+  listing: '📤 Creating listing…',
+  photos: '🖼️ Pushing photos…',
+  done: '✅ Listed on eBay!',
+  error: '⚠️ Listing failed',
+};
+
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false, autoListStatus = {} }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
@@ -824,28 +834,32 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            {(() => { const hasPrime = variants.some(v => v.isPrime); return (
-            <button onClick={autoListOnEbay} disabled={autoListing || !hasPrime}
-              title={!hasPrime ? 'Prime required to list on eBay' : undefined}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-[#c0272d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
-              {autoListing
-                ? (autoListStep === 'title'       ? '✍️ Title…'
-                  : autoListStep === 'images'      ? '📸 Images…'
-                  : autoListStep === 'description' ? '📝 Description…'
-                  : autoListStep === 'listing'     ? '📤 Listing…'
-                  : autoListStep === 'photos'      ? '🖼️ Photos…'
-                  : autoListStep === 'verifying'   ? '✅ Verifying prices…'
-                  : '💾 Saving…')
-                : !hasPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
-            </button>
-            ); })()}
-            <button onClick={() => openEbayEdit('')}
-              className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors">
-              + link existing listing
-            </button>
-            {autoListError && (
-              <p className="text-[10px] text-red-500 leading-tight break-words max-w-[200px]">{autoListError}</p>
-            )}
+            {(() => {
+              // Find active auto-list status for any variant in this group
+              const status = variants.map(v => autoListStatus[String(v._id)]).find(Boolean);
+              if (status) {
+                const isError = status.step === 'error';
+                return (
+                  <div className={`flex flex-col gap-0.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${isError ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                    <span>{AUTO_LIST_STEP_LABELS[status.step] || '⏳ Listing…'}</span>
+                    {isError && <span className="text-[10px] font-normal text-red-500 break-words">{status.error?.slice(0, 120)}</span>}
+                  </div>
+                );
+              }
+              const hasPrime = variants.some(v => v.isPrime);
+              return (
+                <>
+                  {hasPrime
+                    ? <span className="text-[10px] text-blue-500 px-1">🤖 Will auto-list when Prime confirmed</span>
+                    : <span className="text-[10px] text-gray-400 px-1">🚫 No Prime — cannot list on eBay</span>
+                  }
+                  <button onClick={() => openEbayEdit('')}
+                    className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors">
+                    + link existing listing manually
+                  </button>
+                </>
+              );
+            })()}
           </div>
         )}
         {linkStatus === 'pushing' && (
