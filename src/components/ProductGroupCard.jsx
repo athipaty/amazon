@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { calcEbayPrice, calcEbayFee } from '../utils/pricing';
+import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -500,7 +500,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             {detailMode && (() => {
               const totalProfit = variants.reduce((sum, v) => {
                 const cp = calcEbayPrice(v.current, saleMode);
-                return sum + (cp - v.current - calcEbayFee(cp));
+                return sum + (cp - trueCost(v.current) - calcEbayFee(cp));
               }, 0);
               const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + calcEbayPrice(v.current, saleMode), 0) * 100).toFixed(1);
               return (
@@ -584,7 +584,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           const label     = v.variant || `Variant ${i + 1}`;
           const calcPrice = calcEbayPrice(v.current, saleMode);
           const ebayFee   = calcEbayFee(calcPrice);
-          const profit    = +(calcPrice - v.current - ebayFee).toFixed(2);
+          const profit    = +(calcPrice - trueCost(v.current) - ebayFee).toFixed(2);
           const marginPct = ((profit / calcPrice) * 100).toFixed(1);
           const livePrice = getLivePrice(v.variant || label);
           const synced    = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;

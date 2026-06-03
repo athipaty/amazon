@@ -28,3 +28,7 @@ export function calcEbayPrice(amazonPrice, saleMode = false) {
 export function calcEbayFee(ebayPrice) {
   return +(ebayPrice * EBAY_FEE_RATE + EBAY_FEE_FIXED).toFixed(2);
 }
+
+export function trueCost(amazonPrice) {
+  return amazonPrice * (1 + AMAZON_TAX);
+}
