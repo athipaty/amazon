@@ -296,8 +296,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       // Step 3: Create multi-variation eBay listing
       setAutoListStep('listing');
-      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["']/)) ? 'Size'
-        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|pink|purple|yellow|orange|brown|natural|carbonized)\b/i)) ? 'Color'
+      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["'.×xX]/)) ? 'Size'
+        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|grey|pink|purple|yellow|orange|brown|beige|ivory|cream|navy|teal|turquoise|coral|silver|gold|rose|lavender|mint|charcoal|natural|carbonized|walnut|bamboo|oak|mahogany|cherry|maple|ebony)\b/i)) ? 'Color'
         : 'Style';
 
       const variantPayload = variants.map((v, i) => ({
@@ -340,10 +340,28 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const listData = await listRes.json();
       if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
 
-      // Step 5: Verify & fix any price mismatches immediately after listing
+      // Step 5: Push variation photos explicitly after listing creation.
+      // eBay sometimes doesn't apply VariationSpecificPictureSet on the first AddFixedPriceItem
+      // call, and the backend's variation-photos endpoint auto-reads the correct dimension name
+      // from eBay so labels always match exactly.
+      setAutoListStep('photos');
+      try {
+        await new Promise(r => setTimeout(r, 2000)); // brief wait for eBay to index the listing
+        await fetch(`${API}/api/ebay/listing/variation-photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            listingId: listData.listingId,
+            variantDimension,
+            variants: variantPayload,
+          }),
+        });
+      } catch { /* non-critical — listing exists, photos can be fixed with Fix Variation Photos */ }
+
+      // Step 6: Verify & fix any price mismatches immediately after listing
       setAutoListStep('verifying');
       try {
-        await new Promise(r => setTimeout(r, 3000)); // wait for eBay to process
+        await new Promise(r => setTimeout(r, 2000)); // wait for eBay to process
         const priceRes = await fetch(`${API}/api/ebay/listing/${listData.listingId}/prices`);
         const priceData = await priceRes.json();
         const mismatchFixes = variantPayload.filter(vp => {
@@ -420,8 +438,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         } catch { variantCloudinaryImages.push([]); }
       }
 
-      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["']/)) ? 'Size'
-        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|pink|purple|yellow|orange|brown|natural|carbonized)\b/i)) ? 'Color'
+      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["'.×xX]/)) ? 'Size'
+        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|grey|pink|purple|yellow|orange|brown|beige|ivory|cream|navy|teal|turquoise|coral|silver|gold|rose|lavender|mint|charcoal|natural|carbonized|walnut|bamboo|oak|mahogany|cherry|maple|ebony)\b/i)) ? 'Color'
         : 'Style';
 
       const variantPayload = variants.map((v, i) => ({
@@ -827,6 +845,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                   : autoListStep === 'images'      ? '📸 Images…'
                   : autoListStep === 'description' ? '📝 Description…'
                   : autoListStep === 'listing'     ? '📤 Listing…'
+                  : autoListStep === 'photos'      ? '🖼️ Photos…'
                   : autoListStep === 'verifying'   ? '✅ Verifying prices…'
                   : '💾 Saving…')
                 : !hasPrime ? '🚫 No Prime — Cannot List' : '🚀 Auto-List on eBay'}
