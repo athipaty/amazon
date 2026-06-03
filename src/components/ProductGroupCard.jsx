@@ -20,7 +20,7 @@ function AmazonPrimeBadge() {
   );
 }
 
-function useCountdown(target) {
+function Countdown({ target }) {
   const [remaining, setRemaining] = useState('');
   useEffect(() => {
     function update() {
@@ -35,7 +35,7 @@ function useCountdown(target) {
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [target]);
-  return remaining;
+  return remaining || '…';
 }
 
 const SKIP_SPEC_KEYS = new Set(['asin', 'upc']);
@@ -465,18 +465,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
-  const countdowns = [
-    useCountdown(variants[0]?.nextCheck),
-    useCountdown(variants[1]?.nextCheck),
-    useCountdown(variants[2]?.nextCheck),
-    useCountdown(variants[3]?.nextCheck),
-    useCountdown(variants[4]?.nextCheck),
-    useCountdown(variants[5]?.nextCheck),
-    useCountdown(variants[6]?.nextCheck),
-    useCountdown(variants[7]?.nextCheck),
-    useCountdown(variants[8]?.nextCheck),
-    useCountdown(variants[9]?.nextCheck),
-  ];
 
   const active = variants[activeIdx];
 
@@ -688,7 +676,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 <div className="flex flex-col gap-1.5 mt-0.5 pt-1.5 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     {v.nextCheck
-                      ? <span className="text-[10px] text-gray-400 font-mono">⏱ {countdowns[i] || '…'}</span>
+                      ? <span className="text-[10px] text-gray-400 font-mono">⏱ <Countdown target={v.nextCheck} /></span>
                       : <span />
                     }
                     {autoSyncErrors[v._id] && (
@@ -745,7 +733,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                     : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
                     : null}
                   {autoSyncErrors[v._id] && <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">⚠ err</span>}
-                  {v.nextCheck && <span className="text-[9px] text-gray-400 font-mono">⏱{countdowns[i] || '…'}</span>}
+                  {v.nextCheck && <span className="text-[9px] text-gray-400 font-mono">⏱<Countdown target={v.nextCheck} /></span>}
                   {ebayPush === 'fail' && (
                     <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()} className="text-[9px] text-yellow-700 underline whitespace-nowrap">Reconnect →</a>
                   )}

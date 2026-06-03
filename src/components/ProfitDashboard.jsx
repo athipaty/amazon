@@ -56,6 +56,10 @@ export default function ProfitDashboard({ onClose }) {
           <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading…</div>
         )}
 
+        {!loading && !s && (
+          <div className="flex items-center justify-center py-20 text-gray-400 text-sm">No data available</div>
+        )}
+
         {!loading && s && (
           <>
             {/* Summary cards */}

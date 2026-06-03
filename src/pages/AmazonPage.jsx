@@ -377,11 +377,13 @@ export default function AmazonPage() {
     return itemEbayViews(b) - itemEbayViews(a);
   });
 
-  // Auto-select first item; keep selection valid after deletions
+  // Auto-select first item; reset stale key after deletions
   const selectedItem = renderItems.find(i => getItemKey(i) === selectedKey) || renderItems[0] || null;
-  if (renderItems.length && getItemKey(renderItems[0]) !== selectedKey && !renderItems.some(i => getItemKey(i) === selectedKey)) {
-    // selectedKey is stale — will be updated on next render via effect-less approach above
-  }
+  useEffect(() => {
+    if (selectedKey && renderItems.length && !renderItems.some(i => getItemKey(i) === selectedKey)) {
+      setSelectedKey(renderItems[0] ? getItemKey(renderItems[0]) : null);
+    }
+  }, [renderItems.map(getItemKey).join(',')]);
 
   function toggleVariant(asin, checked) {
     const next = new Set(selectedAsins);
