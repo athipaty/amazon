@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+
+  <!-- Background squircle -->
+  <rect width="400" height="400" rx="80" fill="#FFF8EF"/>
+
+  <!-- Shadow under bell -->
+  <ellipse cx="200" cy="305" rx="80" ry="10" fill="#0F3D3E" opacity="0.12"/>
+
+  <!-- Handle loop -->
+  <path d="M145,170 Q145,95 200,95 Q255,95 255,170"
+        fill="none" stroke="#0F3D3E" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Bell body -->
+  <path d="M145,170
+           C127,196 105,234 103,276
+           C101,296 117,314 142,318
+           L258,318
+           C283,314 299,296 297,276
+           C295,234 273,196 255,170
+           Z"
+        fill="#FFB703"/>
+
+  <!-- Inner highlight -->
+  <ellipse cx="172" cy="232" rx="15" ry="30" fill="white" opacity="0.22" transform="rotate(-10,172,232)"/>
+
+  <!-- Bell rim -->
+  <path d="M103,276 C105,286 109,297 118,307 L282,307 C291,297 295,286 297,276 Z"
+        fill="#E5A002" opacity="0.45"/>
+
+  <!-- Clapper bar -->
+  <rect x="168" y="315" width="64" height="20" rx="10" fill="#0F3D3E"/>
+
+  <!-- Sparkle (4-pointed star) -->
+  <g transform="translate(282,118)">
+    <path d="M0,-22 L6,-6 L22,0 L6,6 L0,22 L-6,6 L-22,0 L-6,-6 Z" fill="#FF5D5D"/>
+  </g>
+  <circle cx="310" cy="100" r="6"  fill="#FF5D5D" opacity="0.65"/>
+  <circle cx="266" cy="94"  r="5"  fill="#FF5D5D" opacity="0.45"/>
+  <circle cx="308" cy="142" r="4"  fill="#FF5D5D" opacity="0.35"/>
+
+</svg>
