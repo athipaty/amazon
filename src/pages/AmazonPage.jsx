@@ -188,6 +188,17 @@ export default function AmazonPage() {
       loadProducts();
     });
 
+    socket.on('tracker:orphan:cleanup', ({ found, ended }) => {
+      setCleaningOrphans(false);
+      if (found > 0) {
+        setOrphanResult({ found, ended });
+        setTimeout(() => setOrphanResult(null), 8000);
+      } else {
+        setOrphanResult({ found: 0, ended: 0 });
+        setTimeout(() => setOrphanResult(null), 4000);
+      }
+    });
+
     socket.on('tracker:discovery:done', ({ added }) => {
       if (added?.length) {
         setDiscoveryBanner(added);
@@ -531,18 +542,16 @@ export default function AmazonPage() {
 
 
 const [cleaningOrphans, setCleaningOrphans] = useState(false);
-  const [orphanResult, setOrphanResult] = useState(null); // { ended, total } | { count } | null
+  const [orphanResult, setOrphanResult] = useState(null); // { found, ended } | null
   async function handleCleanOrphans() {
     setCleaningOrphans(true);
     setOrphanResult(null);
     try {
-      const { data: check } = await axios.get(`${API}/api/ebay/orphan-listings`);
-      if (check.count === 0) { setOrphanResult({ ended: 0, total: 0 }); return; }
-      const { data } = await axios.delete(`${API}/api/ebay/orphan-listings`);
-      setOrphanResult({ ended: data.ended, total: data.total });
+      // DELETE triggers the scheduler's orphanCleanup which emits tracker:orphan:cleanup when done
+      await axios.delete(`${API}/api/ebay/orphan-listings`);
+      // Result comes back via socket — spinner will stop there
     } catch (e) {
       setOrphanResult({ error: e.response?.data?.error || e.message });
-    } finally {
       setCleaningOrphans(false);
       setTimeout(() => setOrphanResult(null), 6000);
     }
@@ -662,10 +671,10 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
             disabled={cleaningOrphans || checking}
             className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
           >
-            {cleaningOrphans ? 'Checking…'
+            {cleaningOrphans ? 'Scanning…'
               : orphanResult?.error ? '⚠ Failed'
-              : orphanResult?.total === 0 ? '✓ No orphans'
-              : orphanResult ? `✓ Ended ${orphanResult.ended}/${orphanResult.total}`
+              : orphanResult?.found === 0 ? '✓ No orphans'
+              : orphanResult?.found > 0 ? `✓ Ended ${orphanResult.ended}/${orphanResult.found}`
               : 'Clean Orphans'}
           </button>
         </div>
