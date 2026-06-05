@@ -274,7 +274,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       for (const v of variants) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
         if (!varImgs.length) { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); continue; }
-        const varSlug = slug + '-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+        const varSlug = slug + '-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
         const varFolder = `ebay-listings/${varSlug}`;
         try {
           const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
@@ -423,7 +423,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       for (const v of variantsWithFreshImages) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
         if (!varImgs.length) { variantCloudinaryImages.push([]); continue; }
-        const varSlug = slug + '-fix-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+        const varSlug = slug + '-fix-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
         try {
           const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
             method: 'POST',
