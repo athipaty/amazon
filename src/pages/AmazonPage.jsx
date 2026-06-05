@@ -530,7 +530,25 @@ export default function AmazonPage() {
   }
 
 
-const [retrying, setRetrying] = useState(false);
+const [cleaningOrphans, setCleaningOrphans] = useState(false);
+  const [orphanResult, setOrphanResult] = useState(null); // { ended, total } | { count } | null
+  async function handleCleanOrphans() {
+    setCleaningOrphans(true);
+    setOrphanResult(null);
+    try {
+      const { data: check } = await axios.get(`${API}/api/ebay/orphan-listings`);
+      if (check.count === 0) { setOrphanResult({ ended: 0, total: 0 }); return; }
+      const { data } = await axios.delete(`${API}/api/ebay/orphan-listings`);
+      setOrphanResult({ ended: data.ended, total: data.total });
+    } catch (e) {
+      setOrphanResult({ error: e.response?.data?.error || e.message });
+    } finally {
+      setCleaningOrphans(false);
+      setTimeout(() => setOrphanResult(null), 6000);
+    }
+  }
+
+  const [retrying, setRetrying] = useState(false);
   const [retryProgress, setRetryProgress] = useState(null); // { done, total }
   async function handleRetryErrors() {
     const errorProducts = products.filter(p => ['error', 'unavailable', 'out_of_stock'].includes(p.status));
@@ -639,6 +657,17 @@ const [retrying, setRetrying] = useState(false);
                 : `Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
             </button>
           )}
+          <button
+            onClick={handleCleanOrphans}
+            disabled={cleaningOrphans || checking}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            {cleaningOrphans ? 'Checking…'
+              : orphanResult?.error ? '⚠ Failed'
+              : orphanResult?.total === 0 ? '✓ No orphans'
+              : orphanResult ? `✓ Ended ${orphanResult.ended}/${orphanResult.total}`
+              : 'Clean Orphans'}
+          </button>
         </div>
       </header>
 
