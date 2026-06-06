@@ -1,0 +1,205 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#222;background:#fff;max-width:900px;margin:0 auto}
+.hero{background:#1c0c04;display:flex;align-items:stretch;min-height:340px}
+.hero-img{flex:0 0 48%;background:#1c0c04}
+.hero-img img{width:100%;height:100%;max-height:420px;object-fit:contain;display:block}
+.hero-body{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;padding:36px 32px}
+.hero-tag{display:inline-block;background:#e05c1a;color:#fff;font-family:Georgia,serif;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:14px;align-self:flex-start}
+.hero-title{font-family:Georgia,serif;font-size:24px;font-weight:bold;color:#fff;line-height:1.35;margin-bottom:12px}
+.hero-sub{font-size:14px;color:rgba(255,255,255,0.78);line-height:1.7}
+.hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.hb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;font-weight:bold;padding:6px 12px;border-radius:16px}
+.trust-bar{background:#c04010;display:flex;flex-wrap:wrap;justify-content:center}
+.ti{display:flex;align-items:center;gap:6px;color:#fff;font-size:12px;font-weight:bold;padding:11px 18px;border-right:1px solid rgba(255,255,255,0.2);white-space:nowrap}
+.ti:last-child{border-right:none}
+.sh{text-align:center;padding:36px 20px 12px}
+.sh h2{font-family:Georgia,serif;font-size:22px;color:#8c2c08;margin-bottom:6px}
+.div{width:48px;height:3px;background:#e05c1a;margin:8px auto 0;border-radius:2px}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px 20px 34px}
+.fc{background:#fdf0e8;border:1px solid #f0c8a8;border-radius:12px;padding:22px 18px;text-align:center}
+.fi{font-size:34px;margin-bottom:10px;display:block}
+.fc h3{font-family:Georgia,serif;font-size:15px;color:#8c2c08;margin-bottom:7px}
+.fc p{font-size:13px;color:#555;line-height:1.55}
+.pr{display:flex;align-items:stretch;border-bottom:1px solid #f0c8a8;overflow:hidden}
+.pr-rev{flex-direction:row-reverse}
+.pc{flex:0 0 50%}
+.pc img{width:100%;height:320px;object-fit:contain;background:#fdf0e8;display:block}
+.tc{flex:1 1 0;padding:32px 28px;display:flex;flex-direction:column;justify-content:center}
+.lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#e05c1a;font-weight:bold;margin-bottom:8px}
+.tc h3{font-family:Georgia,serif;font-size:19px;color:#8c2c08;margin-bottom:10px;line-height:1.3}
+.tc p{font-size:14px;color:#555;line-height:1.65;margin-bottom:10px}
+.tc ul{padding-left:18px;margin-top:4px}
+.tc ul li{font-size:13px;color:#555;line-height:1.65;margin-bottom:6px}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:16px;background:#fdf0e8}
+.gal img{width:100%;height:160px;object-fit:contain;background:#fff;border:1px solid #f0c8a8;border-radius:8px;display:block}
+.vr-section{background:#1c0c04;padding:36px 24px}
+.vr-section h2{font-family:Georgia,serif;font-size:22px;color:#fff;text-align:center;margin-bottom:6px}
+.vr-div{width:48px;height:3px;background:#e05c1a;margin:8px auto 20px;border-radius:2px}
+.vr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:760px;margin:0 auto}
+.vr-card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:14px 10px;text-align:center}
+.vr-name{font-family:Georgia,serif;font-size:13px;font-weight:bold;color:#fff;margin-bottom:4px}
+.vr-size{font-size:11px;color:rgba(255,255,255,0.65)}
+.ss{padding:0 16px 32px}
+.st{width:100%;border-collapse:collapse;font-size:14px}
+.st th{background:#8c2c08;color:#fff;font-family:Georgia,serif;padding:11px 14px;text-align:left;font-size:15px}
+.sk{color:#8c2c08;width:18%;font-weight:bold;font-size:13px;padding:9px 12px;border-bottom:1px solid #f0c8a8;background:#fdf0e8;vertical-align:top}
+.sv{padding:9px 14px;border-bottom:1px solid #f0c8a8;vertical-align:top;word-break:break-word;width:32%}
+.st tr:nth-child(even) .sv{background:#fafafa}
+.cta{background:linear-gradient(135deg,#1c0c04 0%,#c04010 55%,#e05c1a 100%);text-align:center;padding:40px 24px}
+.cta h2{font-family:Georgia,serif;font-size:24px;color:#fff;margin-bottom:10px}
+.cta p{font-size:15px;color:rgba(255,255,255,0.85);margin-bottom:20px;line-height:1.6;max-width:560px;margin-left:auto;margin-right:auto}
+.cb{display:grid;grid-template-columns:repeat(2,auto);gap:10px;justify-content:center;margin-top:4px}
+.cbb{background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.35);color:#fff;font-size:12px;font-weight:bold;padding:10px 20px;border-radius:24px;text-align:left}
+.ft{background:#f4f4f4;border-top:2px solid #f0c8a8;padding:14px;text-align:center;font-size:12px;color:#888;line-height:1.65}
+.kw{padding:14px 20px 4px;font-size:12px;color:#aaa;line-height:1.7;text-align:center;max-width:820px;margin:0 auto}
+@media(max-width:580px){
+  body{font-size:14px}
+  .hero{flex-direction:column;min-height:0}
+  .hero-img{flex:0 0 auto}
+  .hero-img img{max-height:280px;width:100%}
+  .hero-body{padding:20px 16px 24px}
+  .hero-title{font-size:18px}
+  .hero-sub{font-size:13px}
+  .hero-badges{display:none}
+  .trust-bar{flex-direction:column;align-items:stretch}
+  .ti{border-right:none;border-bottom:1px solid rgba(255,255,255,0.15);justify-content:center;padding:10px 14px}
+  .ti:last-child{border-bottom:none}
+  .fg{grid-template-columns:1fr;gap:10px;padding:14px 12px 22px}
+  .pr{flex-direction:column !important}
+  .pc{flex:0 0 auto;width:100%}
+  .pc img{height:240px}
+  .tc{padding:16px 14px}
+  .tc h3{font-size:16px}
+  .gal{grid-template-columns:repeat(2,1fr);gap:6px;padding:10px}
+  .gal img{height:110px}
+  .st{font-size:13px}
+  .sk,.sv{padding:8px 10px;width:auto}
+  .st tr{display:grid;grid-template-columns:1fr 1fr}
+  .sh h2{font-size:18px}
+  .cta{padding:26px 14px}
+  .cta h2{font-size:19px}
+  .cb{grid-template-columns:1fr;justify-items:center}
+  .cbb{width:100%;max-width:240px;text-align:center}
+  .vr-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style></head><body>
+
+<div class="hero">
+  <div class="hero-img"><img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-01.jpg" alt="Non-Stick Baking Sheet Pan Set"></div>
+  <div class="hero-body">
+    <span class="hero-tag">Professional Bakeware</span>
+    <h1 class="hero-title">Non-Stick Baking Sheet Pan Set &mdash; 7 Size &amp; Bundle Options</h1>
+    <p class="hero-sub">Heavy-gauge carbon steel with Swiss-roll PTFE non-stick coating. Even heat distribution eliminates hot spots for perfectly golden results every time.</p>
+    <div class="hero-badges">
+      <span class="hb">&#10003; Heavy-Gauge Carbon Steel</span>
+      <span class="hb">&#10003; PTFE Non-Stick</span>
+      <span class="hb">&#10003; Dishwasher Safe</span>
+    </div>
+  </div>
+</div>
+
+<div class="trust-bar">
+  <div class="ti">&#9989; Heavy-Gauge Carbon Steel</div>
+  <div class="ti">&#9989; PTFE Dual-Layer Non-Stick</div>
+  <div class="ti">&#9989; Even Heat Distribution</div>
+  <div class="ti">&#9989; Oven Safe to 450&deg;F</div>
+  <div class="ti">&#9989; Dishwasher Safe</div>
+</div>
+
+<div class="sh"><h2>Why Choose This Baking Sheet?</h2><div class="div"></div></div>
+<div class="fg">
+  <div class="fc"><span class="fi">&#128293;</span><h3>Heavy-Gauge Carbon Steel</h3><p>The 0.7 mm thick carbon steel body distributes heat faster and more evenly than thin aluminium pans. No warping, no buckling &mdash; even at 450&deg;F. A rolled rim adds rigidity and prevents oven-rack sliding.</p></div>
+  <div class="fc"><span class="fi">&#10024;</span><h3>Dual-Layer PTFE Non-Stick</h3><p>Two layers of PTFE (Teflon-style) non-stick coating release cookies, roasted vegetables, and fish fillets with zero sticking and minimal oil needed. Rated PFOA-free and food safe to 450&deg;F (232&deg;C).</p></div>
+  <div class="fc"><span class="fi">&#127859;</span><h3>Dishwasher Safe &mdash; Easy Clean</h3><p>The non-stick surface wipes clean in seconds with a soapy cloth, and the coating holds up through hundreds of dishwasher cycles without flaking or peeling. Less time scrubbing, more time baking.</p></div>
+</div>
+
+<div class="pr">
+  <div class="pc"><img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-02.jpg" alt="Non-Stick Surface and Rim Detail"></div>
+  <div class="tc">
+    <div class="lbl">Feature 01</div>
+    <h3>Reinforced Rolled Rim Prevents Warping</h3>
+    <p>The reinforced rolled edge around all four sides stiffens the pan against high-temperature warping. Standard flat pans buckle and curl when heated above 400&deg;F &mdash; this pan stays flat on the oven rack, keeping biscuits, cookies, and sheet cakes level from edge to edge.</p>
+    <ul>
+      <li>0.7 mm heavy-gauge carbon steel body</li>
+      <li>Rolled rim adds structural rigidity</li>
+      <li>Stays flat from 350&deg;F to 450&deg;F</li>
+      <li>Non-slip rack grip from reinforced rim</li>
+    </ul>
+  </div>
+</div>
+
+<div class="pr pr-rev">
+  <div class="pc"><img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-03.jpg" alt="Quarter Sheet Half Sheet Full Sheet Size Comparison"></div>
+  <div class="tc">
+    <div class="lbl">Feature 02</div>
+    <h3>4 Sizes &mdash; Quarter to Full Sheet Pan</h3>
+    <p>Choose the exact size for your oven and recipe: a Quarter Sheet (9&rdquo;&times;13&rdquo;) for small-batch baking, a Half Sheet (13&rdquo;&times;18&rdquo;) for everyday use, or a Full Sheet (18&rdquo;&times;26&rdquo;) for roasting large batches. Combo sets include two or three sizes for complete kitchen coverage.</p>
+    <ul>
+      <li>Quarter Sheet: 9&rdquo; &times; 13&rdquo; &bull; small batch ideal</li>
+      <li>Half Sheet: 13&rdquo; &times; 18&rdquo; &bull; everyday baker&rsquo;s size</li>
+      <li>Full Sheet: 18&rdquo; &times; 26&rdquo; &bull; high-volume roasting</li>
+      <li>Sets include cooling rack option</li>
+    </ul>
+  </div>
+</div>
+
+<div class="pr">
+  <div class="pc"><img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-04.jpg" alt="Baking Sheet with Cooling Rack Combo"></div>
+  <div class="tc">
+    <div class="lbl">Feature 03</div>
+    <h3>Sheet + Rack Combos for Air-Circulation Roasting</h3>
+    <p>Select a &ldquo;Sheet + Rack&rdquo; bundle for the best of both worlds: the baking sheet catches drips while the stainless-steel wire rack elevates food for 360&deg; air circulation. Perfect for crispy bacon, roasted chicken wings, and glazed pork tenderloin without flipping.</p>
+    <ul>
+      <li>Stainless-steel wire rack included in bundle</li>
+      <li>360&deg; air circulation for crispier results</li>
+      <li>Sheet catches drips &mdash; oven stays clean</li>
+      <li>Rack is oven and dishwasher safe</li>
+    </ul>
+  </div>
+</div>
+
+<div class="gal">
+  <img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-05.jpg" alt="Cookies on Non-Stick Baking Sheet">
+  <img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-06.jpg" alt="Roasted Vegetables on Half Sheet Pan">
+  <img src="https://res.cloudinary.com/dil2ttxah/image/upload/ebay-listings/nonstick-baking-sheet/nonstick-baking-sheet-07.jpg" alt="Dishwasher Safe Baking Sheet Close-up">
+</div>
+
+<div class="vr-section">
+  <h2>Available Sizes &amp; Bundles</h2>
+  <div class="vr-div"></div>
+  <div class="vr-grid">
+    <div class="vr-card"><div class="vr-name">Quarter Sheet</div><div class="vr-size">9&rdquo; &times; 13&rdquo; &bull; Single pan</div></div>
+    <div class="vr-card"><div class="vr-name">Half Sheet</div><div class="vr-size">13&rdquo; &times; 18&rdquo; &bull; Single pan</div></div>
+    <div class="vr-card"><div class="vr-name">Full Sheet</div><div class="vr-size">18&rdquo; &times; 26&rdquo; &bull; Single pan</div></div>
+    <div class="vr-card"><div class="vr-name">2-Piece Set</div><div class="vr-size">Quarter + Half sheet</div></div>
+    <div class="vr-card"><div class="vr-name">3-Piece Set</div><div class="vr-size">Quarter + Half + Full</div></div>
+    <div class="vr-card"><div class="vr-name">Sheet + Rack</div><div class="vr-size">Half Sheet + wire rack</div></div>
+    <div class="vr-card"><div class="vr-name">Premium 3-Set + Rack</div><div class="vr-size">3 sheets + 2 racks</div></div>
+  </div>
+</div>
+
+<div class="sh"><h2>Full Product Specifications</h2><div class="div"></div></div>
+<div class="ss"><table class="st">
+<tr><th colspan="4">Technical Details</th></tr>
+<tr><td class="sk">Material</td><td class="sv">0.7 mm heavy-gauge carbon steel</td><td class="sk">Coating</td><td class="sv">Dual-layer PTFE non-stick &bull; PFOA-free</td></tr>
+<tr><td class="sk">Oven Safe</td><td class="sv">Up to 450&deg;F (232&deg;C)</td><td class="sk">Colour</td><td class="sv">Dark grey non-stick interior &bull; Grey exterior</td></tr>
+<tr><td class="sk">Dishwasher Safe</td><td class="sv">Yes</td><td class="sk">Rim</td><td class="sv">Reinforced rolled rim &bull; Anti-warp</td></tr>
+<tr><td class="sk">Sizes</td><td class="sv">Quarter (9&rdquo;&times;13&rdquo;) &bull; Half (13&rdquo;&times;18&rdquo;) &bull; Full (18&rdquo;&times;26&rdquo;)</td><td class="sk">Rack (bundle)</td><td class="sv">Stainless-steel wire cooling rack</td></tr>
+<tr><td class="sk">Best For</td><td class="sv">Cookies &bull; Roasting &bull; Sheet cakes &bull; Fish</td><td class="sk">Condition</td><td class="sv">New</td></tr>
+</table></div>
+
+<div class="cta">
+  <h2>Bake Better Starting Today</h2>
+  <p>Even heat, zero sticking, and a surface that stays flat for years. Choose your size or bundle below and upgrade your baking routine.</p>
+  <div class="cb">
+    <span class="cbb">&#10003; Heavy-Gauge Carbon Steel</span>
+    <span class="cbb">&#10003; Dual-Layer Non-Stick</span>
+    <span class="cbb">&#10003; Oven Safe to 450&deg;F</span>
+    <span class="cbb">&#10003; 7 Size &amp; Bundle Options</span>
+  </div>
+</div>
+
+<p class="kw">Non-stick baking sheet pan set in quarter, half, and full sheet sizes. Heavy-gauge 0.7 mm carbon steel baking trays with dual-layer PTFE non-stick coating that is PFOA-free and oven safe to 450 degrees Fahrenheit. Available as individual pans, 2-piece set, 3-piece set, and sheet plus cooling rack bundles. Reinforced rolled rim prevents warping at high temperatures. Dishwasher safe and easy to clean. Ideal for baking cookies, roasting vegetables, sheet cakes, fish fillets, chicken wings, and more.</p>
+<div class="ft"><p>All images shown are of the actual item. Colour may vary slightly due to monitor settings.</p></div>
+</body></html>
