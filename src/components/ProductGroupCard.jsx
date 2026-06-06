@@ -38,6 +38,16 @@ function Countdown({ target }) {
   return remaining || '…';
 }
 
+// Use 'Style' for compound labels (contain / + or start with digit) so eBay doesn't
+// reject them as invalid Color values. Check complexity BEFORE checking for color words.
+function detectVariantDimension(variants) {
+  const labels = variants.map(v => v.variant || '');
+  if (labels.some(l => /\d+["'.×xX]/.test(l))) return 'Size';
+  if (labels.some(l => /[\/+]/.test(l) || /^\d/.test(l))) return 'Style';
+  if (labels.some(l => /\b(red|blue|green|black|white|gray|grey|pink|purple|yellow|orange|brown|beige|ivory|cream|navy|teal|turquoise|coral|silver|gold|rose|lavender|mint|charcoal|natural|carbonized|walnut|bamboo|oak|mahogany|cherry|maple|ebony)\b/i.test(l))) return 'Color';
+  return 'Style';
+}
+
 const SKIP_SPEC_KEYS = new Set(['asin', 'upc']);
 function fmtKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 function fmtVal(v) {
@@ -292,9 +302,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       // Step 3: Create multi-variation eBay listing
       setAutoListStep('listing');
-      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["'.×xX]/)) ? 'Size'
-        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|grey|pink|purple|yellow|orange|brown|beige|ivory|cream|navy|teal|turquoise|coral|silver|gold|rose|lavender|mint|charcoal|natural|carbonized|walnut|bamboo|oak|mahogany|cherry|maple|ebony)\b/i)) ? 'Color'
-        : 'Style';
+      const variantDimension = detectVariantDimension(variants);
 
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
@@ -434,9 +442,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         } catch { variantCloudinaryImages.push([]); }
       }
 
-      const variantDimension = variants.some(v => (v.variant || '').match(/\d+["'.×xX]/)) ? 'Size'
-        : variants.some(v => (v.variant || '').match(/\b(red|blue|green|black|white|gray|grey|pink|purple|yellow|orange|brown|beige|ivory|cream|navy|teal|turquoise|coral|silver|gold|rose|lavender|mint|charcoal|natural|carbonized|walnut|bamboo|oak|mahogany|cherry|maple|ebony)\b/i)) ? 'Color'
-        : 'Style';
+      const variantDimension = detectVariantDimension(variants);
 
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
