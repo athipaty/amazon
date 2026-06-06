@@ -98,7 +98,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
   const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
-  const autoSyncDone = useRef(false);
+  const autoSyncAt = useRef(0); // timestamp of last auto-sync attempt
 
   async function fetchEbayPrices() {
     if (!groupEbayId) return;
@@ -113,19 +113,24 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     fetchEbayPrices();
   }, [groupEbayId]);
 
-  // Auto-fix mismatched eBay prices as soon as live prices are fetched
+  // Auto-fix mismatched eBay prices whenever live prices are refreshed.
+  // Throttled to once per 5 min to avoid eBay rate limits and infinite loops.
   useEffect(() => {
-    if (!ebayLivePrices || !groupEbayId || autoSyncDone.current) return;
-    autoSyncDone.current = true;
+    if (!ebayLivePrices || !groupEbayId) return;
 
     const mismatches = variants.filter(v => {
       const calcPrice = calcEbayPrice(v.current, saleMode);
       const livePrice = getLivePrice(v.variant || '');
       return livePrice != null && Math.abs(livePrice - calcPrice) >= 0.02;
     });
-    // Notify parent sidebar: price issue detected
-    if (mismatches.length) onPriceMismatch?.(groupEbayId, true);
+    // Always update sidebar mismatch indicator, regardless of throttle
     if (!mismatches.length) { onPriceMismatch?.(groupEbayId, false); return; }
+    onPriceMismatch?.(groupEbayId, true);
+
+    // Throttle: don't re-push if we already tried within the last 5 minutes
+    const now = Date.now();
+    if (now - autoSyncAt.current < 5 * 60 * 1000) return;
+    autoSyncAt.current = now;
 
     const ids = new Set(mismatches.map(v => v._id));
     setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
@@ -154,7 +159,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         onPriceMismatch?.(groupEbayId, false); // optimistically clear; will re-trigger if still mismatched
       }, 4000);
     });
-  }, [ebayLivePrices]); // autoSyncDone ref prevents looping when fetchEbayPrices re-sets ebayLivePrices
+  }, [ebayLivePrices]);
 
   async function handleCheckOne(id) {
     setRefreshingIds(prev => new Set(prev).add(id));
