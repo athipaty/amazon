@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import ProductGroupCard from '../components/ProductGroupCard';
-import ProfitDashboard from '../components/ProfitDashboard';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -498,9 +497,6 @@ export default function AmazonPage() {
     }
   }
 
-  const [showDashboard, setShowDashboard] = useState(false);
-
-
 
   const [saleMode, setSaleMode] = useState(false);
   const [saleModeResetting, setSaleModeResetting] = useState(false);
@@ -594,8 +590,6 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
   return (
     <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
-      {showDashboard && <ProfitDashboard onClose={() => setShowDashboard(false)} />}
-
       <header className="mb-4 md:mb-6">
         <div className="bg-white/90 backdrop-blur-sm border border-slate-200/70 rounded-2xl shadow-soft px-4 py-3.5 md:px-5 md:py-4">
           {/* Main row: brand + status pills + primary action */}
@@ -640,13 +634,6 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
           {/* Admin/utility row: scrollable on mobile, visually de-emphasized vs primary action */}
           <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => setShowDashboard(true)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold hover:bg-indigo-100 transition-colors whitespace-nowrap flex-shrink-0"
-            >
-              📊 Dashboard
-            </button>
-
             <button
               onClick={handleSaleMode}
               onBlur={() => setSaleModeConfirm(false)}
