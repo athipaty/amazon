@@ -14,39 +14,44 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
     : items;
   return (
     <div className={mobile
-      ? "flex flex-col overflow-hidden bg-white border border-gray-200 rounded-xl"
-      : "w-64 flex-shrink-0 border border-gray-200 rounded-xl overflow-hidden bg-white sticky top-4 max-h-[calc(100vh-120px)] flex flex-col"
+      ? "flex flex-col overflow-hidden bg-white border border-slate-200/70 rounded-2xl shadow-soft"
+      : "w-72 flex-shrink-0 border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-soft sticky top-4 max-h-[calc(100vh-120px)] flex flex-col"
     }>
       {/* Header + search */}
-      <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+      <div className="px-3.5 py-3 bg-slate-50/80 border-b border-slate-100 flex-shrink-0">
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             {items.length} listing{items.length !== 1 ? 's' : ''}
           </p>
           {ebayConnected
-            ? <span className="text-[9px] font-semibold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded leading-none whitespace-nowrap">● Connected</span>
+            ? <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 ring-1 ring-inset ring-emerald-200 px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Connected
+              </span>
             : <a
                 href={`${apiUrl}/api/ebay/auth/login`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[9px] font-semibold text-[#e53238] hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-1.5 py-0.5 rounded leading-none transition-colors whitespace-nowrap"
+                className="text-[9px] font-bold text-ebay hover:text-ebay-dark bg-red-50 hover:bg-red-100 ring-1 ring-inset ring-red-200 px-1.5 py-0.5 rounded-full leading-none transition-colors whitespace-nowrap"
               >
                 Reconnect eBay
               </a>
           }
         </div>
-        <input
-          type="text"
-          placeholder="Search listings…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-blue-400 bg-white placeholder-gray-400"
-        />
+        <div className="relative">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none">⌕</span>
+          <input
+            type="text"
+            placeholder="Search listings…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-7 pr-2.5 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/15 bg-white placeholder-slate-400 transition-all"
+          />
+        </div>
       </div>
       {/* Items */}
-      <div className={mobile ? "flex flex-col" : "overflow-y-auto flex-1"}>
+      <div className={mobile ? "flex flex-col divide-y divide-slate-50" : "overflow-y-auto flex-1 scrollbar-thin divide-y divide-slate-50"}>
         {filtered.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-6">No results for &ldquo;{search}&rdquo;</p>
+          <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
         )}
         {filtered.map(item => {
           const key = getItemKey(item);
@@ -58,12 +63,12 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
             <button
               key={key}
               onClick={() => onSelect(key)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${isSelected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors ${isSelected ? 'bg-blue-50/70 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent hover:bg-slate-50'}`}
             >
               <div className="relative flex-shrink-0">
                 {image
-                  ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-lg bg-gray-50 border border-gray-100" />
-                  : <div className="w-11 h-11 rounded-lg bg-gray-100" />
+                  ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-xl bg-slate-50 border border-slate-100" />
+                  : <div className="w-11 h-11 rounded-xl bg-slate-100" />
                 }
                 {(() => {
                   const ebayId = item.type === 'group'
@@ -72,21 +77,21 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                   const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
                   if (!views) return null;
                   return (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-ebay text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
                       {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
                     </span>
                   );
                 })()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-gray-800 leading-snug line-clamp-2">{title}</p>
+                <p className={`text-[11px] font-medium leading-snug line-clamp-2 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>{title}</p>
                 <div className="flex items-center justify-between mt-1">
                   <div className="flex items-center gap-1">
-                    {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-green-600 font-semibold">Listed OK</span></>}
-                    {status === 'price'    && <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0 animate-pulse" /><span className="text-[10px] text-yellow-600 font-semibold">Price issue</span></>}
+                    {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" /><span className="text-[10px] text-emerald-600 font-semibold">Listed OK</span></>}
+                    {status === 'price'    && <><span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse" /><span className="text-[10px] text-amber-600 font-semibold">Price issue</span></>}
                     {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
-                    {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" /><span className="text-[10px] text-gray-400">Not listed</span></>}
-                    {item.type === 'group' && <span className="ml-1 text-[9px] text-gray-300">{item.variants.length}v</span>}
+                    {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" /><span className="text-[10px] text-slate-400">Not listed</span></>}
+                    {item.type === 'group' && <span className="ml-1 text-[9px] text-slate-300 font-medium">{item.variants.length}v</span>}
                   </div>
                   {/* Profit badge */}
                   {(() => {
@@ -98,7 +103,7 @@ function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, g
                     const cp = calcEbayPrice(avgCost, saleMode);
                     const p = +(cp - trueCost(avgCost) - calcEbayFee(cp)).toFixed(2);
                     return (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${p >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}`}>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none ${p >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
                         {p >= 0 ? '+' : ''}${p.toFixed(2)}
                       </span>
                     );
@@ -588,162 +593,177 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
 
   return (
-    <div className="px-4 py-4 md:px-6 md:py-7">
+    <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
       {showDashboard && <ProfitDashboard onClose={() => setShowDashboard(false)} />}
 
-      <header className="mb-4 md:mb-7">
-        {/* Main row: title + Check All always visible */}
-        <div className="flex justify-between items-center gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">Amazon Price Tracker</h1>
-            {sellingLimits && (
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                sellingLimits.remaining <= 10 ? 'bg-red-100 text-red-600' :
-                sellingLimits.remaining <= 30 ? 'bg-yellow-100 text-yellow-700' :
-                'bg-green-100 text-green-700'
-              }`}>
-                {sellingLimits.used} / {sellingLimits.limit}
-              </span>
-            )}
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tracking-wide whitespace-nowrap ${
-              saleModeActive
-                ? 'bg-red-500 text-white'
-                : 'bg-gray-100 text-gray-400'
-            }`}>
-              {saleModeActive ? 'SALE MODE' : 'NORMAL'}
-            </span>
-          </div>
-          <button
-            onClick={handleCheckNow}
-            disabled={checking}
-            className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-          >
-            {checking ? 'Checking…' : 'Check All'}
-          </button>
-        </div>
-
-        {/* Admin buttons row: scrollable on mobile */}
-        <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setShowDashboard(true)}
-            className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-medium hover:bg-indigo-100 transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            Dashboard
-          </button>
-
-          <button
-            onClick={handleSaleMode}
-            onBlur={() => setSaleModeConfirm(false)}
-            disabled={saleMode || saleModeResetting || checking}
-            className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5
-              ${saleMode || saleModeResetting ? (saleModeActive ? 'bg-red-500 border-red-600 text-white' : 'bg-green-50 border-green-300 text-green-700') :
-                saleModeConfirm ? (saleModeActive ? 'bg-red-600 border-red-700 text-white hover:bg-red-700' : 'bg-green-500 border-green-600 text-white hover:bg-green-600') :
-                saleModeActive ? 'bg-red-500 border-red-600 text-white hover:bg-red-600' :
-                'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'}`}
-          >
-            {saleModeActive && !saleMode && !saleModeResetting && !saleModeConfirm && (
-              <span className="bg-white text-red-500 text-[9px] font-black px-1 py-0.5 rounded leading-none">SALE</span>
-            )}
-            {saleMode ? 'Repricing…'
-              : saleModeResetting ? 'Resetting prices…'
-              : saleModeResult?.error ? '⚠ Failed'
-              : saleModeResult && !saleModeActive ? `✓ Normal ${saleModeResult.done}/${saleModeResult.total}`
-              : saleModeResult ? `✓ Done ${saleModeResult.done}/${saleModeResult.total}`
-              : saleModeConfirm && saleModeActive ? 'Tap to confirm end sale'
-              : saleModeConfirm ? 'Tap again to confirm'
-              : saleModeActive ? 'Sale ON — tap to end'
-              : 'Sale Mode (2% profit)'}
-          </button>
-{products.some(p => ['error','unavailable','out_of_stock'].includes(p.status)) && (
+      <header className="mb-4 md:mb-6">
+        <div className="bg-white/90 backdrop-blur-sm border border-slate-200/70 rounded-2xl shadow-soft px-4 py-3.5 md:px-5 md:py-4">
+          {/* Main row: brand + status pills + primary action */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">
+                📦
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight leading-tight truncate">
+                  Amazon Price Tracker
+                </h1>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  {sellingLimits && (
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ring-1 ring-inset ${
+                      sellingLimits.remaining <= 10 ? 'bg-red-50 text-red-600 ring-red-200' :
+                      sellingLimits.remaining <= 30 ? 'bg-amber-50 text-amber-700 ring-amber-200' :
+                      'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                    }`}>
+                      {sellingLimits.used}/{sellingLimits.limit} listings
+                    </span>
+                  )}
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tracking-wider whitespace-nowrap ring-1 ring-inset ${
+                    saleModeActive
+                      ? 'bg-ebay text-white ring-ebay-dark'
+                      : 'bg-slate-50 text-slate-400 ring-slate-200'
+                  }`}>
+                    {saleModeActive ? '🔥 SALE MODE' : 'NORMAL'}
+                  </span>
+                </div>
+              </div>
+            </div>
             <button
-              onClick={handleRetryErrors}
-              disabled={retrying || checking}
-              className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+              onClick={handleCheckNow}
+              disabled={checking}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 md:px-4 md:py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold shadow-soft hover:bg-slate-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap flex-shrink-0"
             >
-              {retrying
-                ? retryProgress ? `Retrying… ${retryProgress.done}/${retryProgress.total}` : 'Retrying…'
-                : retryProgress ? `✓ Done ${retryProgress.done}/${retryProgress.total}`
-                : `Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
+              <span className={checking ? 'animate-spin inline-block' : ''}>↻</span>
+              <span className="hidden sm:inline">{checking ? 'Checking…' : 'Check All'}</span>
             </button>
-          )}
-          <button
-            onClick={handleCleanOrphans}
-            disabled={cleaningOrphans || checking}
-            className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {cleaningOrphans ? 'Scanning…'
-              : orphanResult?.error ? '⚠ Failed'
-              : orphanResult?.found === 0 ? '✓ No orphans'
-              : orphanResult?.found > 0 ? `✓ Ended ${orphanResult.ended}/${orphanResult.found}`
-              : 'Clean Orphans'}
-          </button>
+          </div>
+
+          {/* Admin/utility row: scrollable on mobile, visually de-emphasized vs primary action */}
+          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 overflow-x-auto scrollbar-hide">
+            <button
+              onClick={() => setShowDashboard(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold hover:bg-indigo-100 transition-colors whitespace-nowrap flex-shrink-0"
+            >
+              📊 Dashboard
+            </button>
+
+            <button
+              onClick={handleSaleMode}
+              onBlur={() => setSaleModeConfirm(false)}
+              disabled={saleMode || saleModeResetting || checking}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5
+                ${saleMode || saleModeResetting ? (saleModeActive ? 'bg-ebay text-white' : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200') :
+                  saleModeConfirm ? (saleModeActive ? 'bg-ebay-dark text-white hover:bg-red-800' : 'bg-emerald-500 text-white hover:bg-emerald-600') :
+                  saleModeActive ? 'bg-ebay text-white hover:bg-ebay-dark' :
+                  'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100'}`}
+            >
+              {saleModeActive && !saleMode && !saleModeResetting && !saleModeConfirm && (
+                <span className="bg-white/90 text-ebay text-[9px] font-black px-1 py-0.5 rounded leading-none">SALE</span>
+              )}
+              {saleMode ? 'Repricing…'
+                : saleModeResetting ? 'Resetting prices…'
+                : saleModeResult?.error ? '⚠ Failed'
+                : saleModeResult && !saleModeActive ? `✓ Normal ${saleModeResult.done}/${saleModeResult.total}`
+                : saleModeResult ? `✓ Done ${saleModeResult.done}/${saleModeResult.total}`
+                : saleModeConfirm && saleModeActive ? 'Tap to confirm end sale'
+                : saleModeConfirm ? 'Tap again to confirm'
+                : saleModeActive ? '🔥 Sale ON — tap to end'
+                : '🏷️ Sale Mode (2% profit)'}
+            </button>
+            {products.some(p => ['error','unavailable','out_of_stock'].includes(p.status)) && (
+              <button
+                onClick={handleRetryErrors}
+                disabled={retrying || checking}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-xs font-semibold hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+              >
+                {retrying
+                  ? retryProgress ? `↻ Retrying… ${retryProgress.done}/${retryProgress.total}` : '↻ Retrying…'
+                  : retryProgress ? `✓ Done ${retryProgress.done}/${retryProgress.total}`
+                  : `⚠ Retry Errors (${products.filter(p => ['error','unavailable','out_of_stock'].includes(p.status)).length})`}
+              </button>
+            )}
+            <button
+              onClick={handleCleanOrphans}
+              disabled={cleaningOrphans || checking}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-500 rounded-full text-xs font-semibold hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
+            >
+              {cleaningOrphans ? '🔍 Scanning…'
+                : orphanResult?.error ? '⚠ Failed'
+                : orphanResult?.found === 0 ? '✓ No orphans'
+                : orphanResult?.found > 0 ? `✓ Ended ${orphanResult.ended}/${orphanResult.found}`
+                : '🧹 Clean Orphans'}
+            </button>
+          </div>
         </div>
       </header>
 
 
-      <div className="mb-5">
+      <div className="mb-4">
         <form className="flex gap-2" onSubmit={handleAdd}>
-          <input
-            type="text"
-            placeholder="Paste an Amazon product URL to track…"
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            disabled={adding || !!preview}
-            className="flex-1 min-w-0 px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-yellow-400 transition-colors disabled:bg-gray-50"
-          />
+          <div className="relative flex-1 min-w-0">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-sm pointer-events-none">🔗</span>
+            <input
+              type="text"
+              placeholder="Paste an Amazon product URL to track…"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              disabled={adding || !!preview}
+              className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 transition-all disabled:bg-slate-50 placeholder:text-slate-400 shadow-soft"
+            />
+          </div>
           <button
             type="submit"
             disabled={adding || !url.trim() || !!preview}
-            className="px-5 py-2.5 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            className="px-5 py-2.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap shadow-soft"
           >
             {adding ? 'Loading…' : 'Track Price'}
           </button>
         </form>
-        {addError && <p className="text-red-500 text-sm mt-2">{addError}</p>}
+        {addError && <p className="text-red-500 text-sm mt-2 px-1">{addError}</p>}
       </div>
 
       {preview && (
-        <div ref={previewRef} className="mb-5 bg-white border border-yellow-300 rounded-xl p-5">
+        <div ref={previewRef} className="mb-5 bg-white border border-amber-200 rounded-2xl p-5 shadow-card animate-slide-up">
           <div className="flex justify-between items-start mb-1">
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-semibold text-gray-900">
-                  {preview.variants.length} variants found — select which to track:
+                <p className="text-sm font-bold text-slate-900">
+                  {preview.variants.length} variants found — select which to track
                 </p>
                 {preview.isPrime
                   ? <span className="inline-flex items-center gap-1 bg-[#00A8E0] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Prime</span>
-                  : <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">✗ No Prime</span>
+                  : <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full">✗ No Prime</span>
                 }
               </div>
-              <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
+              <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
             </div>
             <button
               onClick={() => { setPreview(null); setSelectedAsins(new Set()); }}
-              className="text-gray-300 hover:text-gray-500 text-xl leading-none ml-3"
+              className="text-slate-300 hover:text-slate-500 text-xl leading-none ml-3 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors flex-shrink-0"
             >
               ×
             </button>
           </div>
 
-          <div className="flex flex-col gap-1 mt-3 max-h-60 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-1 mt-3 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
             {preview.variants.map(v => (
               <label
                 key={v.asin}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
               >
                 <input
                   type="checkbox"
                   checked={selectedAsins.has(v.asin)}
                   onChange={e => toggleVariant(v.asin, e.target.checked)}
-                  className="w-4 h-4 accent-yellow-400 flex-shrink-0"
+                  className="w-4 h-4 accent-amazon flex-shrink-0"
                 />
                 {v.image && (
-                  <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded bg-gray-50 flex-shrink-0" />
+                  <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
                 )}
-                <span className="text-sm text-gray-700 flex-1">{v.label}</span>
+                <span className="text-sm text-slate-700 flex-1">{v.label}</span>
                 {v.price != null
-                  ? <span className="text-sm font-bold text-gray-900 flex-shrink-0">{preview.currency}{v.price.toLocaleString()}</span>
-                  : <span className="text-xs text-gray-400 flex-shrink-0">price varies</span>
+                  ? <span className="text-sm font-bold text-slate-900 flex-shrink-0">{preview.currency}{v.price.toLocaleString()}</span>
+                  : <span className="text-xs text-slate-400 flex-shrink-0">price varies</span>
                 }
               </label>
             ))}
@@ -757,21 +777,21 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
               <button
                 onClick={handleTrackSelected}
                 disabled={addingVariants || selectedAsins.size === 0}
-                className="px-4 py-2 bg-yellow-400 text-gray-900 font-bold text-sm rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-soft"
               >
                 {addingVariants ? addProgress : selectedAsins.size === 0 ? 'Track Selected' : `Track Selected (${selectedAsins.size})`}
               </button>
               <button
                 onClick={() => setSelectedAsins(new Set(preview.variants.map(v => v.asin)))}
                 disabled={addingVariants}
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 disabled:opacity-50 transition-colors"
               >
                 Select All
               </button>
               <button
                 onClick={() => setSelectedAsins(new Set())}
                 disabled={addingVariants}
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 disabled:opacity-50 transition-colors"
               >
                 None
               </button>
@@ -781,14 +801,14 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
       )}
 
       {!ebayConnected && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-red-700">
+        <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-red-700 shadow-soft">
           <span className="flex-shrink-0">⚠️</span>
           eBay token expired — prices won't sync until you
           <a href={`${API}/api/ebay/auth/login`} className="underline font-semibold ml-1">reconnect eBay</a>.
         </div>
       )}
       {ebayConnected && ebayTokenDaysLeft !== null && ebayTokenDaysLeft <= 30 && (
-        <div className={`flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-sm border ${ebayTokenDaysLeft <= 7 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+        <div className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 mb-4 text-sm border shadow-soft ${ebayTokenDaysLeft <= 7 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
           <span className="flex-shrink-0">⚠️</span>
           eBay token expires in <strong className="mx-1">{ebayTokenDaysLeft} day{ebayTokenDaysLeft !== 1 ? 's' : ''}</strong> —
           <a href={`${API}/api/ebay/auth/login`} className="underline font-semibold ml-1">reconnect now</a> to avoid disruption.
@@ -796,13 +816,13 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
       )}
 
       {discoveryBanner?.length > 0 && (
-        <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-5 text-sm text-green-800">
+        <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-4 text-sm text-emerald-800 shadow-soft">
           <span className="flex-shrink-0 text-base">🤖</span>
           <div className="flex-1 min-w-0">
             <p className="font-semibold mb-1">Auto-discovery added {discoveryBanner.length} new listing{discoveryBanner.length !== 1 ? 's' : ''} overnight</p>
             <ul className="space-y-0.5">
               {discoveryBanner.map((item, i) => (
-                <li key={i} className="text-xs text-green-700 truncate">
+                <li key={i} className="text-xs text-emerald-700 truncate">
                   <span className="font-medium">+${item.profit?.toFixed(2)}</span> — {item.title}
                 </li>
               ))}
@@ -813,23 +833,23 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
               setDiscoveryBanner(null);
               axios.post(`${API}/api/tracker/settings/dismiss-discovery`).catch(() => {});
             }}
-            className="flex-shrink-0 text-green-400 hover:text-green-600 text-lg leading-none"
+            className="flex-shrink-0 text-emerald-400 hover:text-emerald-600 text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full hover:bg-emerald-100 transition-colors"
           >✕</button>
         </div>
       )}
 
       {statusMsg && (
-        <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-yellow-800">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0 animate-pulse" />
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-amber-800 shadow-soft">
+          <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 animate-pulse" />
           {statusMsg}
         </div>
       )}
 
       {products.length === 0 ? (
-        <div className="text-center mt-24 text-gray-400">
-          <p className="text-4xl mb-3">🔍</p>
-          <p className="text-base font-medium">No products tracked yet.</p>
-          <p className="text-sm mt-1">Paste an Amazon URL above to start tracking prices.</p>
+        <div className="text-center mt-16 md:mt-24">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-soft border border-slate-100 text-3xl mb-4">🔍</div>
+          <p className="text-base font-bold text-slate-700">No products tracked yet</p>
+          <p className="text-sm mt-1 text-slate-400">Paste an Amazon URL above to start tracking prices.</p>
         </div>
       ) : (
         <>
@@ -883,19 +903,20 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
       {/* ── Mobile detail sheet ── */}
       {detailOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div className="lg:hidden fixed inset-0 z-50 bg-slate-50 flex flex-col animate-slide-in-right">
+          <div className="flex items-center gap-3 px-3 py-3 bg-white/90 backdrop-blur-sm border-b border-slate-100 flex-shrink-0 shadow-soft">
             <button
               onClick={() => setDetailOpen(false)}
-              className="flex items-center gap-1 text-sm font-semibold text-gray-600 hover:text-gray-900"
+              className="flex items-center justify-center gap-1 w-9 h-9 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors flex-shrink-0 text-base"
+              aria-label="Back to listings"
             >
-              ‹ Listings
+              ‹
             </button>
-            <p className="flex-1 text-xs text-gray-500 truncate min-w-0">
+            <p className="flex-1 text-sm font-semibold text-slate-700 truncate min-w-0">
               {selectedItem && getItemTitle(selectedItem)}
             </p>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 pb-6">
+          <div className="flex-1 overflow-y-auto p-3 pb-8">
             {selectedItem && (
               selectedItem.type === 'group'
                 ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} autoListStatus={autoListStatus} />

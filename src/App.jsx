@@ -25,7 +25,7 @@ class ErrorBoundary extends Component {
 export default function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased">
         <Routes>
           <Route path="/" element={<AmazonPage />} />
         </Routes>

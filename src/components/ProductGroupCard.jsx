@@ -496,17 +496,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const groupStatus = allUnavailable ? 'unavailable' : allOOS ? 'out_of_stock' : someIssue ? 'partial' : 'active';
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 transition-shadow hover:shadow-sm flex flex-col p-4 ${detailMode ? 'gap-5 shadow-sm' : 'gap-3'}`}>
+    <div className={`bg-white rounded-2xl border border-slate-200/70 transition-shadow flex flex-col p-4 md:p-5 ${detailMode ? 'gap-5 shadow-card' : 'gap-3 hover:shadow-soft'}`}>
 
       {/* ── Group header ── */}
-      <div className={`flex items-start gap-3 min-w-0 ${detailMode ? 'gap-5' : ''}`}>
+      <div className={`flex items-start gap-3 min-w-0 ${detailMode ? 'gap-4 md:gap-5' : ''}`}>
         {active.image
-          ? <img src={active.image} alt={active.title} className={`object-contain rounded-xl bg-gray-50 flex-shrink-0 ${detailMode ? 'w-32 h-32' : 'w-12 h-12'}`} />
-          : <div className={`rounded-xl bg-gray-100 flex-shrink-0 ${detailMode ? 'w-32 h-32' : 'w-12 h-12'}`} />
+          ? <img src={active.image} alt={active.title} className={`object-contain rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
+          : <div className={`rounded-2xl bg-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
         }
         <div className="flex-1 min-w-0">
-          <p className={`font-semibold text-gray-800 ${detailMode ? 'text-base leading-snug line-clamp-3 lg:line-clamp-none' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <p className={`font-bold text-slate-800 ${detailMode ? 'text-[15px] md:text-base leading-snug line-clamp-3 lg:line-clamp-none' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
             {detailMode && (() => {
               const totalProfit = variants.reduce((sum, v) => {
@@ -515,11 +515,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               }, 0);
               const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + calcEbayPrice(v.current, saleMode), 0) * 100).toFixed(1);
               return (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${totalProfit >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                  {avgMargin}% margin
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ${totalProfit >= 0 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-600 ring-red-200'}`}>
+                  {totalProfit >= 0 ? '▲' : '▼'} {avgMargin}% margin
                 </span>
               );
             })()}
+            {detailMode && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-200">
+                {variants.length} variant{variants.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
         </div>
         {deleting ? (
@@ -534,55 +539,55 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className="text-[11px] text-red-500 max-w-[140px] truncate" title={deleteError}>⚠ {deleteError}</span>
             <button onClick={() => { setDeleteError(null); setConfirmingDelete(false); }}
-              className="text-[11px] text-gray-400 hover:text-gray-600">✕</button>
+              className="text-[11px] text-slate-400 hover:text-slate-600">✕</button>
           </div>
         ) : confirmingDelete ? (
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="text-[11px] text-gray-500 whitespace-nowrap">{variants.length === 1 ? 'Stop tracking?' : `Remove all ${variants.length} variants?`}</span>
+            <span className="text-[11px] text-slate-500 whitespace-nowrap hidden sm:inline">{variants.length === 1 ? 'Stop tracking?' : `Remove all ${variants.length} variants?`}</span>
             <button
               onClick={confirmDeleteAll}
-              className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap"
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap"
             >Yes</button>
             <button
               onClick={() => setConfirmingDelete(false)}
-              className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
             >No</button>
           </div>
         ) : (
           <button onClick={() => setConfirmingDelete(true)} title="Stop tracking all variants"
-            className="text-gray-300 hover:text-red-500 transition-colors text-sm flex-shrink-0">✕</button>
+            className="w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm flex-shrink-0">✕</button>
         )}
       </div>
 
       {/* ── Product status banner ── */}
       {groupStatus === 'unavailable' && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
+        <div className="flex items-center gap-2 bg-red-50 ring-1 ring-inset ring-red-200 rounded-xl px-3.5 py-2 text-xs text-red-600">
           <span>🔴</span>
-          <span className="font-medium">Product unavailable</span>
+          <span className="font-semibold">Product unavailable</span>
           <span className="text-red-400 ml-auto">Retrying every 24h</span>
         </div>
       )}
       {groupStatus === 'out_of_stock' && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700">
+        <div className="flex items-center gap-2 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-xl px-3.5 py-2 text-xs text-amber-700">
           <span>🟡</span>
-          <span className="font-medium">Out of stock on Amazon</span>
+          <span className="font-semibold">Out of stock on Amazon</span>
           <span className="text-amber-500 ml-auto">Retrying every 24h</span>
         </div>
       )}
       {groupStatus === 'partial' && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700">
+        <div className="flex items-center gap-2 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-xl px-3.5 py-2 text-xs text-amber-700">
           <span>⚠️</span>
-          <span className="font-medium">Some variants unavailable</span>
+          <span className="font-semibold">Some variants unavailable</span>
         </div>
       )}
 
       {/* ── eBay sync failure warning ── */}
       {anySyncFailed && (
-        <div className="flex items-center justify-between gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-600">
-          <span>⚠️ eBay price sync failed</span>
+        <div className="flex items-center justify-between gap-2 bg-red-50 ring-1 ring-inset ring-red-200 rounded-xl px-3.5 py-2 text-xs text-red-600">
+          <span className="font-semibold">⚠️ eBay price sync failed</span>
           <a
             href={`${API}/api/ebay/auth/login`}
-            className="font-semibold underline whitespace-nowrap hover:text-red-800"
+            className="font-bold underline whitespace-nowrap hover:text-red-800"
           >
             Reconnect eBay →
           </a>
@@ -590,7 +595,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Variant swatches ── */}
-      <div className={`grid gap-2 ${detailMode ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
+      <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
         {variants.map((v, i) => {
           const label     = v.variant || `Variant ${i + 1}`;
           const calcPrice = calcEbayPrice(v.current, saleMode);
@@ -609,65 +614,65 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             <div
               key={v._id}
               onClick={() => toggleExpand(i)}
-              className={`relative flex flex-col rounded-xl border-2 transition-colors cursor-pointer overflow-hidden ${
-                isActive ? 'border-[#e53238] shadow-sm' : 'border-gray-200 hover:border-gray-300'
+              className={`relative flex flex-col rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
+                isActive ? 'border-ebay shadow-card' : 'border-slate-200 hover:border-slate-300 hover:shadow-soft'
               }`}
             >
               {/* Image */}
-              <div className={`flex items-center justify-center p-2 ${isActive ? 'bg-[#fff5f5]' : 'bg-gray-50'}`}>
+              <div className={`flex items-center justify-center p-2.5 ${isActive ? 'bg-red-50/60' : 'bg-slate-50'}`}>
                 {v.image
                   ? <img src={v.image} alt={label} className="w-16 h-16 object-contain" />
-                  : <div className="w-16 h-16 bg-gray-100 rounded-lg" />
+                  : <div className="w-16 h-16 bg-slate-100 rounded-xl" />
                 }
               </div>
 
               {/* Label */}
-              <div className={`px-2 py-1 text-center border-b ${isActive ? 'bg-[#fff5f5] border-[#fcc]' : 'bg-white border-gray-100'}`}>
-                <span className={`text-xs font-bold ${isActive ? 'text-[#e53238]' : 'text-gray-800'}`}>{label}</span>
-                {v.status === 'out_of_stock' && <span className="ml-1 text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1">OOS</span>}
-                {(v.status === 'unavailable' || v.status === 'error') && <span className="ml-1 text-[9px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-1">N/A</span>}
+              <div className={`px-2 py-1.5 text-center border-b ${isActive ? 'bg-red-50/60 border-red-100' : 'bg-white border-slate-100'}`}>
+                <span className={`text-xs font-bold ${isActive ? 'text-ebay' : 'text-slate-800'}`}>{label}</span>
+                {v.status === 'out_of_stock' && <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded px-1">OOS</span>}
+                {(v.status === 'unavailable' || v.status === 'error') && <span className="ml-1 text-[9px] font-bold text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-1">N/A</span>}
               </div>
 
               {/* Price rows */}
-              <div className="px-2.5 py-2 flex flex-col gap-1 bg-white">
+              <div className="px-2.5 py-2.5 flex flex-col gap-1 bg-white">
                 {/* Amazon */}
                 <div className="flex items-center justify-end lg:justify-between gap-1">
-                  <span className="hidden lg:inline text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
-                  <span className="text-sm font-bold text-gray-900">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
+                  <span className="hidden lg:inline text-[9px] font-bold text-amazon-dark bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
+                  <span className="text-sm font-bold text-slate-900">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
                 </div>
 
 
                 {/* Live eBay price */}
                 {isRefreshing ? (
                   <div className="flex items-center justify-end lg:justify-between gap-1">
-                    <span className="hidden lg:inline text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
-                    <span className="text-xs text-yellow-500">…</span>
+                    <span className="hidden lg:inline text-[9px] font-bold text-ebay bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
+                    <span className="text-xs text-amber-500">…</span>
                   </div>
                 ) : livePrice != null ? (
                   <div className="flex items-center justify-end lg:justify-between gap-1">
-                    <span className="hidden lg:inline text-[9px] font-bold text-[#e53238] bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
-                    <span className={`text-sm font-bold ${synced ? 'text-green-600' : 'text-red-500'}`}>
+                    <span className="hidden lg:inline text-[9px] font-bold text-ebay bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
+                    <span className={`text-sm font-bold ${synced ? 'text-emerald-600' : 'text-red-500'}`}>
                       {v.currency}{livePrice.toFixed(2)}
                     </span>
                   </div>
                 ) : null}
 
                 {/* Profit row */}
-                <div className={`flex items-center justify-end lg:justify-between px-1 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <span className={`hidden lg:inline text-[9px] font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-400'}`}>{marginPct}%</span>
+                <div className={`flex items-center justify-end lg:justify-between px-1.5 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  <span className={`hidden lg:inline text-[9px] font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-400'}`}>{marginPct}%</span>
                   <div className="flex items-center gap-1">
-                    <span className={`text-xs font-black ${profit >= 0 ? 'text-green-700' : 'text-red-500'}`}>
+                    <span className={`text-xs font-black ${profit >= 0 ? 'text-emerald-700' : 'text-red-500'}`}>
                       {profit >= 0 ? '+' : ''}{v.currency}{profit.toFixed(2)}
                     </span>
-                    <span className={`lg:hidden text-[9px] ${profit >= 0 ? 'text-green-500' : 'text-red-400'}`}>{marginPct}%</span>
+                    <span className={`lg:hidden text-[9px] font-semibold ${profit >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>{marginPct}%</span>
                   </div>
                 </div>
 
                 {/* Countdown + refresh */}
-                <div className="flex flex-col gap-1.5 mt-0.5 pt-1.5 border-t border-gray-100">
+                <div className="flex flex-col gap-1.5 mt-0.5 pt-1.5 border-t border-slate-100">
                   <div className="flex items-center justify-between">
                     {v.nextCheck
-                      ? <span className="text-[10px] text-gray-400 font-mono">⏱ <Countdown target={v.nextCheck} /></span>
+                      ? <span className="text-[10px] text-slate-400 font-mono">⏱ <Countdown target={v.nextCheck} /></span>
                       : <span />
                     }
                     {autoSyncErrors[v._id] && (
@@ -675,18 +680,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                     )}
                     {ebayPush === 'fail' && (
                       <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
-                        className="text-[9px] text-yellow-700 underline">Reconnect</a>
+                        className="text-[9px] text-amber-700 underline font-medium">Reconnect</a>
                     )}
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
                     disabled={isRefreshing}
-                    className={`w-full py-2 rounded-lg text-xs font-semibold transition-all ${
-                      isRefreshing ? 'text-blue-600 bg-blue-50 border border-blue-200 cursor-not-allowed'
-                      : result === 'ok' && ebayPush === 'ok' ? 'text-green-600 bg-green-50 border border-green-200 hover:bg-green-100'
-                      : result === 'ok' && ebayPush === 'fail' ? 'text-yellow-700 bg-yellow-50 border border-yellow-300'
-                      : result === 'fail' ? 'text-red-500 bg-red-50 border border-red-200'
-                      : 'text-gray-400 bg-gray-100 border border-gray-200 hover:text-gray-600'
+                    className={`w-full py-2 rounded-xl text-xs font-semibold transition-all ${
+                      isRefreshing ? 'text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 cursor-not-allowed'
+                      : result === 'ok' && ebayPush === 'ok' ? 'text-emerald-600 bg-emerald-50 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100'
+                      : result === 'ok' && ebayPush === 'fail' ? 'text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-300'
+                      : result === 'fail' ? 'text-red-500 bg-red-50 ring-1 ring-inset ring-red-200'
+                      : 'text-slate-400 bg-slate-100 ring-1 ring-inset ring-slate-200 hover:text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
@@ -705,38 +710,38 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               onClick={() => toggleExpand(i)}
               title={label}
               className={`relative flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
-                isActive ? 'border-[#e53238] bg-[#fff5f5]' : 'border-gray-200 hover:border-gray-400'
+                isActive ? 'border-ebay bg-red-50/60' : 'border-slate-200 hover:border-slate-400'
               }`}
             >
               {livePrice != null && (
-                <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-green-500' : 'text-red-500'}`}>
+                <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-emerald-500' : 'text-red-500'}`}>
                   {synced ? '✓' : '✗'}
                 </span>
               )}
               {v.image && <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />}
-              <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-[#e53238]' : 'text-gray-700'}`}>{label}</span>
+              <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-ebay' : 'text-slate-700'}`}>{label}</span>
               {allExpanded && (
                 <>
-                  {v.status === 'out_of_stock' && <span className="text-[8px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-0.5 leading-tight">OOS</span>}
-                  {(v.status === 'unavailable' || v.status === 'error') && <span className="text-[8px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">N/A</span>}
-                  <span className="text-[9px] text-gray-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
-                  {isRefreshing ? <span className="text-[9px] font-mono text-yellow-500">…</span>
-                    : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-green-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
+                  {v.status === 'out_of_stock' && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded px-0.5 leading-tight">OOS</span>}
+                  {(v.status === 'unavailable' || v.status === 'error') && <span className="text-[8px] font-bold text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-0.5 leading-tight">N/A</span>}
+                  <span className="text-[9px] text-slate-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
+                  {isRefreshing ? <span className="text-[9px] font-mono text-amber-500">…</span>
+                    : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-emerald-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
                     : null}
-                  {autoSyncErrors[v._id] && <span className="text-[8px] text-red-600 bg-red-50 border border-red-200 rounded px-0.5 leading-tight">⚠ err</span>}
-                  {v.nextCheck && <span className="text-[9px] text-gray-400 font-mono">⏱<Countdown target={v.nextCheck} /></span>}
+                  {autoSyncErrors[v._id] && <span className="text-[8px] text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-0.5 leading-tight">⚠ err</span>}
+                  {v.nextCheck && <span className="text-[9px] text-slate-400 font-mono">⏱<Countdown target={v.nextCheck} /></span>}
                   {ebayPush === 'fail' && (
-                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()} className="text-[9px] text-yellow-700 underline whitespace-nowrap">Reconnect →</a>
+                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()} className="text-[9px] text-amber-700 underline whitespace-nowrap font-medium">Reconnect →</a>
                   )}
                   <button
                     onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
                     disabled={isRefreshing}
-                    className={`mt-0.5 self-stretch flex items-center justify-center rounded text-[10px] py-0.5 transition-all ${
-                      isRefreshing ? 'bg-blue-100 text-blue-600 border border-blue-300 cursor-not-allowed'
-                      : result === 'ok' && ebayPush === 'ok' ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
-                      : result === 'ok' && ebayPush === 'fail' ? 'bg-yellow-50 text-yellow-700 border border-yellow-300 hover:bg-yellow-100'
-                      : result === 'fail' ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100'
-                      : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+                    className={`mt-0.5 self-stretch flex items-center justify-center rounded text-[10px] py-0.5 transition-all ring-1 ring-inset ${
+                      isRefreshing ? 'bg-blue-100 text-blue-600 ring-blue-300 cursor-not-allowed'
+                      : result === 'ok' && ebayPush === 'ok' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200 hover:bg-emerald-100'
+                      : result === 'ok' && ebayPush === 'fail' ? 'bg-amber-50 text-amber-700 ring-amber-300 hover:bg-amber-100'
+                      : result === 'fail' ? 'bg-red-50 text-red-500 ring-red-200 hover:bg-red-100'
+                      : 'bg-slate-100 text-slate-400 ring-slate-200 hover:bg-slate-200 hover:text-slate-600'
                     }`}
                   >
                     <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
@@ -754,12 +759,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       <div className="flex items-center gap-2 flex-wrap">
         <a href={active.url?.startsWith('http') ? active.url : `https://${active.url}`}
           target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
+          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
           Amazon ↗
         </a>
         <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(active.upc || active.title)}&_sop=15`}
           target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-red-50 text-[#e53238] border border-red-200 hover:bg-red-100 transition-colors whitespace-nowrap">
+          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-red-50 text-ebay ring-1 ring-inset ring-red-200 hover:bg-red-100 transition-colors whitespace-nowrap">
           eBay ↗
         </a>
         {editingEbay ? (
@@ -767,7 +772,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             {myListings.length > 0 && (
               <select
                 autoFocus
-                className="w-52 px-2 py-1 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#e53238] bg-white"
+                className="w-52 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-ebay focus:ring-2 focus:ring-ebay/15 bg-white transition-all"
                 value={ebayInput}
                 onChange={e => setEbayInput(e.target.value)}
                 disabled={savingEbay}
@@ -787,30 +792,30 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 value={ebayInput}
                 onChange={e => setEbayInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
-                className="w-52 px-2 py-1 border border-gray-300 rounded-lg text-xs outline-none focus:border-[#e53238]"
+                className="w-52 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-ebay focus:ring-2 focus:ring-ebay/15 transition-all"
                 disabled={savingEbay}
               />
               <button onClick={saveEbayListing} disabled={savingEbay}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-[#e53238] text-white text-xs hover:bg-red-700 disabled:opacity-40 transition-colors">✓</button>
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-ebay text-white text-xs hover:bg-ebay-dark disabled:opacity-40 transition-colors">✓</button>
               <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs hover:bg-gray-200 transition-colors">✕</button>
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs hover:bg-slate-200 transition-colors">✕</button>
             </div>
           </div>
         ) : groupEbayId ? (
           <div className="flex flex-col gap-1">
             <div className="inline-flex items-center gap-1.5">
               <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-[#e53238] text-white hover:bg-red-700 transition-colors whitespace-nowrap">
+                className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-ebay text-white hover:bg-ebay-dark transition-colors whitespace-nowrap">
                 My Listing ↗
               </a>
               <button onClick={() => openEbayEdit(groupEbayId)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
             </div>
             <button onClick={fixVariationPhotos} disabled={fixingPhotos}
-              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full border border-blue-300 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
+              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
               {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
             </button>
-            {fixPhotosStatus === 'ok' && <p className="text-[10px] text-green-600 text-center">Photos updated ✓</p>}
+            {fixPhotosStatus === 'ok' && <p className="text-[10px] text-emerald-600 font-semibold text-center">Photos updated ✓</p>}
             {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}
           </div>
         ) : (
@@ -821,7 +826,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               if (status) {
                 const isError = status.step === 'error';
                 return (
-                  <div className={`flex flex-col gap-0.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${isError ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                  <div className={`flex flex-col gap-0.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ring-1 ring-inset ${isError ? 'bg-red-50 text-red-600 ring-red-200' : 'bg-blue-50 text-blue-700 ring-blue-200'}`}>
                     <span>{AUTO_LIST_STEP_LABELS[status.step] || '⏳ Listing…'}</span>
                     {isError && <span className="text-[10px] font-normal text-red-500 break-words">{status.error?.slice(0, 120)}</span>}
                   </div>
@@ -832,10 +837,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 <>
                   {hasPrime
                     ? <span className="text-[10px] text-blue-500 px-1">🤖 Will auto-list when Prime confirmed</span>
-                    : <span className="text-[10px] text-gray-400 px-1">🚫 No Prime — cannot list on eBay</span>
+                    : <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>
                   }
                   <button onClick={() => openEbayEdit('')}
-                    className="text-[10px] text-gray-400 text-center hover:text-[#e53238] transition-colors">
+                    className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
                     + link existing listing manually
                   </button>
                 </>
@@ -847,13 +852,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           <span className="text-xs text-blue-500 whitespace-nowrap">Pushing prices…</span>
         )}
         {linkStatus === 'ok' && (
-          <span className="text-xs text-green-600 whitespace-nowrap">Prices updated ✓</span>
+          <span className="text-xs text-emerald-600 font-semibold whitespace-nowrap">Prices updated ✓</span>
         )}
         {linkStatus === 'fail' && (
           <span className="text-xs text-red-500 whitespace-nowrap">Price push failed ⚠</span>
         )}
         <button onClick={() => setShowSpecs(s => !s)}
-          className="ml-auto inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap px-2 py-1 rounded-full hover:bg-gray-100">
+          className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors whitespace-nowrap px-2.5 py-1 rounded-full hover:bg-slate-100">
           <span className="text-[10px]">{showSpecs ? '▲' : '▼'}</span> specs
         </button>
       </div>
@@ -861,19 +866,19 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       {/* ── Specs panel ── */}
       {showSpecs && (
-        <div className="border-t border-gray-100 pt-3">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Specs — {active.variant || `Variant ${activeIdx + 1}`}</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2">
+        <div className="border-t border-slate-100 pt-3 animate-fade-in">
+          <p className="text-xs font-bold text-slate-500 mb-2.5">Specs — {active.variant || `Variant ${activeIdx + 1}`}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2.5">
             {active.upc && (
               <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-gray-400 uppercase tracking-wide">UPC</span>
-                <span className="text-xs text-gray-700 font-mono">{active.upc}</span>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">UPC</span>
+                <span className="text-xs text-slate-700 font-mono">{active.upc}</span>
               </div>
             )}
             {specEntries.map(([k, v]) => (
               <div key={k} className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-gray-400 uppercase tracking-wide">{fmtKey(k)}</span>
-                <span className="text-xs text-gray-700 break-words">{fmtVal(v)}</span>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{fmtKey(k)}</span>
+                <span className="text-xs text-slate-700 break-words">{fmtVal(v)}</span>
               </div>
             ))}
           </div>
