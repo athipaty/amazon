@@ -1,0 +1,113 @@
+import { useState } from 'react';
+import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
+
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false }) {
+  const [search, setSearch] = useState('');
+  const filtered = search.trim()
+    ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
+    : items;
+  return (
+    <div className={mobile
+      ? "flex flex-col overflow-hidden bg-white border border-slate-200/70 rounded-2xl shadow-soft"
+      : "w-72 flex-shrink-0 border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-soft sticky top-4 max-h-[calc(100vh-120px)] flex flex-col"
+    }>
+      {/* Header + search */}
+      <div className="px-3.5 py-3 bg-slate-50/80 border-b border-slate-100 flex-shrink-0">
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            {items.length} listing{items.length !== 1 ? 's' : ''}
+          </p>
+          {ebayConnected
+            ? <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 ring-1 ring-inset ring-emerald-200 px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Connected
+              </span>
+            : <a
+                href={`${apiUrl}/api/ebay/auth/login`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] font-bold text-ebay hover:text-ebay-dark bg-red-50 hover:bg-red-100 ring-1 ring-inset ring-red-200 px-1.5 py-0.5 rounded-full leading-none transition-colors whitespace-nowrap"
+              >
+                Reconnect eBay
+              </a>
+          }
+        </div>
+        <div className="relative">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none">⌕</span>
+          <input
+            type="text"
+            placeholder="Search listings…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-7 pr-2.5 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/15 bg-white placeholder-slate-400 transition-all"
+          />
+        </div>
+      </div>
+      {/* Items */}
+      <div className={mobile ? "flex flex-col divide-y divide-slate-50" : "overflow-y-auto flex-1 scrollbar-thin divide-y divide-slate-50"}>
+        {filtered.length === 0 && (
+          <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
+        )}
+        {filtered.map(item => {
+          const key = getItemKey(item);
+          const status = getItemStatus(item);
+          const image = getItemImage(item);
+          const title = getItemTitle(item);
+          const isSelected = selectedKey === key;
+          return (
+            <button
+              key={key}
+              onClick={() => onSelect(key)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors ${isSelected ? 'bg-blue-50/70 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent hover:bg-slate-50'}`}
+            >
+              <div className="relative flex-shrink-0">
+                {image
+                  ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-xl bg-slate-50 border border-slate-100" />
+                  : <div className="w-11 h-11 rounded-xl bg-slate-100" />
+                }
+                {(() => {
+                  const ebayId = item.type === 'group'
+                    ? item.variants.find(v => v.ebayListingId)?.ebayListingId
+                    : item.product?.ebayListingId;
+                  const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
+                  if (!views) return null;
+                  return (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-ebay text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
+                      {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
+                    </span>
+                  );
+                })()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-[11px] font-medium leading-snug line-clamp-2 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>{title}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-1">
+                    {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" /><span className="text-[10px] text-emerald-600 font-semibold">Listed OK</span></>}
+                    {status === 'price'    && <><span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse" /><span className="text-[10px] text-amber-600 font-semibold">Price issue</span></>}
+                    {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
+                    {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" /><span className="text-[10px] text-slate-400">Not listed</span></>}
+                    {item.type === 'group' && <span className="ml-1 text-[9px] text-slate-300 font-medium">{item.variants.length}v</span>}
+                  </div>
+                  {/* Profit badge */}
+                  {(() => {
+                    const prices = item.type === 'group'
+                      ? item.variants.map(v => v.current).filter(Boolean)
+                      : [item.product.current].filter(Boolean);
+                    if (!prices.length) return null;
+                    const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    const cp = calcEbayPrice(avgCost, saleMode);
+                    const p = +(cp - trueCost(avgCost) - calcEbayFee(cp)).toFixed(2);
+                    return (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none ${p >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
+                        {p >= 0 ? '+' : ''}${p.toFixed(2)}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
