@@ -1,71 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
+import { detectVariantDimension } from '../utils/productGroupHelpers';
+import AmazonPrimeBadge from './AmazonPrimeBadge';
+import VariantSwatchGrid from './VariantSwatchGrid';
+import EbayListingControls from './EbayListingControls';
+import SpecsPanel from './SpecsPanel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-function AmazonPrimeBadge() {
-  return (
-    <span className="inline-flex flex-col items-center leading-none select-none" title="Amazon Prime">
-      <span
-        style={{ background: '#00A8E0', fontFamily: 'Georgia, serif' }}
-        className="text-white text-[9px] font-extrabold italic tracking-widest px-2 pt-[3px] pb-[1px] rounded-t-sm"
-      >
-        prime
-      </span>
-      <svg viewBox="0 0 40 8" className="w-8" style={{ display: 'block', marginTop: '-1px' }} aria-hidden="true">
-        <path d="M2 2 Q10 7 20 5 Q30 3 38 6" fill="none" stroke="#FF9900" strokeWidth="2.2" strokeLinecap="round" />
-        <polygon points="35,3 39,6 35.5,8" fill="#FF9900" />
-      </svg>
-    </span>
-  );
-}
-
-function Countdown({ target }) {
-  const [remaining, setRemaining] = useState('');
-  useEffect(() => {
-    function update() {
-      const diff = new Date(target) - new Date();
-      if (diff <= 0) { setRemaining('soon'); return; }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setRemaining(h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`);
-    }
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [target]);
-  return remaining || '…';
-}
-
-// Use 'Style' for compound labels (contain / + or start with digit) so eBay doesn't
-// reject them as invalid Color values. Check complexity BEFORE checking for color words.
-function detectVariantDimension(variants) {
-  const labels = variants.map(v => v.variant || '');
-  if (labels.some(l => /\d+["'.×xX]/.test(l))) return 'Size';
-  if (labels.some(l => /[\/+]/.test(l) || /^\d/.test(l))) return 'Style';
-  if (labels.some(l => /\b(red|blue|green|black|white|gray|grey|pink|purple|yellow|orange|brown|beige|ivory|cream|navy|teal|turquoise|coral|silver|gold|rose|lavender|mint|charcoal|natural|carbonized|walnut|bamboo|oak|mahogany|cherry|maple|ebony)\b/i.test(l))) return 'Color';
-  return 'Style';
-}
-
-const SKIP_SPEC_KEYS = new Set(['asin', 'upc']);
-function fmtKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
-function fmtVal(v) {
-  if (v == null) return null;
-  if (Array.isArray(v)) return v.join(' · ');
-  if (typeof v === 'object') return Object.entries(v).filter(([, val]) => val != null).map(([k, val]) => `${fmtKey(k)}: ${val}`).join(' · ');
-  return String(v);
-}
-
-const AUTO_LIST_STEP_LABELS = {
-  images: '📸 Uploading images…',
-  title: '✍️ Writing title…',
-  description: '📝 Writing description…',
-  listing: '📤 Creating listing…',
-  photos: '🖼️ Pushing photos…',
-  done: '✅ Listed on eBay!',
-  error: '⚠️ Listing failed',
-};
 
 export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false, autoListStatus = {} }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -486,10 +427,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
-  const specEntries = active.specs
-    ? Object.entries(active.specs).filter(([k, v]) => !SKIP_SPEC_KEYS.has(k) && fmtVal(v))
-    : [];
-
   const allUnavailable = variants.every(v => v.status === 'unavailable');
   const allOOS = variants.every(v => v.status === 'out_of_stock');
   const someIssue = variants.some(v => v.status && v.status !== 'active');
@@ -595,165 +532,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Variant swatches ── */}
-      <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
-        {variants.map((v, i) => {
-          const label     = v.variant || `Variant ${i + 1}`;
-          const calcPrice = calcEbayPrice(v.current, saleMode);
-          const ebayFee   = calcEbayFee(calcPrice);
-          const profit    = +(calcPrice - trueCost(v.current) - ebayFee).toFixed(2);
-          const marginPct = ((profit / calcPrice) * 100).toFixed(1);
-          const livePrice = getLivePrice(v.variant || label);
-          const synced    = livePrice != null && Math.abs(livePrice - calcPrice) < 0.02;
-          const isRefreshing = refreshingIds.has(v._id);
-          const result = refreshResults[v._id];
-          const ebayPush = ebayPushResults[v._id];
-          const isActive = i === activeIdx;
-
-          // ── DETAIL MODE: full card with labeled price rows ──────────
-          if (detailMode) return (
-            <div
-              key={v._id}
-              onClick={() => toggleExpand(i)}
-              className={`relative flex flex-col rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
-                isActive ? 'border-ebay shadow-card' : 'border-slate-200 hover:border-slate-300 hover:shadow-soft'
-              }`}
-            >
-              {/* Image */}
-              <div className={`flex items-center justify-center p-2.5 ${isActive ? 'bg-red-50/60' : 'bg-slate-50'}`}>
-                {v.image
-                  ? <img src={v.image} alt={label} className="w-16 h-16 object-contain" />
-                  : <div className="w-16 h-16 bg-slate-100 rounded-xl" />
-                }
-              </div>
-
-              {/* Label */}
-              <div className={`px-2 py-1.5 text-center border-b ${isActive ? 'bg-red-50/60 border-red-100' : 'bg-white border-slate-100'}`}>
-                <span className={`text-xs font-bold ${isActive ? 'text-ebay' : 'text-slate-800'}`}>{label}</span>
-                {v.status === 'out_of_stock' && <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded px-1">OOS</span>}
-                {(v.status === 'unavailable' || v.status === 'error') && <span className="ml-1 text-[9px] font-bold text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-1">N/A</span>}
-              </div>
-
-              {/* Price rows */}
-              <div className="px-2.5 py-2.5 flex flex-col gap-1 bg-white">
-                {/* Amazon */}
-                <div className="flex items-center justify-end lg:justify-between gap-1">
-                  <span className="hidden lg:inline text-[9px] font-bold text-amazon-dark bg-orange-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">Amazon</span>
-                  <span className="text-sm font-bold text-slate-900">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
-                </div>
-
-
-                {/* Live eBay price */}
-                {isRefreshing ? (
-                  <div className="flex items-center justify-end lg:justify-between gap-1">
-                    <span className="hidden lg:inline text-[9px] font-bold text-ebay bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
-                    <span className="text-xs text-amber-500">…</span>
-                  </div>
-                ) : livePrice != null ? (
-                  <div className="flex items-center justify-end lg:justify-between gap-1">
-                    <span className="hidden lg:inline text-[9px] font-bold text-ebay bg-red-50 px-1.5 py-0.5 rounded leading-none flex-shrink-0">eBay</span>
-                    <span className={`text-sm font-bold ${synced ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {v.currency}{livePrice.toFixed(2)}
-                    </span>
-                  </div>
-                ) : null}
-
-                {/* Profit row */}
-                <div className={`flex items-center justify-end lg:justify-between px-1.5 py-1.5 rounded-lg mt-1 ${profit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                  <span className={`hidden lg:inline text-[9px] font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-400'}`}>{marginPct}%</span>
-                  <div className="flex items-center gap-1">
-                    <span className={`text-xs font-black ${profit >= 0 ? 'text-emerald-700' : 'text-red-500'}`}>
-                      {profit >= 0 ? '+' : ''}{v.currency}{profit.toFixed(2)}
-                    </span>
-                    <span className={`lg:hidden text-[9px] font-semibold ${profit >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>{marginPct}%</span>
-                  </div>
-                </div>
-
-                {/* Countdown + refresh */}
-                <div className="flex flex-col gap-1.5 mt-0.5 pt-1.5 border-t border-slate-100">
-                  <div className="flex items-center justify-between">
-                    {v.nextCheck
-                      ? <span className="text-[10px] text-slate-400 font-mono">⏱ <Countdown target={v.nextCheck} /></span>
-                      : <span />
-                    }
-                    {autoSyncErrors[v._id] && (
-                      <span className="text-[9px] text-orange-500">⚠</span>
-                    )}
-                    {ebayPush === 'fail' && (
-                      <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()}
-                        className="text-[9px] text-amber-700 underline font-medium">Reconnect</a>
-                    )}
-                  </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
-                    disabled={isRefreshing}
-                    className={`w-full py-2 rounded-xl text-xs font-semibold transition-all ${
-                      isRefreshing ? 'text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 cursor-not-allowed'
-                      : result === 'ok' && ebayPush === 'ok' ? 'text-emerald-600 bg-emerald-50 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100'
-                      : result === 'ok' && ebayPush === 'fail' ? 'text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-300'
-                      : result === 'fail' ? 'text-red-500 bg-red-50 ring-1 ring-inset ring-red-200'
-                      : 'text-slate-400 bg-slate-100 ring-1 ring-inset ring-slate-200 hover:text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
-                      {result === 'ok' && ebayPush === 'ok' ? '✓' : result === 'ok' && ebayPush === 'fail' ? '⚠' : result === 'fail' ? '✗' : '🔄'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-
-          // ── COMPACT MODE: original tiny grid tile ──────────────────
-          return (
-            <div
-              key={v._id}
-              onClick={() => toggleExpand(i)}
-              title={label}
-              className={`relative flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
-                isActive ? 'border-ebay bg-red-50/60' : 'border-slate-200 hover:border-slate-400'
-              }`}
-            >
-              {livePrice != null && (
-                <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {synced ? '✓' : '✗'}
-                </span>
-              )}
-              {v.image && <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />}
-              <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-ebay' : 'text-slate-700'}`}>{label}</span>
-              {allExpanded && (
-                <>
-                  {v.status === 'out_of_stock' && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded px-0.5 leading-tight">OOS</span>}
-                  {(v.status === 'unavailable' || v.status === 'error') && <span className="text-[8px] font-bold text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-0.5 leading-tight">N/A</span>}
-                  <span className="text-[9px] text-slate-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
-                  {isRefreshing ? <span className="text-[9px] font-mono text-amber-500">…</span>
-                    : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-emerald-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
-                    : null}
-                  {autoSyncErrors[v._id] && <span className="text-[8px] text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-0.5 leading-tight">⚠ err</span>}
-                  {v.nextCheck && <span className="text-[9px] text-slate-400 font-mono">⏱<Countdown target={v.nextCheck} /></span>}
-                  {ebayPush === 'fail' && (
-                    <a href={`${API}/api/ebay/auth/login`} onClick={e => e.stopPropagation()} className="text-[9px] text-amber-700 underline whitespace-nowrap font-medium">Reconnect →</a>
-                  )}
-                  <button
-                    onClick={e => { e.stopPropagation(); handleCheckOne(v._id); }}
-                    disabled={isRefreshing}
-                    className={`mt-0.5 self-stretch flex items-center justify-center rounded text-[10px] py-0.5 transition-all ring-1 ring-inset ${
-                      isRefreshing ? 'bg-blue-100 text-blue-600 ring-blue-300 cursor-not-allowed'
-                      : result === 'ok' && ebayPush === 'ok' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200 hover:bg-emerald-100'
-                      : result === 'ok' && ebayPush === 'fail' ? 'bg-amber-50 text-amber-700 ring-amber-300 hover:bg-amber-100'
-                      : result === 'fail' ? 'bg-red-50 text-red-500 ring-red-200 hover:bg-red-100'
-                      : 'bg-slate-100 text-slate-400 ring-slate-200 hover:bg-slate-200 hover:text-slate-600'
-                    }`}
-                  >
-                    <span className={isRefreshing ? 'animate-spin inline-block' : ''}>
-                      {result === 'ok' && ebayPush === 'ok' ? '✓' : result === 'ok' && ebayPush === 'fail' ? '⚠' : result === 'fail' ? '✗' : '🔄'}
-                    </span>
-                  </button>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <VariantSwatchGrid
+        variants={variants}
+        detailMode={detailMode}
+        activeIdx={activeIdx}
+        toggleExpand={toggleExpand}
+        allExpanded={allExpanded}
+        refreshingIds={refreshingIds}
+        refreshResults={refreshResults}
+        ebayPushResults={ebayPushResults}
+        autoSyncErrors={autoSyncErrors}
+        getLivePrice={getLivePrice}
+        handleCheckOne={handleCheckOne}
+        saleMode={saleMode}
+        apiUrl={API}
+      />
 
       {/* ── Action buttons ── */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -767,87 +560,23 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-red-50 text-ebay ring-1 ring-inset ring-red-200 hover:bg-red-100 transition-colors whitespace-nowrap">
           eBay ↗
         </a>
-        {editingEbay ? (
-          <div className="flex flex-col gap-1.5 min-w-0">
-            {myListings.length > 0 && (
-              <select
-                autoFocus
-                className="w-52 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-ebay focus:ring-2 focus:ring-ebay/15 bg-white transition-all"
-                value={ebayInput}
-                onChange={e => setEbayInput(e.target.value)}
-                disabled={savingEbay}
-              >
-                <option value="">— pick a listing —</option>
-                {myListings.map(l => (
-                  <option key={l.listingId} value={l.listingId}>
-                    {l.listingId} · {(l.title || '').slice(0, 40)}
-                  </option>
-                ))}
-              </select>
-            )}
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                placeholder="or paste ID / URL"
-                value={ebayInput}
-                onChange={e => setEbayInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveEbayListing(); if (e.key === 'Escape') setEditingEbay(false); }}
-                className="w-52 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-ebay focus:ring-2 focus:ring-ebay/15 transition-all"
-                disabled={savingEbay}
-              />
-              <button onClick={saveEbayListing} disabled={savingEbay}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-ebay text-white text-xs hover:bg-ebay-dark disabled:opacity-40 transition-colors">✓</button>
-              <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs hover:bg-slate-200 transition-colors">✕</button>
-            </div>
-          </div>
-        ) : groupEbayId ? (
-          <div className="flex flex-col gap-1">
-            <div className="inline-flex items-center gap-1.5">
-              <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-ebay text-white hover:bg-ebay-dark transition-colors whitespace-nowrap">
-                My Listing ↗
-              </a>
-              <button onClick={() => openEbayEdit(groupEbayId)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
-            </div>
-            <button onClick={fixVariationPhotos} disabled={fixingPhotos}
-              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
-              {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
-            </button>
-            {fixPhotosStatus === 'ok' && <p className="text-[10px] text-emerald-600 font-semibold text-center">Photos updated ✓</p>}
-            {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {(() => {
-              // Find active auto-list status for any variant in this group
-              const status = variants.map(v => autoListStatus[String(v._id)]).find(Boolean);
-              if (status) {
-                const isError = status.step === 'error';
-                return (
-                  <div className={`flex flex-col gap-0.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ring-1 ring-inset ${isError ? 'bg-red-50 text-red-600 ring-red-200' : 'bg-blue-50 text-blue-700 ring-blue-200'}`}>
-                    <span>{AUTO_LIST_STEP_LABELS[status.step] || '⏳ Listing…'}</span>
-                    {isError && <span className="text-[10px] font-normal text-red-500 break-words">{status.error?.slice(0, 120)}</span>}
-                  </div>
-                );
-              }
-              const hasPrime = variants.some(v => v.isPrime);
-              return (
-                <>
-                  {hasPrime
-                    ? <span className="text-[10px] text-blue-500 px-1">🤖 Will auto-list when Prime confirmed</span>
-                    : <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>
-                  }
-                  <button onClick={() => openEbayEdit('')}
-                    className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
-                    + link existing listing manually
-                  </button>
-                </>
-              );
-            })()}
-          </div>
-        )}
+        <EbayListingControls
+          variants={variants}
+          groupEbayId={groupEbayId}
+          editingEbay={editingEbay}
+          setEditingEbay={setEditingEbay}
+          ebayInput={ebayInput}
+          setEbayInput={setEbayInput}
+          savingEbay={savingEbay}
+          myListings={myListings}
+          saveEbayListing={saveEbayListing}
+          openEbayEdit={openEbayEdit}
+          fixVariationPhotos={fixVariationPhotos}
+          fixingPhotos={fixingPhotos}
+          fixPhotosStatus={fixPhotosStatus}
+          fixPhotosError={fixPhotosError}
+          autoListStatus={autoListStatus}
+        />
         {linkStatus === 'pushing' && (
           <span className="text-xs text-blue-500 whitespace-nowrap">Pushing prices…</span>
         )}
@@ -865,25 +594,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
 
       {/* ── Specs panel ── */}
-      {showSpecs && (
-        <div className="border-t border-slate-100 pt-3 animate-fade-in">
-          <p className="text-xs font-bold text-slate-500 mb-2.5">Specs — {active.variant || `Variant ${activeIdx + 1}`}</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2.5">
-            {active.upc && (
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">UPC</span>
-                <span className="text-xs text-slate-700 font-mono">{active.upc}</span>
-              </div>
-            )}
-            {specEntries.map(([k, v]) => (
-              <div key={k} className="flex flex-col gap-0.5">
-                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{fmtKey(k)}</span>
-                <span className="text-xs text-slate-700 break-words">{fmtVal(v)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {showSpecs && <SpecsPanel active={active} activeIdx={activeIdx} />}
 
     </div>
   );
