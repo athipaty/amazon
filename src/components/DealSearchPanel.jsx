@@ -124,13 +124,23 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
                           {deal.rating ? (
                             <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount.toLocaleString()})</span>
                           ) : <span />}
-                          <button
-                            onClick={() => handleTrack(deal)}
-                            disabled={alreadyTracked || trackingAsin === deal.asin}
-                            className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
-                          >
-                            {alreadyTracked ? '✓ Tracked' : trackingAsin === deal.asin ? 'Adding…' : 'Track'}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={deal.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all whitespace-nowrap"
+                            >
+                              🔗 Amazon
+                            </a>
+                            <button
+                              onClick={() => handleTrack(deal)}
+                              disabled={alreadyTracked || trackingAsin === deal.asin}
+                              className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+                            >
+                              {alreadyTracked ? '✓ Tracked' : trackingAsin === deal.asin ? 'Adding…' : 'Track'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
