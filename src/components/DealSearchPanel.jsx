@@ -3,11 +3,34 @@ import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Search Amazon by keyword and show only results that are currently on sale
-// (i.e. have a strikethrough/original price), with a one-click "Track" button.
+// Amazon's top-level browse categories — picking one steers the search toward
+// discounted listings within that department only.
+const CATEGORIES = [
+  'Electronics',
+  'Home & Kitchen',
+  'Kitchen & Dining',
+  'Tools & Home Improvement',
+  'Sports & Outdoors',
+  'Toys & Games',
+  'Beauty & Personal Care',
+  'Clothing, Shoes & Jewelry',
+  'Health & Household',
+  'Pet Supplies',
+  'Office Products',
+  'Patio, Lawn & Garden',
+  'Baby',
+  'Grocery & Gourmet Food',
+  'Automotive',
+  'Books',
+  'Video Games',
+];
+
+// Pick an Amazon category from a dropdown and show only results in that
+// category that are currently on sale (i.e. have a strikethrough/original
+// price), with a one-click "Track" button.
 export default function DealSearchPanel({ onTrack, trackedAsins }) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
   const [deals, setDeals] = useState(null);
@@ -15,13 +38,12 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
 
   async function handleSearch(e) {
     e.preventDefault();
-    const trimmed = query.trim();
-    if (!trimmed) return;
+    if (!category) return;
     setSearching(true);
     setError('');
     setDeals(null);
     try {
-      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { query: trimmed } });
+      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { category } });
       setDeals(data.deals || []);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Search failed.');
@@ -54,19 +76,20 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
         <div className="mt-3 bg-white border border-slate-100 rounded-2xl p-5 shadow-card animate-slide-up">
           <form className="flex gap-2" onSubmit={handleSearch}>
             <div className="relative flex-1 min-w-0">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-sm pointer-events-none">🔍</span>
-              <input
-                type="text"
-                placeholder="Search Amazon for items on sale… (e.g. wireless headphones)"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-sm pointer-events-none">🏷️</span>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
                 disabled={searching}
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 transition-all disabled:bg-slate-50 placeholder:text-slate-400"
-              />
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 transition-all disabled:bg-slate-50 text-slate-700 appearance-none"
+              >
+                <option value="">Choose an Amazon category…</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <button
               type="submit"
-              disabled={searching || !query.trim()}
+              disabled={searching || !category}
               className="px-5 py-2.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap shadow-soft"
             >
               {searching ? 'Searching…' : 'Search'}
@@ -77,7 +100,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
 
           {deals && (
             deals.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-4 px-1">No items currently on sale match "{query}". Try a different search.</p>
+              <p className="text-sm text-slate-400 mt-4 px-1">No items currently on sale in "{category}" right now. Try a different category.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                 {deals.map(deal => {
