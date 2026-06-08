@@ -88,6 +88,20 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                     </span>
                   );
                 })()}
+                {/* Amazon discount badge — % off the list/strikethrough price */}
+                {(() => {
+                  const rep = item.type === 'group'
+                    ? item.variants.find(v => v.listPrice > v.current)
+                    : (item.product?.listPrice > item.product?.current ? item.product : null);
+                  if (!rep) return null;
+                  const pct = Math.round((1 - rep.current / rep.listPrice) * 100);
+                  if (pct <= 0) return null;
+                  return (
+                    <span className="absolute -bottom-1.5 -left-1.5 min-w-[28px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 leading-none shadow-sm ring-2 ring-white">
+                      −{pct}%
+                    </span>
+                  );
+                })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-[11px] font-medium leading-snug line-clamp-2 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>{title}</p>
