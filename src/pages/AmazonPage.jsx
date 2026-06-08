@@ -6,6 +6,7 @@ import SidebarList from '../components/SidebarList';
 import TrackerHeader from '../components/TrackerHeader';
 import TrackerBanners from '../components/TrackerBanners';
 import AddProductPanel from '../components/AddProductPanel';
+import DealSearchPanel from '../components/DealSearchPanel';
 import { getItemKey, getItemImage, getItemTitle, getItemStatus, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -231,6 +232,20 @@ export default function AmazonPage() {
     }
   }
 
+  async function handleTrackDeal(url) {
+    try {
+      const { data: product } = await axios.post(`${API}/api/tracker`, { url });
+      setProducts(prev => [product, ...prev]);
+      setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
+      setTimeout(() => setStatusMsg(''), 4000);
+    } catch (err) {
+      if (err.response?.status !== 409) {
+        setStatusMsg(err.response?.data?.error || 'Failed to track item.');
+        setTimeout(() => setStatusMsg(''), 4000);
+      }
+    }
+  }
+
   async function handleTrackSelected() {
     if (!preview || selectedAsins.size === 0) return;
     setAddingVariants(true);
@@ -266,6 +281,7 @@ export default function AmazonPage() {
   const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
 
   const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers);
+  const trackedAsins = new Set(products.map(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i) || [])[1]).filter(Boolean));
 
   // Auto-select first item; reset stale key after deletions
   const selectedItem = renderItems.find(i => getItemKey(i) === selectedKey) || renderItems[0] || null;
@@ -444,6 +460,8 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
         addingVariants={addingVariants} addProgress={addProgress}
         setPreview={setPreview}
       />
+
+      <DealSearchPanel onTrack={handleTrackDeal} trackedAsins={trackedAsins} />
 
       <TrackerBanners
         apiUrl={API}
