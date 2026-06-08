@@ -76,11 +76,37 @@ export function itemEbayViews(item, ebayViews) {
   }, 0);
 }
 
-// Sort: items with any issue bubble to the top, then by most eBay views
-export function sortRenderItems(renderItems, ebayFailedIds, priceMismatchIds, ebayViews) {
+export function itemEbayWatchers(item, ebayWatchers) {
+  const variants = item.type === 'group' ? item.variants : [item.product];
+  return variants.reduce((max, v) => {
+    const watchers = v.ebayListingId ? (ebayWatchers[String(v.ebayListingId)] ?? 0) : 0;
+    return Math.max(max, watchers);
+  }, 0);
+}
+
+export function itemListedAt(item) {
+  const variants = item.type === 'group' ? item.variants : [item.product];
+  const dates = variants.map(v => v.listedAt).filter(Boolean).map(d => new Date(d).getTime());
+  return dates.length ? Math.max(...dates) : null;
+}
+
+// Sort: issues first, then most watchers, then most views, then most recently listed
+export function sortRenderItems(renderItems, ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers = {}) {
   return [...renderItems].sort((a, b) => {
     const issueDiff = Number(itemHasIssue(b, ebayFailedIds, priceMismatchIds)) - Number(itemHasIssue(a, ebayFailedIds, priceMismatchIds));
     if (issueDiff !== 0) return issueDiff;
-    return itemEbayViews(b, ebayViews) - itemEbayViews(a, ebayViews);
+
+    const watchersDiff = itemEbayWatchers(b, ebayWatchers) - itemEbayWatchers(a, ebayWatchers);
+    if (watchersDiff !== 0) return watchersDiff;
+
+    const viewsDiff = itemEbayViews(b, ebayViews) - itemEbayViews(a, ebayViews);
+    if (viewsDiff !== 0) return viewsDiff;
+
+    const aListed = itemListedAt(a);
+    const bListed = itemListedAt(b);
+    if (aListed == null && bListed == null) return 0;
+    if (aListed == null) return 1;
+    if (bListed == null) return -1;
+    return bListed - aListed; // newest listings first
   });
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -76,6 +76,18 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                     </span>
                   );
                 })()}
+                {(() => {
+                  const ebayId = item.type === 'group'
+                    ? item.variants.find(v => v.ebayListingId)?.ebayListingId
+                    : item.product?.ebayListingId;
+                  const watchers = ebayId != null ? ebayWatchers[String(ebayId)] : undefined;
+                  if (!watchers) return null;
+                  return (
+                    <span className="absolute -top-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-amber-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
+                      {watchers >= 1000 ? `${(watchers / 1000).toFixed(1)}k` : watchers}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-[11px] font-medium leading-snug line-clamp-2 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>{title}</p>
@@ -87,21 +99,36 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                     {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" /><span className="text-[10px] text-slate-400">Not listed</span></>}
                     {item.type === 'group' && <span className="ml-1 text-[9px] text-slate-300 font-medium">{item.variants.length}v</span>}
                   </div>
-                  {/* Profit badge */}
-                  {(() => {
-                    const prices = item.type === 'group'
-                      ? item.variants.map(v => v.current).filter(Boolean)
-                      : [item.product.current].filter(Boolean);
-                    if (!prices.length) return null;
-                    const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
-                    const cp = calcEbayPrice(avgCost, saleMode);
-                    const p = +(cp - trueCost(avgCost) - calcEbayFee(cp)).toFixed(2);
-                    return (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none ${p >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
-                        {p >= 0 ? '+' : ''}${p.toFixed(2)}
-                      </span>
-                    );
-                  })()}
+                  <div className="flex items-center gap-1">
+                    {/* Days listed badge */}
+                    {(() => {
+                      const listedAt = item.type === 'group'
+                        ? item.variants.find(v => v.listedAt)?.listedAt
+                        : item.product?.listedAt;
+                      if (!listedAt) return null;
+                      const days = Math.max(0, Math.floor((Date.now() - new Date(listedAt).getTime()) / 86400000));
+                      return (
+                        <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md leading-none whitespace-nowrap">
+                          {days}d listed
+                        </span>
+                      );
+                    })()}
+                    {/* Profit badge */}
+                    {(() => {
+                      const prices = item.type === 'group'
+                        ? item.variants.map(v => v.current).filter(Boolean)
+                        : [item.product.current].filter(Boolean);
+                      if (!prices.length) return null;
+                      const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
+                      const cp = calcEbayPrice(avgCost, saleMode);
+                      const p = +(cp - trueCost(avgCost) - calcEbayFee(cp)).toFixed(2);
+                      return (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none ${p >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
+                          {p >= 0 ? '+' : ''}${p.toFixed(2)}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             </button>

@@ -29,6 +29,7 @@ export default function AmazonPage() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
+  const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
   const [autoListStatus, setAutoListStatus] = useState({}); // productId → { step, error, ebayListingId }
   const socketRef = useRef(null);
@@ -62,7 +63,7 @@ export default function AmazonPage() {
       }
     }).catch(() => {});
 
-    loadProducts().then(fetchEbayViews);
+    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); });
     checkEbayStatus();
     fetchSellingLimits();
 
@@ -155,7 +156,8 @@ export default function AmazonPage() {
 
     const poll = setInterval(loadProducts, 30000);
     const viewsPoll = setInterval(fetchEbayViews, 60 * 60 * 1000); // re-fetch views every hour
-    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); };
+    const watchersPoll = setInterval(fetchEbayWatchers, 60 * 60 * 1000); // re-fetch watchers every hour
+    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); };
   }, []);
 
   async function checkEbayStatus() {
@@ -191,6 +193,16 @@ export default function AmazonPage() {
       if (json._error) console.warn('[eBay views] batch error:', json._error);
       if (json.views) setEbayViews(json.views);
     } catch (e) { console.warn('[eBay views] batch fetch failed:', e.message); }
+  }
+
+  async function fetchEbayWatchers() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listings/watchers?ids=${ids.join(',')}`);
+      const json = await r.json();
+      if (json.watchers) setEbayWatchers(json.watchers);
+    } catch (e) { console.warn('[eBay watchers] batch fetch failed:', e.message); }
   }
 
   async function handleAdd(e) {
@@ -253,7 +265,7 @@ export default function AmazonPage() {
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
   const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
 
-  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews);
+  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers);
 
   // Auto-select first item; reset stale key after deletions
   const selectedItem = renderItems.find(i => getItemKey(i) === selectedKey) || renderItems[0] || null;
@@ -460,6 +472,7 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
               getItemImage={getItemImage}
               getItemStatus={itemStatus}
               ebayViews={ebayViews}
+              ebayWatchers={ebayWatchers}
               apiUrl={API}
               ebayConnected={ebayConnected}
               saleMode={saleModeActive}
@@ -479,6 +492,7 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
               getItemImage={getItemImage}
               getItemStatus={itemStatus}
               ebayViews={ebayViews}
+              ebayWatchers={ebayWatchers}
               apiUrl={API}
               ebayConnected={ebayConnected}
               saleMode={saleModeActive}
