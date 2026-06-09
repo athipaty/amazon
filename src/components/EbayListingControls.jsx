@@ -52,19 +52,19 @@ export default function EbayListingControls({
   if (groupEbayId) {
     return (
       <div className="flex flex-col gap-1">
-        <div className="inline-flex items-center gap-1.5">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           <a href={`https://www.ebay.com/itm/${groupEbayId}`} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-ebay text-white hover:bg-ebay-dark transition-colors whitespace-nowrap">
             My Listing ↗
           </a>
           <button onClick={() => openEbayEdit(groupEbayId)}
             className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
+          <button onClick={fixVariationPhotos} disabled={fixingPhotos}
+            className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
+            {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
+          </button>
         </div>
-        <button onClick={fixVariationPhotos} disabled={fixingPhotos}
-          className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
-          {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
-        </button>
-        {fixPhotosStatus === 'ok' && <p className="text-[10px] text-emerald-600 font-semibold text-center">Photos updated ✓</p>}
+        {fixPhotosStatus === 'ok' && <p className="text-[10px] text-emerald-600 font-semibold">Photos updated ✓</p>}
         {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}
       </div>
     );
