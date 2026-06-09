@@ -208,10 +208,33 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     } finally { setSavingEbay(false); }
   }
 
+  function ambiguousVariantLabels(variantList) {
+    if (variantList.length < 2) return null;
+    const labels = variantList.map(v => (v.variant || '').toLowerCase().trim()).filter(Boolean);
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = 0; j < labels.length; j++) {
+        if (i === j) continue;
+        if (!labels[j].includes(labels[i])) continue;
+        if (/[,/+]/.test(labels[j])) continue; // compound labels are intentionally distinct
+        return { subset: labels[i], superset: labels[j] };
+      }
+    }
+    return null;
+  }
+
   async function autoListOnEbay() {
     setAutoListing(true);
     setAutoListError('');
     setAutoListWarning('');
+
+    if (variants.length > 1) {
+      const clash = ambiguousVariantLabels(variants);
+      if (clash) {
+        setAutoListError(`Ambiguous variant labels: "${clash.subset}" is a substring of "${clash.superset}" — eBay cannot reprice these reliably. Rename one variant so neither label contains the other.`);
+        setAutoListing(false);
+        return;
+      }
+    }
     try {
       // Step 1: Generate SEO title from first variant
       setAutoListStep('title');
@@ -394,7 +417,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageUrls: varImgs, slug: varSlug }),
           });
-          variantCloudinaryImages.push((await uploadRes.json()).cloudinaryUrls || []);
+          const uploadData = await uploadRes.json();
+          variantCloudinaryImages.push(uploadRes.ok && uploadData.cloudinaryUrls?.length ? uploadData.cloudinaryUrls : []);
         } catch { variantCloudinaryImages.push([]); }
       }
 

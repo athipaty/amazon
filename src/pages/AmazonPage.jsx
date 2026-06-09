@@ -61,7 +61,7 @@ export default function AmazonPage() {
       // Show morning banner if discovery ran recently (last 12h) and added products
       if (data.lastDiscoveryAdded?.length && data.lastDiscoveryRun) {
         const age = Date.now() - new Date(data.lastDiscoveryRun).getTime();
-        if (age < 12 * 60 * 60 * 1000) setDiscoveryBanner(data.lastDiscoveryAdded);
+        if (age < 24 * 60 * 60 * 1000) setDiscoveryBanner(data.lastDiscoveryAdded);
       }
     }).catch(() => {});
 
@@ -102,7 +102,7 @@ export default function AmazonPage() {
     socket.on('tracker:discovery:done', ({ added }) => {
       if (added?.length) {
         setDiscoveryBanner(added);
-        loadProducts();
+        loadProducts().then(() => fetchPhotoStatus());
       }
     });
 
@@ -140,7 +140,7 @@ export default function AmazonPage() {
         (productIds || []).forEach(id => { next[id] = { step: 'done', ebayListingId }; });
         return next;
       });
-      loadProducts();
+      loadProducts().then(() => fetchPhotoStatus());
       setTimeout(() => setAutoListStatus(prev => {
         const next = { ...prev };
         (productIds || []).forEach(id => { delete next[id]; });
@@ -250,10 +250,17 @@ export default function AmazonPage() {
 
   async function handleTrackDeal(url) {
     try {
-      const { data: product } = await axios.post(`${API}/api/tracker`, { url });
-      setProducts(prev => [product, ...prev]);
-      setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
-      setTimeout(() => setStatusMsg(''), 4000);
+      const { data } = await axios.post(`${API}/api/tracker/preview`, { url });
+      if (data.variants && data.variants.length > 1) {
+        setPreview(data);
+        setPreviewGroupId(data.groupId || null);
+        setSelectedAsins(new Set());
+      } else {
+        const { data: product } = await axios.post(`${API}/api/tracker`, { url });
+        setProducts(prev => [product, ...prev]);
+        setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
+        setTimeout(() => setStatusMsg(''), 4000);
+      }
     } catch (err) {
       if (err.response?.status !== 409) {
         setStatusMsg(err.response?.data?.error || 'Failed to track item.');
