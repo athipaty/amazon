@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
+import { calcEbayPrice } from '../utils/pricing';
 
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
@@ -139,7 +139,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                         </span>
                       );
                     })()}
-                    {/* Profit badge */}
+                    {/* eBay price badge */}
                     {(() => {
                       const prices = item.type === 'group'
                         ? item.variants.map(v => v.current).filter(Boolean)
@@ -147,10 +147,9 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                       if (!prices.length) return null;
                       const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
                       const cp = calcEbayPrice(avgCost, saleMode);
-                      const p = +(cp - trueCost(avgCost) - calcEbayFee(cp)).toFixed(2);
                       return (
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none ${p >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
-                          {p >= 0 ? '+' : ''}${p.toFixed(2)}
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none bg-blue-50 text-blue-600">
+                          ${cp.toFixed(2)}
                         </span>
                       );
                     })()}
