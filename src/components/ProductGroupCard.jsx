@@ -31,6 +31,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [autoListing, setAutoListing] = useState(false);
   const [autoListStep, setAutoListStep] = useState('');
   const [autoListError, setAutoListError] = useState('');
+  const [autoListWarning, setAutoListWarning] = useState('');
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
@@ -210,6 +211,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   async function autoListOnEbay() {
     setAutoListing(true);
     setAutoListError('');
+    setAutoListWarning('');
     try {
       // Step 1: Generate SEO title from first variant
       setAutoListStep('title');
@@ -239,12 +241,19 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             body: JSON.stringify({ imageUrls: varImgs, slug: varSlug }),
           });
           const uploadData = await uploadRes.json();
-          variantCloudinaryImages.push(uploadData.cloudinaryUrls || []);
-          variantCloudinaryFolders.push(varFolder);
+          if (uploadRes.ok && uploadData.cloudinaryUrls?.length) {
+            variantCloudinaryImages.push(uploadData.cloudinaryUrls);
+            variantCloudinaryFolders.push(varFolder);
+          } else {
+            variantCloudinaryImages.push([]);
+            variantCloudinaryFolders.push(null);
+          }
         } catch { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); }
       }
       // Combine all for the main listing gallery (deduplicated, max 12)
       const cloudinaryUrls = [...new Set(variantCloudinaryImages.flat())].slice(0, 12);
+      // Abort rather than create a listing with no photos at all
+      if (!cloudinaryUrls.length) throw new Error('No product images could be uploaded to Cloudinary. Please check the product has images and try again.');
 
       // Step 3: Create multi-variation eBay listing
       setAutoListStep('listing');
@@ -297,7 +306,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       setAutoListStep('photos');
       try {
         await new Promise(r => setTimeout(r, 2000)); // brief wait for eBay to index the listing
-        await fetch(`${API}/api/ebay/listing/variation-photos`, {
+        const vpRes = await fetch(`${API}/api/ebay/listing/variation-photos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -306,7 +315,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             variants: variantPayload,
           }),
         });
-      } catch { /* non-critical — listing exists, photos can be fixed with Fix Variation Photos */ }
+        if (!vpRes.ok) setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.');
+      } catch { setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.'); }
 
       // Step 6: Verify & fix any price mismatches immediately after listing
       setAutoListStep('verifying');
@@ -592,6 +602,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         </button>
       </div>
 
+
+      {autoListWarning && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 break-words">
+          ⚠ {autoListWarning}
+        </p>
+      )}
 
       {/* ── Specs panel ── */}
       {showSpecs && <SpecsPanel active={active} activeIdx={activeIdx} />}

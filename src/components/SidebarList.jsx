@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -99,6 +99,18 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                   return (
                     <span className="absolute -bottom-1.5 -left-1.5 min-w-[28px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 leading-none shadow-sm ring-2 ring-white">
                       −{pct}%
+                    </span>
+                  );
+                })()}
+                {/* Blank eBay photo warning badge */}
+                {(() => {
+                  const ebayId = item.type === 'group'
+                    ? item.variants.find(v => v.ebayListingId)?.ebayListingId
+                    : item.product?.ebayListingId;
+                  if (!ebayId || !blankPhotoIds.has(String(ebayId))) return null;
+                  return (
+                    <span className="absolute -bottom-1.5 -right-1.5 w-[17px] h-[17px] flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full leading-none shadow-sm ring-2 ring-white" title="No photos on eBay listing">
+                      📷
                     </span>
                   );
                 })()}

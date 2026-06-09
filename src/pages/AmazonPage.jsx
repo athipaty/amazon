@@ -31,6 +31,7 @@ export default function AmazonPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
   const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
+  const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
   const [autoListStatus, setAutoListStatus] = useState({}); // productId → { step, error, ebayListingId }
   const socketRef = useRef(null);
@@ -64,7 +65,7 @@ export default function AmazonPage() {
       }
     }).catch(() => {});
 
-    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); });
+    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); });
     checkEbayStatus();
     fetchSellingLimits();
 
@@ -204,6 +205,21 @@ export default function AmazonPage() {
       const json = await r.json();
       if (json.watchers) setEbayWatchers(json.watchers);
     } catch (e) { console.warn('[eBay watchers] batch fetch failed:', e.message); }
+  }
+
+  async function fetchPhotoStatus() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listings/photo-status?ids=${ids.join(',')}`);
+      const data = await r.json();
+      const blank = new Set(
+        Object.entries(data)
+          .filter(([, v]) => v.hasPhoto === false)
+          .map(([id]) => id)
+      );
+      setBlankPhotoIds(blank);
+    } catch { /* non-critical */ }
   }
 
   async function handleAdd(e) {
@@ -494,6 +510,7 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
               apiUrl={API}
               ebayConnected={ebayConnected}
               saleMode={saleModeActive}
+              blankPhotoIds={blankPhotoIds}
             />
           </div>
 
@@ -514,6 +531,7 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
               apiUrl={API}
               ebayConnected={ebayConnected}
               saleMode={saleModeActive}
+              blankPhotoIds={blankPhotoIds}
             />
 
             {/* RIGHT: detail panel — always use GroupCard layout (1 card for singles, N for groups) */}
