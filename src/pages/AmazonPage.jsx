@@ -49,19 +49,12 @@ export default function AmazonPage() {
     }
   }, [preview]);
 
-  const [discoveryBanner, setDiscoveryBanner] = useState(null); // [{ asin, title, profit, ebayListingId }]
-
   useEffect(() => {
-    // Sync sale mode + discovery results from DB
+    // Sync sale mode from DB
     axios.get(`${API}/api/tracker/settings`).then(({ data }) => {
       setSaleModeActive(data.saleModeActive);
       if (data.saleModeActive) localStorage.setItem('saleModeActive', 'true');
       else localStorage.removeItem('saleModeActive');
-      // Show morning banner if discovery ran recently (last 12h) and added products
-      if (data.lastDiscoveryAdded?.length && data.lastDiscoveryRun) {
-        const age = Date.now() - new Date(data.lastDiscoveryRun).getTime();
-        if (age < 24 * 60 * 60 * 1000) setDiscoveryBanner(data.lastDiscoveryAdded);
-      }
     }).catch(() => {});
 
     loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); });
@@ -95,13 +88,6 @@ export default function AmazonPage() {
       } else {
         setOrphanResult({ found: 0, ended: 0 });
         setTimeout(() => setOrphanResult(null), 4000);
-      }
-    });
-
-    socket.on('tracker:discovery:done', ({ added }) => {
-      if (added?.length) {
-        setDiscoveryBanner(added);
-        loadProducts().then(() => fetchPhotoStatus());
       }
     });
 
@@ -451,7 +437,6 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
       <TrackerBanners
         apiUrl={API}
         ebayConnected={ebayConnected} ebayTokenDaysLeft={ebayTokenDaysLeft}
-        discoveryBanner={discoveryBanner} setDiscoveryBanner={setDiscoveryBanner}
         statusMsg={statusMsg}
       />
 
