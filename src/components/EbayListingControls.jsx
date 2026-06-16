@@ -1,15 +1,11 @@
-import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
-
 // eBay listing link/edit controls shown in the action row: the inline
 // "paste listing ID / pick from my listings" editor, the linked-listing view
-// (My Listing link + Fix Variation Photos), or the unlisted state
-// (auto-list progress / manual link prompt).
+// (My Listing link + Fix Variation Photos), or the unlisted state (manual link prompt).
 export default function EbayListingControls({
   variants, groupEbayId,
   editingEbay, setEditingEbay, ebayInput, setEbayInput, savingEbay, myListings,
   saveEbayListing, openEbayEdit,
   fixVariationPhotos, fixingPhotos, fixPhotosStatus, fixPhotosError,
-  autoListStatus,
 }) {
   if (editingEbay) {
     return (
@@ -70,34 +66,14 @@ export default function EbayListingControls({
     );
   }
 
+  const hasPrime = variants.some(v => v.isPrime);
   return (
     <div className="flex flex-col gap-1">
-      {(() => {
-        // Find active auto-list status for any variant in this group
-        const status = variants.map(v => autoListStatus[String(v._id)]).find(Boolean);
-        if (status) {
-          const isError = status.step === 'error';
-          return (
-            <div className={`flex flex-col gap-0.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ring-1 ring-inset ${isError ? 'bg-red-50 text-red-600 ring-red-200' : 'bg-blue-50 text-blue-700 ring-blue-200'}`}>
-              <span>{AUTO_LIST_STEP_LABELS[status.step] || '⏳ Listing…'}</span>
-              {isError && <span className="text-[10px] font-normal text-red-500 break-words">{status.error?.slice(0, 120)}</span>}
-            </div>
-          );
-        }
-        const hasPrime = variants.some(v => v.isPrime);
-        return (
-          <>
-            {hasPrime
-              ? <span className="text-[10px] text-blue-500 px-1">🤖 Will auto-list when Prime confirmed</span>
-              : <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>
-            }
-            <button onClick={() => openEbayEdit('')}
-              className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
-              + link existing listing manually
-            </button>
-          </>
-        );
-      })()}
+      {!hasPrime && <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>}
+      <button onClick={() => openEbayEdit('')}
+        className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
+        + link existing listing manually
+      </button>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 // Pure helpers shared across the eBay listing flows in ProductGroupCard:
-// detecting the right eBay variation dimension, formatting spec entries,
-// and labeling steps of the auto-list progress indicator.
+// detecting the right eBay variation dimension and formatting spec entries.
 
 // Use 'Style' for compound labels (contain / + or start with digit) so eBay doesn't
 // reject them as invalid Color values. Check complexity BEFORE checking for color words.
@@ -21,12 +20,3 @@ export function fmtVal(v) {
   return String(v);
 }
 
-export const AUTO_LIST_STEP_LABELS = {
-  images: '📸 Uploading images…',
-  title: '✍️ Writing title…',
-  description: '📝 Writing description…',
-  listing: '📤 Creating listing…',
-  photos: '🖼️ Pushing photos…',
-  done: '✅ Listed on eBay!',
-  error: '⚠️ Listing failed',
-};

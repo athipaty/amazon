@@ -33,7 +33,6 @@ export default function AmazonPage() {
   const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
   const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
-  const [autoListStatus, setAutoListStatus] = useState({}); // productId → { step, error, ebayListingId }
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
@@ -116,44 +115,6 @@ export default function AmazonPage() {
 
     socket.on('tracker:ebay:sync:ok', ({ productId }) => {
       setEbayFailedIds(prev => { const next = new Set(prev); next.delete(productId); return next; });
-    });
-
-    socket.on('tracker:auto-list:start', ({ productIds, title }) => {
-      setAutoListStatus(prev => {
-        const next = { ...prev };
-        (productIds || []).forEach(id => { next[id] = { step: 'images', title }; });
-        return next;
-      });
-    });
-
-    socket.on('tracker:auto-list:step', ({ productIds, step }) => {
-      setAutoListStatus(prev => {
-        const next = { ...prev };
-        (productIds || []).forEach(id => { if (next[id]) next[id] = { ...next[id], step }; });
-        return next;
-      });
-    });
-
-    socket.on('tracker:auto-list:done', ({ productIds, ebayListingId }) => {
-      setAutoListStatus(prev => {
-        const next = { ...prev };
-        (productIds || []).forEach(id => { next[id] = { step: 'done', ebayListingId }; });
-        return next;
-      });
-      loadProducts().then(() => fetchPhotoStatus());
-      setTimeout(() => setAutoListStatus(prev => {
-        const next = { ...prev };
-        (productIds || []).forEach(id => { delete next[id]; });
-        return next;
-      }), 6000);
-    });
-
-    socket.on('tracker:auto-list:error', ({ productIds, error }) => {
-      setAutoListStatus(prev => {
-        const next = { ...prev };
-        (productIds || []).forEach(id => { next[id] = { step: 'error', error }; });
-        return next;
-      });
     });
 
     const poll = setInterval(loadProducts, 30000);
@@ -545,8 +506,8 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
-                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} autoListStatus={autoListStatus} />
-                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} autoListStatus={autoListStatus} />
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} />
               )}
             </div>
           </div>
@@ -571,8 +532,8 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
           <div className="flex-1 overflow-y-auto p-3 pb-8">
             {selectedItem && (
               selectedItem.type === 'group'
-                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} autoListStatus={autoListStatus} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} autoListStatus={autoListStatus} />
+                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} />
             )}
           </div>
         </div>
