@@ -250,8 +250,7 @@ export default function AmazonPage() {
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
   const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
 
-  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers)
-    .filter(item => getItemStatus(item, ebayFailedIds, priceMismatchIds) !== 'unlisted');
+  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers);
   const trackedAsins = new Set(products.map(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i) || [])[1]).filter(Boolean));
 
   // Auto-select first item; reset stale key after deletions
