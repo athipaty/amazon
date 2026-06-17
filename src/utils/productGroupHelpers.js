@@ -11,6 +11,18 @@ export function detectVariantDimension(variants) {
   return 'Style';
 }
 
+export const AUTO_LIST_STEP_LABELS = {
+  images: '📸 Uploading images…',
+  title: '✍️ Writing title…',
+  description: '📝 Writing description…',
+  listing: '📤 Creating listing…',
+  photos: '🖼️ Pushing photos…',
+  verifying: '🔍 Verifying prices…',
+  saving: '💾 Saving listing ID…',
+  done: '✅ Listed on eBay!',
+  error: '⚠️ Listing failed',
+};
+
 export const SKIP_SPEC_KEYS = new Set(['asin', 'upc']);
 export function fmtKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 export function fmtVal(v) {

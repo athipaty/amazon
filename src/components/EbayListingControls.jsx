@@ -1,11 +1,15 @@
+import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
+
 // eBay listing link/edit controls shown in the action row: the inline
 // "paste listing ID / pick from my listings" editor, the linked-listing view
-// (My Listing link + Fix Variation Photos), or the unlisted state (manual link prompt).
+// (My Listing link + Fix Variation Photos), or the unlisted state
+// (auto-list button + progress + manual link prompt).
 export default function EbayListingControls({
   variants, groupEbayId,
   editingEbay, setEditingEbay, ebayInput, setEbayInput, savingEbay, myListings,
   saveEbayListing, openEbayEdit,
   fixVariationPhotos, fixingPhotos, fixPhotosStatus, fixPhotosError,
+  onAutoList, autoListing, autoListStep, autoListError,
 }) {
   if (editingEbay) {
     return (
@@ -69,7 +73,31 @@ export default function EbayListingControls({
   const hasPrime = variants.some(v => v.isPrime);
   return (
     <div className="flex flex-col gap-1">
-      {!hasPrime && <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>}
+      {autoListing ? (
+        <div className="flex flex-col gap-0.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ring-1 ring-inset bg-blue-50 text-blue-700 ring-blue-200">
+          <span>{AUTO_LIST_STEP_LABELS[autoListStep] || '⏳ Listing…'}</span>
+        </div>
+      ) : autoListError ? (
+        <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-0.5 px-3 py-1.5 rounded-xl text-xs font-semibold ring-1 ring-inset bg-red-50 text-red-600 ring-red-200">
+            <span>⚠️ Listing failed</span>
+            <span className="text-[10px] font-normal break-words">{autoListError.slice(0, 120)}</span>
+          </div>
+          {hasPrime && (
+            <button onClick={onAutoList}
+              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap">
+              🔄 Retry Auto List
+            </button>
+          )}
+        </div>
+      ) : hasPrime ? (
+        <button onClick={onAutoList}
+          className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm">
+          🤖 Auto List on eBay
+        </button>
+      ) : (
+        <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>
+      )}
       <button onClick={() => openEbayEdit('')}
         className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
         + link existing listing manually

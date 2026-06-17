@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
-import { detectVariantDimension } from '../utils/productGroupHelpers';
+import { detectVariantDimension, AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 import AmazonPrimeBadge from './AmazonPrimeBadge';
 import VariantSwatchGrid from './VariantSwatchGrid';
 import EbayListingControls from './EbayListingControls';
@@ -28,6 +28,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
   const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
   const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
+  const [autoListing, setAutoListing] = useState(false);
+  const [autoListStep, setAutoListStep] = useState('');
+  const [autoListError, setAutoListError] = useState('');
+  const [autoListWarning, setAutoListWarning] = useState('');
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
@@ -202,6 +206,161 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         setTimeout(() => setLinkStatus(''), 5000);
       }
     } finally { setSavingEbay(false); }
+  }
+
+  function ambiguousVariantLabels(variantList) {
+    if (variantList.length < 2) return null;
+    const labels = variantList.map(v => (v.variant || '').toLowerCase().trim()).filter(Boolean);
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = 0; j < labels.length; j++) {
+        if (i === j) continue;
+        if (!labels[j].includes(labels[i])) continue;
+        if (/[,/+]/.test(labels[j])) continue;
+        return { subset: labels[i], superset: labels[j] };
+      }
+    }
+    return null;
+  }
+
+  async function autoListOnEbay() {
+    setAutoListing(true);
+    setAutoListError('');
+    setAutoListWarning('');
+
+    if (variants.length > 1) {
+      const clash = ambiguousVariantLabels(variants);
+      if (clash) {
+        setAutoListError(`Ambiguous variant labels: "${clash.subset}" is a substring of "${clash.superset}" — eBay cannot reprice these reliably. Rename one variant so neither label contains the other.`);
+        setAutoListing(false);
+        return;
+      }
+    }
+    try {
+      setAutoListStep('title');
+      const titleRes = await fetch(`${API}/api/ebay/seo-title`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: active.title, specs: active.specs }),
+      });
+      const titleData = await titleRes.json();
+      const ebayTitle = titleData.title || active.title;
+
+      setAutoListStep('images');
+      const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const variantCloudinaryImages = [];
+      const variantCloudinaryFolders = [];
+      for (const v of variants) {
+        const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
+        if (!varImgs.length) { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); continue; }
+        const varSlug = slug + '-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const varFolder = `ebay-listings/${varSlug}`;
+        try {
+          const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrls: varImgs, slug: varSlug }),
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadRes.ok && uploadData.cloudinaryUrls?.length) {
+            variantCloudinaryImages.push(uploadData.cloudinaryUrls);
+            variantCloudinaryFolders.push(varFolder);
+          } else {
+            variantCloudinaryImages.push([]);
+            variantCloudinaryFolders.push(null);
+          }
+        } catch { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); }
+      }
+      const cloudinaryUrls = [...new Set(variantCloudinaryImages.flat())].slice(0, 12);
+      if (!cloudinaryUrls.length) throw new Error('No product images could be uploaded to Cloudinary. Please check the product has images and try again.');
+
+      setAutoListStep('description');
+      let listingDescription = null;
+      try {
+        const descRes = await fetch(`${API}/api/ebay/generate-description`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: ebayTitle, specs: active.specs || {}, imageUrls: cloudinaryUrls, bullets: active.bullets || [], upc: active.upc, variant: active.variant }),
+        });
+        const descData = await descRes.json();
+        listingDescription = descData.html || null;
+      } catch { /* fall back to generic placeholder */ }
+
+      setAutoListStep('listing');
+      const variantDimension = detectVariantDimension(variants);
+      const variantPayload = variants.map((v, i) => ({
+        label: v.variant || `Variant ${i + 1}`,
+        price: (calcEbayPrice(v.current, saleMode)).toFixed(2),
+        quantity: 1,
+        images: variantCloudinaryImages[i] || [],
+        image: variantCloudinaryImages[i]?.[0] || null,
+      }));
+
+      const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: ebayTitle,
+          price: (calcEbayPrice(active.current, saleMode)).toFixed(2),
+          imageUrls: cloudinaryUrls,
+          upc: active.upc,
+          specs: active.specs || {},
+          variants: variantPayload,
+          variantDimension,
+          ...(listingDescription ? { description: listingDescription } : {}),
+        }),
+      });
+      const listData = await listRes.json();
+      if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
+
+      setAutoListStep('photos');
+      try {
+        await new Promise(r => setTimeout(r, 2000));
+        const vpRes = await fetch(`${API}/api/ebay/listing/variation-photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: listData.listingId, variantDimension, variants: variantPayload }),
+        });
+        if (!vpRes.ok) setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.');
+      } catch { setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.'); }
+
+      setAutoListStep('verifying');
+      try {
+        await new Promise(r => setTimeout(r, 2000));
+        const priceRes = await fetch(`${API}/api/ebay/listing/${listData.listingId}/prices`);
+        const priceData = await priceRes.json();
+        const mismatchFixes = variantPayload.filter(vp => {
+          const live = priceData.variations?.find(lv =>
+            Object.values(lv.specs || {}).some(val => val.toLowerCase() === vp.label.toLowerCase())
+          );
+          return live && Math.abs(live.price - parseFloat(vp.price)) > 0.02;
+        });
+        for (const vp of mismatchFixes) {
+          await fetch(`${API}/api/ebay/listing/price`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId: listData.listingId, price: vp.price, variantLabel: vp.label }),
+          });
+        }
+      } catch { /* non-critical */ }
+
+      setAutoListStep('saving');
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ebayListingId: listData.listingId, cloudinaryFolder: variantCloudinaryFolders[i] || null }),
+        });
+        const updated = await saveRes.json();
+        onUpdate?.(updated);
+      }
+    } catch (e) {
+      setAutoListError(e.message.slice(0, 300));
+    } finally {
+      setAutoListing(false);
+      setAutoListStep('');
+    }
   }
 
   async function fixVariationPhotos() {
@@ -430,6 +589,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           fixingPhotos={fixingPhotos}
           fixPhotosStatus={fixPhotosStatus}
           fixPhotosError={fixPhotosError}
+          onAutoList={autoListOnEbay}
+          autoListing={autoListing}
+          autoListStep={autoListStep}
+          autoListError={autoListError}
         />
         {linkStatus === 'pushing' && (
           <span className="text-xs text-blue-500 whitespace-nowrap">Pushing prices…</span>
@@ -446,6 +609,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         </button>
       </div>
 
+
+      {autoListWarning && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 break-words">
+          ⚠ {autoListWarning}
+        </p>
+      )}
 
       {/* ── Specs panel ── */}
       {showSpecs && <SpecsPanel active={active} activeIdx={activeIdx} />}
