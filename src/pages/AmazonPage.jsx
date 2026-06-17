@@ -178,8 +178,13 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.post(`${API}/api/tracker/preview`, { url: trimmed });
       if (data.variants && data.variants.length > 1) {
+        // If any variant is already tracked, inherit its groupId so new variants
+        // join the existing group rather than creating a split group.
+        const existingGroupId = data.variants
+          .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin)?.groupId)
+          .find(Boolean);
         setPreview(data);
-        setPreviewGroupId(data.groupId || null);
+        setPreviewGroupId(existingGroupId || data.groupId || null);
         setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
@@ -199,8 +204,11 @@ export default function AmazonPage() {
     try {
       const { data } = await axios.post(`${API}/api/tracker/preview`, { url });
       if (data.variants && data.variants.length > 1) {
+        const existingGroupId = data.variants
+          .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin)?.groupId)
+          .find(Boolean);
         setPreview(data);
-        setPreviewGroupId(data.groupId || null);
+        setPreviewGroupId(existingGroupId || data.groupId || null);
         setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url });
