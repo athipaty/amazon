@@ -16,6 +16,31 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [deletingVariantId, setDeletingVariantId] = useState(null);
+  const [addingToEbayId, setAddingToEbayId] = useState(null);
+  const [addToEbayErrors, setAddToEbayErrors] = useState({}); // variantId → error
+
+  async function handleAddVariantToEbay(variantId) {
+    if (!groupEbayId) return;
+    const variant = variants.find(v => v._id === variantId);
+    if (!variant) return;
+    setAddingToEbayId(variantId);
+    setAddToEbayErrors(prev => { const n = { ...prev }; delete n[variantId]; return n; });
+    try {
+      const price = calcEbayPrice(variant.current, saleMode).toFixed(2);
+      const r = await fetch(`${API}/api/ebay/listing/${groupEbayId}/add-variation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantLabel: variant.variant || '', price }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setAddToEbayErrors(prev => ({ ...prev, [variantId]: data.error || 'Failed to add to eBay' })); return; }
+      await fetchEbayPrices();
+    } catch (e) {
+      setAddToEbayErrors(prev => ({ ...prev, [variantId]: e.message || 'Network error' }));
+    } finally {
+      setAddingToEbayId(null);
+    }
+  }
 
   function toggleExpand(idx) {
     setAllExpanded(prev => !prev);
@@ -588,6 +613,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         apiUrl={API}
         onDeleteVariant={handleDeleteVariant}
         deletingVariantId={deletingVariantId}
+        groupEbayId={groupEbayId}
+        ebayPricesFetched={ebayLivePrices !== null}
+        onAddVariantToEbay={handleAddVariantToEbay}
+        addingToEbayId={addingToEbayId}
+        addToEbayErrors={addToEbayErrors}
       />
 
       {/* ── Action buttons ── */}

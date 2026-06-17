@@ -9,6 +9,7 @@ export default function VariantSwatchGrid({
   refreshingIds, refreshResults, ebayPushResults, autoSyncErrors,
   getLivePrice, handleCheckOne, saleMode, apiUrl,
   onDeleteVariant, deletingVariantId,
+  groupEbayId, ebayPricesFetched, onAddVariantToEbay, addingToEbayId, addToEbayErrors,
 }) {
   return (
     <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
@@ -132,6 +133,19 @@ export default function VariantSwatchGrid({
                     {result === 'ok' && ebayPush === 'ok' ? '✓' : result === 'ok' && ebayPush === 'fail' ? '⚠' : result === 'fail' ? '✗' : '🔄'}
                   </span>
                 </button>
+                {groupEbayId && ebayPricesFetched && livePrice === null && onAddVariantToEbay && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onAddVariantToEbay(v._id); }}
+                    disabled={addingToEbayId === v._id}
+                    title="Add this variant to the eBay listing"
+                    className="w-full py-2 rounded-xl text-xs font-semibold transition-all bg-ebay/10 text-ebay ring-1 ring-inset ring-ebay/30 hover:bg-ebay/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingToEbayId === v._id ? 'Adding…' : '+ Add to eBay'}
+                  </button>
+                )}
+                {addToEbayErrors?.[v._id] && (
+                  <p className="text-[9px] text-red-500 text-center leading-tight">{addToEbayErrors[v._id]}</p>
+                )}
               </div>
             </div>
           </div>
