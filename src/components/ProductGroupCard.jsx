@@ -159,7 +159,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     const label = (variantLabel || '').toLowerCase();
     if (ebayLivePrices.variations?.length) {
       const match = ebayLivePrices.variations.find(v =>
-        Object.values(v.specs).some(val => val === label || label.includes(val) || val.includes(label))
+        Object.values(v.specs).some(val => val === label)
       );
       if (match) return match.price;
     }
@@ -213,11 +213,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     if (variantList.length < 2) return null;
     const labels = variantList.map(v => (v.variant || '').toLowerCase().trim()).filter(Boolean);
     for (let i = 0; i < labels.length; i++) {
-      for (let j = 0; j < labels.length; j++) {
-        if (i === j) continue;
-        if (!labels[j].includes(labels[i])) continue;
-        if (/[,/+]/.test(labels[j])) continue;
-        return { subset: labels[i], superset: labels[j] };
+      for (let j = i + 1; j < labels.length; j++) {
+        if (labels[i] === labels[j]) return { subset: labels[i], superset: labels[j] };
       }
     }
     return null;
@@ -231,7 +228,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     if (variants.length > 1) {
       const clash = ambiguousVariantLabels(variants);
       if (clash) {
-        setAutoListError(`Ambiguous variant labels: "${clash.subset}" is a substring of "${clash.superset}" — eBay cannot reprice these reliably. Rename one variant so neither label contains the other.`);
+        setAutoListError(`Duplicate variant labels: two variants share the name "${clash.subset}" — eBay cannot list them as separate variations. Give each variant a unique name.`);
         setAutoListing(false);
         return;
       }
