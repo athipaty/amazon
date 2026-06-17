@@ -583,6 +583,14 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         </div>
       )}
 
+      {/* ── Single-item listing but multiple variants tracked ── */}
+      {groupEbayId && ebayLivePrices && ebayLivePrices.variations?.length === 0 && variants.length > 1 && (
+        <div className="flex items-center gap-2 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-xl px-3.5 py-2 text-xs text-amber-700">
+          <span>⚠️</span>
+          <span className="font-semibold">eBay listing is single-item but you have {variants.length} variants — end it and use Auto List to rebuild with all variants.</span>
+        </div>
+      )}
+
       {/* ── eBay sync failure warning ── */}
       {anySyncFailed && (
         <div className="flex items-center justify-between gap-2 bg-red-50 ring-1 ring-inset ring-red-200 rounded-xl px-3.5 py-2 text-xs text-red-600">
