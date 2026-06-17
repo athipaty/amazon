@@ -72,6 +72,9 @@ export default function AddProductPanel({
                   <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
                 )}
                 <span className="text-sm text-slate-700 flex-1">{v.label}</span>
+                {preview.isPrime && (
+                  <span className="inline-flex items-center gap-0.5 bg-[#00A8E0] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">✓ Prime</span>
+                )}
                 {v.price != null
                   ? <span className="text-sm font-bold text-slate-900 flex-shrink-0">{preview.currency}{v.price.toLocaleString()}</span>
                   : <span className="text-xs text-slate-400 flex-shrink-0">price varies</span>
