@@ -11,6 +11,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -635,6 +636,19 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
           Amazon ↗
         </a>
+        <button
+          onClick={() => {
+            const url = active.url?.startsWith('http') ? active.url : `https://${active.url}`;
+            navigator.clipboard.writeText(url).then(() => {
+              setUrlCopied(true);
+              setTimeout(() => setUrlCopied(false), 2000);
+            });
+          }}
+          title="Copy Amazon URL"
+          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap"
+        >
+          {urlCopied ? '✓ Copied!' : '🔗 Copy URL'}
+        </button>
         <a href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(active.upc || active.title)}&_sop=15`}
           target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-red-50 text-ebay ring-1 ring-inset ring-red-200 hover:bg-red-100 transition-colors whitespace-nowrap">
