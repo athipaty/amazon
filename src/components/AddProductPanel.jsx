@@ -5,7 +5,7 @@ export default function AddProductPanel({
   handleAdd, handleTrackSelected,
   selectedAsins, toggleVariant, setSelectedAsins,
   addingVariants, addProgress,
-  setPreview,
+  setPreview, trackedAsins,
 }) {
   return (
     <>
@@ -39,7 +39,12 @@ export default function AddProductPanel({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold text-slate-900">
-                  {preview.variants.length} variants found — select which to track
+                  {preview.variants.length} variants found
+                  {trackedAsins && preview.variants.filter(v => trackedAsins.has(v.asin)).length > 0 && (
+                    <span className="text-slate-400 font-normal ml-1">
+                      ({preview.variants.filter(v => trackedAsins.has(v.asin)).length} already tracking)
+                    </span>
+                  )}
                 </p>
                 {preview.isPrime
                   ? <span className="inline-flex items-center gap-1 bg-[#00A8E0] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Prime</span>
@@ -57,22 +62,28 @@ export default function AddProductPanel({
           </div>
 
           <div className="flex flex-col gap-1 mt-3 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
-            {preview.variants.map(v => (
+            {preview.variants.map(v => {
+              const alreadyTracked = trackedAsins?.has(v.asin);
+              return (
               <label
                 key={v.asin}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors ${alreadyTracked ? 'opacity-60 bg-slate-50' : 'hover:bg-slate-50'}`}
               >
                 <input
                   type="checkbox"
                   checked={selectedAsins.has(v.asin)}
                   onChange={e => toggleVariant(v.asin, e.target.checked)}
+                  disabled={alreadyTracked}
                   className="w-4 h-4 accent-amazon flex-shrink-0"
                 />
                 {v.image && (
                   <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
                 )}
                 <span className="text-sm text-slate-700 flex-1">{v.label}</span>
-                {preview.isPrime && (
+                {alreadyTracked && (
+                  <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full ring-1 ring-inset ring-emerald-200 flex-shrink-0">✓ Tracking</span>
+                )}
+                {preview.isPrime && !alreadyTracked && (
                   <span className="inline-flex items-center gap-0.5 bg-[#00A8E0] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">✓ Prime</span>
                 )}
                 {v.price != null
@@ -80,7 +91,8 @@ export default function AddProductPanel({
                   : <span className="text-xs text-slate-400 flex-shrink-0">price varies</span>
                 }
               </label>
-            ))}
+            );})}
+
           </div>
 
           <div className="flex flex-col gap-2 mt-4">
