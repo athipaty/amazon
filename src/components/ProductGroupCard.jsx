@@ -251,6 +251,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setAutoListError('');
     setAutoListWarning('');
 
+    if (groupEbayId) {
+      setAutoListError(`This group already has eBay listing ${groupEbayId}. Use the "+ Add to eBay" button on each new variant tile instead — that adds to the existing listing without creating a duplicate.`);
+      setAutoListing(false);
+      return;
+    }
+
     if (variants.length > 1) {
       const clash = ambiguousVariantLabels(variants);
       if (clash) {
