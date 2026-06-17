@@ -221,7 +221,7 @@ export default function AmazonPage() {
     setAddingVariants(true);
     setAddError('');
     const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
-    let failCount = 0;
+    const failed = [];
     for (let i = 0; i < toAdd.length; i++) {
       setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
       try {
@@ -229,7 +229,7 @@ export default function AmazonPage() {
       } catch (err) {
         if (err.response?.status !== 409) {
           // 409 = already tracking, safe to ignore; anything else = real failure
-          failCount++;
+          failed.push({ variant: toAdd[i], reason: err.response?.data?.error || err.message });
           console.warn(`Failed to add variant ${toAdd[i].asin}:`, err.response?.data?.error || err.message);
         }
       }
@@ -241,10 +241,16 @@ export default function AmazonPage() {
     setPreview(null);
     setSelectedAsins(new Set());
     setPreviewGroupId(null);
-    setUrl('');
     setAddingVariants(false);
     setAddProgress('');
-    if (failCount > 0) setAddError(`${failCount} variant(s) failed to add — they may have timed out. Try adding them individually.`);
+    if (failed.length > 0) {
+      const names = failed.map(f => `"${f.variant.label}"`).join(', ');
+      const reason = failed[0].reason ? ` (${failed[0].reason})` : '';
+      setAddError(`Failed to add ${names}${reason}. Paste the URL again and track just that variant.`);
+      setUrl('');
+    } else {
+      setUrl('');
+    }
   }
 
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
