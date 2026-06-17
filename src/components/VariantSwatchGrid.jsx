@@ -8,6 +8,7 @@ export default function VariantSwatchGrid({
   variants, detailMode, activeIdx, toggleExpand, allExpanded,
   refreshingIds, refreshResults, ebayPushResults, autoSyncErrors,
   getLivePrice, handleCheckOne, saleMode, apiUrl,
+  onDeleteVariant, deletingVariantId,
 }) {
   return (
     <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
@@ -23,6 +24,7 @@ export default function VariantSwatchGrid({
         const result = refreshResults[v._id];
         const ebayPush = ebayPushResults[v._id];
         const isActive = i === activeIdx;
+        const isDeleting = deletingVariantId === v._id;
 
         // ── DETAIL MODE: full card with labeled price rows ──────────
         if (detailMode) return (
@@ -30,9 +32,26 @@ export default function VariantSwatchGrid({
             key={v._id}
             onClick={() => toggleExpand(i)}
             className={`relative flex flex-col rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
+              isDeleting ? 'border-red-300 opacity-50' :
               isActive ? 'border-ebay shadow-card' : 'border-slate-200 hover:border-slate-300 hover:shadow-soft'
             }`}
           >
+            {/* Delete X button */}
+            {onDeleteVariant && (
+              <button
+                onClick={e => { e.stopPropagation(); onDeleteVariant(v._id); }}
+                disabled={!!deletingVariantId}
+                title="Remove this variant"
+                className="absolute top-1 left-1 z-10 w-5 h-5 flex items-center justify-center rounded-full bg-white/80 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors text-[10px] leading-none shadow-sm"
+              >
+                {isDeleting ? (
+                  <svg className="animate-spin w-3 h-3 text-red-400" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                  </svg>
+                ) : '✕'}
+              </button>
+            )}
             {/* Image */}
             <div className={`flex items-center justify-center p-2.5 ${isActive ? 'bg-red-50/60' : 'bg-slate-50'}`}>
               {v.image
@@ -125,6 +144,7 @@ export default function VariantSwatchGrid({
             onClick={() => toggleExpand(i)}
             title={label}
             className={`relative flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg border transition-colors cursor-pointer ${
+              isDeleting ? 'border-red-300 opacity-50' :
               isActive ? 'border-ebay bg-red-50/60' : 'border-slate-200 hover:border-slate-400'
             }`}
           >
@@ -163,6 +183,21 @@ export default function VariantSwatchGrid({
                     {result === 'ok' && ebayPush === 'ok' ? '✓' : result === 'ok' && ebayPush === 'fail' ? '⚠' : result === 'fail' ? '✗' : '🔄'}
                   </span>
                 </button>
+                {onDeleteVariant && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onDeleteVariant(v._id); }}
+                    disabled={!!deletingVariantId}
+                    title="Remove this variant"
+                    className="mt-0.5 self-stretch flex items-center justify-center rounded text-[10px] py-0.5 transition-all ring-1 ring-inset bg-slate-50 text-slate-300 ring-slate-200 hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
+                  >
+                    {isDeleting ? (
+                      <svg className="animate-spin w-2.5 h-2.5 text-red-400" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                      </svg>
+                    ) : '✕'}
+                  </button>
+                )}
               </>
             )}
           </div>

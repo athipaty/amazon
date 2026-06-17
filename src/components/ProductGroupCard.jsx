@@ -8,13 +8,14 @@ import SpecsPanel from './SpecsPanel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  const [deletingVariantId, setDeletingVariantId] = useState(null);
 
   function toggleExpand(idx) {
     setAllExpanded(prev => !prev);
@@ -441,6 +442,34 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
+  async function handleDeleteVariant(variantId) {
+    if (deletingVariantId) return;
+    const variant = variants.find(v => v._id === variantId);
+    if (!variant) return;
+
+    if (variants.length === 1) {
+      setConfirmingDelete(true);
+      return;
+    }
+
+    setDeletingVariantId(variantId);
+    try {
+      if (groupEbayId && variant.variant) {
+        await fetch(`${API}/api/ebay/listing/${groupEbayId}/variation`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variantLabel: variant.variant }),
+        }).catch(() => {});
+      }
+      await fetch(`${API}/api/tracker/${variantId}`, { method: 'DELETE' });
+      onVariantDeleted?.(variantId);
+    } catch (e) {
+      console.error('Failed to delete variant:', e.message);
+    } finally {
+      setDeletingVariantId(null);
+    }
+  }
+
   const allUnavailable = variants.every(v => v.status === 'unavailable');
   const allOOS = variants.every(v => v.status === 'out_of_stock');
   const someIssue = variants.some(v => v.status && v.status !== 'active');
@@ -560,6 +589,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         handleCheckOne={handleCheckOne}
         saleMode={saleMode}
         apiUrl={API}
+        onDeleteVariant={handleDeleteVariant}
+        deletingVariantId={deletingVariantId}
       />
 
       {/* ── Action buttons ── */}
