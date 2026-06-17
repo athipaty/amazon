@@ -180,7 +180,7 @@ export default function AmazonPage() {
       if (data.variants && data.variants.length > 1) {
         setPreview(data);
         setPreviewGroupId(data.groupId || null);
-        setSelectedAsins(new Set());
+        setSelectedAsins(new Set(data.variants.map(v => v.asin)));
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
         setProducts(prev => [product, ...prev]);
@@ -201,7 +201,7 @@ export default function AmazonPage() {
       if (data.variants && data.variants.length > 1) {
         setPreview(data);
         setPreviewGroupId(data.groupId || null);
-        setSelectedAsins(new Set());
+        setSelectedAsins(new Set(data.variants.map(v => v.asin)));
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url });
         setProducts(prev => [product, ...prev]);
