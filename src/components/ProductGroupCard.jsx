@@ -351,15 +351,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
 
       setAutoListStep('photos');
-      try {
-        await new Promise(r => setTimeout(r, 2000));
-        const vpRes = await fetch(`${API}/api/ebay/listing/variation-photos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listingId: listData.listingId, variantDimension, variants: variantPayload }),
-        });
-        if (!vpRes.ok) setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.');
-      } catch { setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.'); }
+      if (variantPayload.length > 1) {
+        try {
+          await new Promise(r => setTimeout(r, 2000));
+          const vpRes = await fetch(`${API}/api/ebay/listing/variation-photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId: listData.listingId, variantDimension, variants: variantPayload }),
+          });
+          if (!vpRes.ok) setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.');
+        } catch { setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.'); }
+      }
 
       setAutoListStep('verifying');
       try {
