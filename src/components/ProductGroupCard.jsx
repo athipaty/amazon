@@ -194,7 +194,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const match = ebayLivePrices.variations.find(v =>
         Object.values(v.specs).some(val => val === label)
       );
-      if (match) return match.price;
+      return match ? match.price : null;
     }
     return ebayLivePrices.base || null;
   }
