@@ -83,20 +83,16 @@ export default function EbayListingControls({
             <span>⚠️ Listing failed</span>
             <span className="text-[10px] font-normal break-words">{autoListError.slice(0, 120)}</span>
           </div>
-          {hasPrime && (
-            <button onClick={onAutoList}
-              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap">
-              🔄 Retry Auto List
-            </button>
-          )}
+          <button onClick={onAutoList}
+            className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap">
+            🔄 Retry Auto List
+          </button>
         </div>
-      ) : hasPrime ? (
+      ) : (
         <button onClick={onAutoList}
           className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm">
-          🤖 Auto List on eBay
+          🤖 Auto List on eBay{!hasPrime && <span className="text-[10px] opacity-75 ml-0.5">(No Prime)</span>}
         </button>
-      ) : (
-        <span className="text-[10px] text-slate-400 px-1">🚫 No Prime — cannot list on eBay</span>
       )}
       <button onClick={() => openEbayEdit('')}
         className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
