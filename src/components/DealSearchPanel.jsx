@@ -105,7 +105,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
 
           {deals && (
             deals.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-4 px-1">No items currently on sale in "{category}" right now. Try a different category.</p>
+              <p className="text-sm text-slate-400 mt-4 px-1">No matching items found in "{category}". Try a different category.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                 {deals.map(deal => {
