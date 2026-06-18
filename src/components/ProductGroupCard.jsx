@@ -8,7 +8,7 @@ import SpecsPanel from './SpecsPanel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false, batchedEbayPrices = {} }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -74,8 +74,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
-  const [ebayLivePrices, setEbayLivePrices] = useState(null);
-  const [ebayListingGone, setEbayListingGone] = useState(false);
+  const preloaded = groupEbayId ? (batchedEbayPrices[groupEbayId] || null) : null;
+  const [ebayLivePrices, setEbayLivePrices] = useState(preloaded?.variations !== undefined ? preloaded : null);
+  const [ebayListingGone, setEbayListingGone] = useState(preloaded?.error === 'not_found');
   const [clearingEbayLink, setClearingEbayLink] = useState(false);
   const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
   const autoSyncAt = useRef(0); // timestamp of last auto-sync attempt
@@ -109,6 +110,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   }
 
   useEffect(() => {
+    // Skip individual fetch if AmazonPage already pre-loaded prices via batch endpoint
+    if (preloaded?.variations !== undefined) return;
     fetchEbayPrices();
   }, [groupEbayId]);
 
