@@ -6,6 +6,7 @@ import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 // (auto-list button + progress + manual link prompt).
 export default function EbayListingControls({
   variants, groupEbayId, isMultiVariation,
+  ebayListingGone, clearEbayLink, clearingEbayLink,
   editingEbay, setEditingEbay, ebayInput, setEbayInput, savingEbay, myListings,
   saveEbayListing, openEbayEdit,
   fixVariationPhotos, fixingPhotos, fixPhotosStatus, fixPhotosError,
@@ -44,6 +45,20 @@ export default function EbayListingControls({
             className="w-7 h-7 flex items-center justify-center rounded-full bg-ebay text-white text-xs hover:bg-ebay-dark disabled:opacity-40 transition-colors">✓</button>
           <button onClick={() => setEditingEbay(false)} disabled={savingEbay}
             className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs hover:bg-slate-200 transition-colors">✕</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (groupEbayId && ebayListingGone) {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-50 ring-1 ring-inset ring-red-200 text-xs text-red-600">
+          <span className="font-semibold">⚠ Listing {groupEbayId} ended or not found</span>
+          <button onClick={clearEbayLink} disabled={clearingEbayLink}
+            className="ml-auto flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 hover:bg-red-200 disabled:opacity-50 transition-colors whitespace-nowrap">
+            {clearingEbayLink ? 'Clearing…' : 'Clear Link'}
+          </button>
         </div>
       </div>
     );

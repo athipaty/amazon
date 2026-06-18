@@ -73,6 +73,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
   const [ebayLivePrices, setEbayLivePrices] = useState(null);
+  const [ebayListingGone, setEbayListingGone] = useState(false);
+  const [clearingEbayLink, setClearingEbayLink] = useState(false);
   const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
   const autoSyncAt = useRef(0); // timestamp of last auto-sync attempt
 
@@ -81,8 +83,27 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     try {
       const r = await fetch(`${API}/api/ebay/listing/${groupEbayId}/prices`);
       const d = await r.json();
+      if (!r.ok) { setEbayListingGone(true); return; }
+      setEbayListingGone(false);
       setEbayLivePrices(d);
     } catch {}
+  }
+
+  async function clearEbayLink() {
+    setClearingEbayLink(true);
+    try {
+      await Promise.all(variants.map(v =>
+        fetch(`${API}/api/tracker/${v._id}/ebay`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ebayListingId: null, cloudinaryFolder: null }),
+        }).then(r => r.json()).then(updated => onUpdate?.(updated))
+      ));
+      setEbayListingGone(false);
+      setEbayLivePrices(null);
+    } finally {
+      setClearingEbayLink(false);
+    }
   }
 
   useEffect(() => {
@@ -674,6 +695,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <EbayListingControls
           variants={variants}
           groupEbayId={groupEbayId}
+          ebayListingGone={ebayListingGone}
+          clearEbayLink={clearEbayLink}
+          clearingEbayLink={clearingEbayLink}
           isMultiVariation={!!(ebayLivePrices?.variations?.length)}
           editingEbay={editingEbay}
           setEditingEbay={setEditingEbay}
