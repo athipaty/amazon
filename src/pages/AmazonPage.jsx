@@ -354,20 +354,18 @@ export default function AmazonPage() {
   }
 
   async function handleCheckNow() {
-    setChecking(true);
-    setStatusMsg('Checking prices…');
     try {
-      const { data } = await axios.post(`${API}/api/tracker/check`);
-      if (data.products) setProducts(data.products);
+      await axios.post(`${API}/api/tracker/check`);
+      // tracker:check:start and tracker:check:done socket events handle the
+      // checking spinner, statusMsg, and loadProducts() reload.
     } catch {
-    } finally {
       setChecking(false);
       setStatusMsg('');
     }
   }
 
 
-  const [saleMode, setSaleMode] = useState(false);
+  const [saleModeActivating, setSaleModeActivating] = useState(false);
   const [saleModeResetting, setSaleModeResetting] = useState(false);
   const [saleModeResult, setSaleModeResult] = useState(null);
   const [saleModeConfirm, setSaleModeConfirm] = useState(false);
@@ -394,7 +392,7 @@ export default function AmazonPage() {
       }
     } else {
       // Turn ON: reprice at sale pricing and set DB flag
-      setSaleMode(true);
+      setSaleModeActivating(true);
       try {
         const { data } = await axios.post(`${API}/api/ebay/sale-mode`, { active: true });
         setSaleModeResult(data);
@@ -405,7 +403,7 @@ export default function AmazonPage() {
       } catch (e) {
         setSaleModeResult({ error: e.response?.data?.error || e.message });
       } finally {
-        setSaleMode(false);
+        setSaleModeActivating(false);
       }
     }
   }
@@ -461,7 +459,7 @@ const [cleaningOrphans, setCleaningOrphans] = useState(false);
     <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
       <TrackerHeader
         sellingLimits={sellingLimits}
-        saleModeActive={saleModeActive} saleMode={saleMode} saleModeResetting={saleModeResetting}
+        saleModeActive={saleModeActive} saleMode={saleModeActivating} saleModeResetting={saleModeResetting}
         saleModeResult={saleModeResult} saleModeConfirm={saleModeConfirm}
         handleSaleMode={handleSaleMode} setSaleModeConfirm={setSaleModeConfirm}
         checking={checking} handleCheckNow={handleCheckNow}
