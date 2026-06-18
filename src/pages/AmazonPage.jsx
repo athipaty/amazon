@@ -8,6 +8,7 @@ import TrackerBanners from '../components/TrackerBanners';
 import AddProductPanel from '../components/AddProductPanel';
 import DealSearchPanel from '../components/DealSearchPanel';
 import { getItemKey, getItemImage, getItemTitle, getItemStatus, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
+import { calcEbayPrice } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -230,10 +231,38 @@ export default function AmazonPage() {
     setAddError('');
     const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
     const failed = [];
+
+    // If the group already has an eBay listing, auto-add new variants to it
+    const existingEbayId = previewGroupId
+      ? products.find(p => p.groupId === previewGroupId && p.ebayListingId)?.ebayListingId || null
+      : null;
+    const existingFolder = existingEbayId
+      ? products.find(p => p.groupId === previewGroupId && p.cloudinaryFolder)?.cloudinaryFolder || null
+      : null;
+
     for (let i = 0; i < toAdd.length; i++) {
       setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
       try {
-        await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
+        const { data: newProduct } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
+        if (existingEbayId && newProduct.variant) {
+          const price = calcEbayPrice(newProduct.current, saleModeActive).toFixed(2);
+          try {
+            const r = await fetch(`${API}/api/ebay/listing/${existingEbayId}/add-variation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ variantLabel: newProduct.variant, price }),
+            });
+            if (r.ok) {
+              await fetch(`${API}/api/tracker/${newProduct._id}/ebay`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ebayListingId: existingEbayId, cloudinaryFolder: existingFolder }),
+              });
+            }
+          } catch (ebayErr) {
+            console.warn(`Auto-add to eBay failed for "${newProduct.variant}":`, ebayErr);
+          }
+        }
       } catch (err) {
         if (err.response?.status !== 409) {
           // 409 = already tracking, safe to ignore; anything else = real failure

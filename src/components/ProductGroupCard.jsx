@@ -35,6 +35,13 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       });
       const data = await r.json();
       if (!r.ok) { setAddToEbayErrors(prev => ({ ...prev, [variantId]: data.error || 'Failed to add to eBay' })); return; }
+      const existingFolder = variants.find(v => v.cloudinaryFolder)?.cloudinaryFolder || null;
+      const patchRes = await fetch(`${API}/api/tracker/${variantId}/ebay`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ebayListingId: groupEbayId, cloudinaryFolder: existingFolder }),
+      });
+      if (patchRes.ok) { const updated = await patchRes.json(); onUpdate?.(updated); }
       await fetchEbayPrices();
     } catch (e) {
       setAddToEbayErrors(prev => ({ ...prev, [variantId]: e.message || 'Network error' }));
