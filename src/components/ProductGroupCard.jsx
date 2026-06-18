@@ -670,6 +670,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <EbayListingControls
           variants={variants}
           groupEbayId={groupEbayId}
+          isMultiVariation={!!(ebayLivePrices?.variations?.length)}
           editingEbay={editingEbay}
           setEditingEbay={setEditingEbay}
           ebayInput={ebayInput}

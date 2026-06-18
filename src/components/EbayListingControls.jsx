@@ -5,7 +5,7 @@ import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 // (My Listing link + Fix Variation Photos), or the unlisted state
 // (auto-list button + progress + manual link prompt).
 export default function EbayListingControls({
-  variants, groupEbayId,
+  variants, groupEbayId, isMultiVariation,
   editingEbay, setEditingEbay, ebayInput, setEbayInput, savingEbay, myListings,
   saveEbayListing, openEbayEdit,
   fixVariationPhotos, fixingPhotos, fixPhotosStatus, fixPhotosError,
@@ -59,10 +59,12 @@ export default function EbayListingControls({
           </a>
           <button onClick={() => openEbayEdit(groupEbayId)}
             className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 text-[13px] transition-colors" title="Edit eBay listing">✏️</button>
-          <button onClick={fixVariationPhotos} disabled={fixingPhotos}
-            className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
-            {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
-          </button>
+          {isMultiVariation && (
+            <button onClick={fixVariationPhotos} disabled={fixingPhotos}
+              className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors whitespace-nowrap">
+              {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
+            </button>
+          )}
         </div>
         {fixPhotosStatus === 'ok' && <p className="text-[10px] text-emerald-600 font-semibold">Photos updated ✓</p>}
         {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}
