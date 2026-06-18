@@ -707,9 +707,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
 
       {autoListWarning && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 break-words">
-          ⚠ {autoListWarning}
-        </p>
+        <div className="flex items-center justify-between gap-2 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200">
+          <p className="text-[11px] text-amber-700 break-words">⚠ Listing created — per-variant photos failed.</p>
+          <button
+            onClick={() => { setAutoListWarning(''); fixVariationPhotos(); }}
+            disabled={fixingPhotos}
+            className="flex-shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50 whitespace-nowrap transition-colors"
+          >
+            {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Photos'}
+          </button>
+        </div>
       )}
 
       {/* ── Specs panel ── */}
