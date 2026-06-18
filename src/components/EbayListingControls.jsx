@@ -10,6 +10,7 @@ export default function EbayListingControls({
   editingEbay, setEditingEbay, ebayInput, setEbayInput, savingEbay, myListings,
   saveEbayListing, openEbayEdit,
   fixVariationPhotos, fixingPhotos, fixPhotosStatus, fixPhotosError,
+  redoDescription, redoingDescription, redoDescriptionStatus,
   onAutoList, autoListing, autoListStep, autoListError,
 }) {
   if (editingEbay) {
@@ -80,6 +81,10 @@ export default function EbayListingControls({
               {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Variation Photos'}
             </button>
           )}
+          <button onClick={redoDescription} disabled={redoingDescription}
+            className="inline-flex items-center justify-center gap-1 text-[10px] font-semibold px-3 py-1 rounded-full ring-1 ring-inset ring-purple-200 text-purple-600 hover:bg-purple-50 disabled:opacity-40 transition-colors whitespace-nowrap">
+            {redoingDescription ? '✍️ Generating…' : redoDescriptionStatus === 'ok' ? '✓ Updated' : redoDescriptionStatus === 'fail' ? '⚠ Failed' : '✍️ Redo Description'}
+          </button>
         </div>
         {fixPhotosStatus === 'ok' && <p className="text-[10px] text-emerald-600 font-semibold">Photos updated ✓</p>}
         {fixPhotosStatus === 'fail' && <p className="text-[10px] text-red-500 break-words">{fixPhotosError || 'Failed ⚠'}</p>}

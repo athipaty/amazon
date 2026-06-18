@@ -69,6 +69,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
+  const [redoingDescription, setRedoingDescription] = useState(false);
+  const [redoDescriptionStatus, setRedoDescriptionStatus] = useState(''); // '' | 'ok' | 'fail'
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
@@ -492,6 +494,42 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   const active = variants[activeIdx];
 
+  async function redoDescription() {
+    if (!groupEbayId) return;
+    setRedoingDescription(true);
+    setRedoDescriptionStatus('');
+    try {
+      const imageUrls = [...new Set(variants.flatMap(v => [v.image, ...(v.images || [])]).filter(Boolean))].slice(0, 12);
+      const descRes = await fetch(`${API}/api/ebay/generate-description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: active.title,
+          specs: active.specs || {},
+          bullets: active.bullets || [],
+          imageUrls,
+          upc: active.upc || null,
+          variant: active.variant || null,
+        }),
+      });
+      const descData = await descRes.json();
+      if (!descRes.ok) throw new Error(descData.error || 'Failed to generate description');
+      const revRes = await fetch(`${API}/api/ebay/listing/${groupEbayId}/revise-description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: descData.html }),
+      });
+      const revData = await revRes.json();
+      if (!revRes.ok) throw new Error(revData.error || 'Failed to update listing');
+      setRedoDescriptionStatus('ok');
+      setTimeout(() => setRedoDescriptionStatus(''), 5000);
+    } catch (e) {
+      setRedoDescriptionStatus('fail');
+    } finally {
+      setRedoingDescription(false);
+    }
+  }
+
   async function confirmDeleteAll() {
     setDeleting(true);
     setDeleteError(null);
@@ -711,6 +749,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           fixingPhotos={fixingPhotos}
           fixPhotosStatus={fixPhotosStatus}
           fixPhotosError={fixPhotosError}
+          redoDescription={redoDescription}
+          redoingDescription={redoingDescription}
+          redoDescriptionStatus={redoDescriptionStatus}
           onAutoList={autoListOnEbay}
           autoListing={autoListing}
           autoListStep={autoListStep}
