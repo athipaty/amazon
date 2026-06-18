@@ -178,7 +178,7 @@ export default function VariantSwatchGrid({
               <>
                 {v.status === 'out_of_stock' && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded px-0.5 leading-tight">OOS</span>}
                 {(v.status === 'unavailable' || v.status === 'error') && <span className="text-[8px] font-bold text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-0.5 leading-tight">N/A</span>}
-                <span className="text-[9px] text-slate-400 font-mono">{v.currency}{v.current.toFixed(2)}</span>
+                <span className="text-[9px] text-slate-400 font-mono">{v.currency}{v.current != null ? v.current.toFixed(2) : '—'}</span>
                 {isRefreshing ? <span className="text-[9px] font-mono text-amber-500">…</span>
                   : livePrice != null ? <span className={`text-[9px] font-mono ${synced ? 'text-emerald-600' : 'text-red-500'}`}>{v.currency}{livePrice.toFixed(2)}</span>
                   : null}

@@ -212,11 +212,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   function getLivePrice(variantLabel) {
     if (!ebayLivePrices) return null;
-    const label = (variantLabel || '').toLowerCase();
+    const label = (variantLabel || '').toLowerCase().trim();
     if (ebayLivePrices.variations?.length) {
-      const match = ebayLivePrices.variations.find(v =>
-        Object.values(v.specs).some(val => val === label)
-      );
+      const vals = ebayLivePrices.variations;
+      // Exact match first
+      let match = vals.find(v => Object.values(v.specs).some(val => val === label));
+      // Superset: eBay label contains the tracker label (e.g. "ash gray" contains "ash")
+      if (!match) match = vals.find(v => Object.values(v.specs).some(val => val.includes(label)));
+      // Subset: tracker label contains the eBay label
+      if (!match) match = vals.find(v => Object.values(v.specs).some(val => label.includes(val) && val.length > 2));
       return match ? match.price : null;
     }
     return ebayLivePrices.base || null;
