@@ -66,6 +66,11 @@ export default function VariantSwatchGrid({
               <span className={`text-xs font-bold ${isActive ? 'text-ebay' : 'text-slate-800'}`}>{label}</span>
               {v.status === 'out_of_stock' && <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded px-1">OOS</span>}
               {(v.status === 'unavailable' || v.status === 'error') && <span className="ml-1 text-[9px] font-bold text-red-600 bg-red-50 ring-1 ring-inset ring-red-200 rounded px-1">N/A</span>}
+              {groupEbayId && ebayPricesFetched && (
+                livePrice != null
+                  ? <span className="ml-1 text-[9px] font-bold text-ebay bg-red-50 ring-1 ring-inset ring-ebay/30 rounded px-1">eBay ✓</span>
+                  : <span className="ml-1 text-[9px] font-semibold text-slate-400 bg-slate-50 ring-1 ring-inset ring-slate-200 rounded px-1">Not listed</span>
+              )}
             </div>
 
             {/* Price rows */}
@@ -162,10 +167,10 @@ export default function VariantSwatchGrid({
               isActive ? 'border-ebay bg-red-50/60' : 'border-slate-200 hover:border-slate-400'
             }`}
           >
-            {livePrice != null && (
-              <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-emerald-500' : 'text-red-500'}`}>
-                {synced ? '✓' : '✗'}
-              </span>
+            {groupEbayId && ebayPricesFetched && (
+              livePrice != null
+                ? <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-emerald-500' : 'text-red-500'}`}>{synced ? '✓' : '✗'}</span>
+                : <span className="absolute top-0.5 right-0.5 text-[8px] font-bold leading-none text-slate-300">○</span>
             )}
             {v.image && <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />}
             <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-ebay' : 'text-slate-700'}`}>{label}</span>
