@@ -25,9 +25,8 @@ const CATEGORIES = [
   'Video Games',
 ];
 
-// Pick an Amazon category from a dropdown and show only results in that
-// category that are currently on sale (i.e. have a strikethrough/original
-// price), with a one-click "Track" button.
+// Pick an Amazon category and find Prime-eligible items under $15 with
+// a 4+ star rating. Discount is shown when present but not required.
 export default function DealSearchPanel({ onTrack, trackedAsins }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState('');
@@ -95,6 +94,12 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
               {searching ? 'Searching…' : 'Search'}
             </button>
           </form>
+          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
+            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under $15</span>
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
+          </div>
 
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
 
@@ -114,8 +119,9 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
                         <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
-                          <span className="text-xs text-slate-400 line-through">{deal.currency}{deal.originalPrice.toLocaleString()}</span>
-                          <span className="inline-flex items-center bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">−{deal.discountPercent}%</span>
+                          {deal.originalPrice && <span className="text-xs text-slate-400 line-through">{deal.currency}{deal.originalPrice.toLocaleString()}</span>}
+                          {deal.discountPercent > 0 && <span className="inline-flex items-center bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">−{deal.discountPercent}%</span>}
+                          <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
                           {deal.isLimitedDeal && (
                             <span className="inline-flex items-center bg-amber-50 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">⚡ Limited deal</span>
                           )}
