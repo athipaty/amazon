@@ -351,7 +351,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
 
       setAutoListStep('photos');
-      if (variantPayload.length > 1) {
+      if (variantPayload.length > 1 && listData.isMultiVariation !== false) {
         try {
           await new Promise(r => setTimeout(r, 2000));
           const vpRes = await fetch(`${API}/api/ebay/listing/variation-photos`, {
@@ -359,8 +359,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ listingId: listData.listingId, variantDimension, variants: variantPayload }),
           });
-          if (!vpRes.ok) setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.');
-        } catch { setAutoListWarning('Listing created — but per-variant photos failed to apply. Click "Fix Variation Photos" to retry.'); }
+          if (!vpRes.ok) setAutoListWarning('photos-failed');
+        } catch { setAutoListWarning('photos-failed'); }
+      } else if (listData.isMultiVariation === false && variantPayload.length > 1) {
+        setAutoListWarning('single-item-fallback');
       }
 
       setAutoListStep('verifying');
@@ -706,7 +708,12 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       </div>
 
 
-      {autoListWarning && (
+      {autoListWarning === 'single-item-fallback' && (
+        <div className="bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
+          ⚠️ eBay doesn't allow multi-variation listings in this category — listed as a single item (first variant only). Each variant needs its own separate listing.
+        </div>
+      )}
+      {autoListWarning === 'photos-failed' && (
         <div className="flex items-center justify-between gap-2 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200">
           {fixPhotosStatus === 'ok' ? (
             <p className="text-[11px] text-emerald-700 font-semibold">✓ Photos updated successfully.</p>
