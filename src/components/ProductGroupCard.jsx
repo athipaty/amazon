@@ -708,13 +708,20 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       {autoListWarning && (
         <div className="flex items-center justify-between gap-2 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200">
-          <p className="text-[11px] text-amber-700 break-words">⚠ Listing created — per-variant photos failed.</p>
+          {fixPhotosStatus === 'ok' ? (
+            <p className="text-[11px] text-emerald-700 font-semibold">✓ Photos updated successfully.</p>
+          ) : fixPhotosStatus === 'fail' ? (
+            <p className="text-[11px] text-red-600 break-words">⚠ {fixPhotosError || 'Photos failed — try again.'}</p>
+          ) : (
+            <p className="text-[11px] text-amber-700 break-words">⚠ Listing created — per-variant photos failed.</p>
+          )}
           <button
-            onClick={() => { setAutoListWarning(''); fixVariationPhotos(); }}
-            disabled={fixingPhotos}
+            onClick={fixVariationPhotos}
+            disabled={fixingPhotos || !groupEbayId}
+            title={!groupEbayId ? 'Waiting for listing to save…' : ''}
             className="flex-shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ring-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50 whitespace-nowrap transition-colors"
           >
-            {fixingPhotos ? '📸 Uploading…' : '🖼️ Fix Photos'}
+            {fixingPhotos ? '📸 Uploading…' : fixPhotosStatus === 'ok' ? '✓ Done' : '🖼️ Fix Photos'}
           </button>
         </div>
       )}
