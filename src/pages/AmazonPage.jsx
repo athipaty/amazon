@@ -109,7 +109,7 @@ export default function AmazonPage() {
     const poll = setInterval(loadProducts, 30000);
     const viewsPoll = setInterval(fetchEbayViews, 60 * 60 * 1000); // re-fetch views every hour
     const watchersPoll = setInterval(fetchEbayWatchers, 60 * 60 * 1000); // re-fetch watchers every hour
-    const batchPricesPoll = setInterval(fetchBatchPrices, 10 * 60 * 1000); // re-fetch eBay prices every 10 min
+    const batchPricesPoll = setInterval(fetchBatchPrices, 60 * 60 * 1000); // re-fetch eBay prices every hour
     return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); clearInterval(batchPricesPoll); };
   }, []);
 
@@ -131,12 +131,13 @@ export default function AmazonPage() {
     } catch {}
   }
 
-  // Fetch live eBay prices — throttled to once per 10 min to stay within eBay's GetItem API limit.
-  // With 195 listings, calling on every 30s poll would be 390 GetItem calls/min (way over limit).
+  // Fetch live eBay prices — throttled to once per hour to stay within eBay's GetItem API limit.
+  // 195 listings × 24 fetches/day = 4,680 calls/day (eBay standard limit ~5,000/day).
+  // Previously called every 30s = 560,000+ calls/day which exhausted the daily quota.
   async function fetchBatchPrices() {
     const ids = ebayIdsRef.current;
     if (!ids.length) return;
-    if (Date.now() - lastBatchPricesFetch.current < 10 * 60 * 1000) return;
+    if (Date.now() - lastBatchPricesFetch.current < 60 * 60 * 1000) return;
     lastBatchPricesFetch.current = Date.now();
     fetch(`${API}/api/ebay/listings/prices-batch?ids=${ids.join(',')}`)
       .then(r => r.json())
