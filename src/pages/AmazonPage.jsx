@@ -32,14 +32,12 @@ export default function AmazonPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
   const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
-  const [batchedEbayPrices, setBatchedEbayPrices] = useState({}); // listingId → { base, variations }
   const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
   const deletingEbayIds = useRef(new Set()); // dedup concurrent eBay END calls for grouped variants
-  const lastBatchPricesFetch = useRef(0); // throttle batch prices to max once per 10 min
 
   useEffect(() => {
     document.body.style.overflow = detailOpen ? 'hidden' : '';
@@ -60,7 +58,7 @@ export default function AmazonPage() {
       else localStorage.removeItem('saleModeActive');
     }).catch(() => {});
 
-    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); fetchBatchPrices(); });
+    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); });
     checkEbayStatus();
     fetchSellingLimits();
 
@@ -109,8 +107,7 @@ export default function AmazonPage() {
     const poll = setInterval(loadProducts, 30000);
     const viewsPoll = setInterval(fetchEbayViews, 60 * 60 * 1000); // re-fetch views every hour
     const watchersPoll = setInterval(fetchEbayWatchers, 60 * 60 * 1000); // re-fetch watchers every hour
-    const batchPricesPoll = setInterval(fetchBatchPrices, 60 * 60 * 1000); // re-fetch eBay prices every hour
-    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); clearInterval(batchPricesPoll); };
+    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); };
   }, []);
 
   async function checkEbayStatus() {
@@ -129,20 +126,6 @@ export default function AmazonPage() {
       const ids = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
       ebayIdsRef.current = ids;
     } catch {}
-  }
-
-  // Fetch live eBay prices — throttled to once per hour to stay within eBay's GetItem API limit.
-  // 195 listings × 24 fetches/day = 4,680 calls/day (eBay standard limit ~5,000/day).
-  // Previously called every 30s = 560,000+ calls/day which exhausted the daily quota.
-  async function fetchBatchPrices() {
-    const ids = ebayIdsRef.current;
-    if (!ids.length) return;
-    if (Date.now() - lastBatchPricesFetch.current < 60 * 60 * 1000) return;
-    lastBatchPricesFetch.current = Date.now();
-    fetch(`${API}/api/ebay/listings/prices-batch?ids=${ids.join(',')}`)
-      .then(r => r.json())
-      .then(map => setBatchedEbayPrices(prev => ({ ...prev, ...map })))
-      .catch(() => {});
   }
 
   async function fetchSellingLimits() {
@@ -554,8 +537,8 @@ export default function AmazonPage() {
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
-                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
-                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
               )}
             </div>
           </div>
@@ -580,8 +563,8 @@ export default function AmazonPage() {
           <div className="flex-1 overflow-y-auto p-3 pb-8">
             {selectedItem && (
               selectedItem.type === 'group'
-                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
+                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
             )}
           </div>
         </div>

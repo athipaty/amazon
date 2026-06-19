@@ -8,7 +8,7 @@ import SpecsPanel from './SpecsPanel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false, batchedEbayPrices = {} }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -74,70 +74,34 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   const groupEbayId = variants.find(v => v.ebayListingId)?.ebayListingId || null;
   const anySyncFailed = ebayFailedIds && variants.some(v => ebayFailedIds.has(String(v._id)));
-  const preloaded = groupEbayId ? (batchedEbayPrices[groupEbayId] || null) : null;
-  const [ebayLivePrices, setEbayLivePrices] = useState(preloaded?.variations !== undefined ? preloaded : null);
-  const [ebayListingGone, setEbayListingGone] = useState(preloaded?.error === 'not_found');
-  const [clearingEbayLink, setClearingEbayLink] = useState(false);
   const [autoSyncErrors, setAutoSyncErrors] = useState({}); // variantId -> error string
   const autoSyncAt = useRef(0); // timestamp of last auto-sync attempt
 
-  async function fetchEbayPrices() {
+  // Read eBay price from DB (stored by scheduler on each successful price check).
+  // No GetItem API calls needed — eliminates 4,000+ eBay API calls/day.
+  function getLivePrice(variantLabel) {
+    if (!groupEbayId) return null;
+    const label = (variantLabel || '').toLowerCase().trim();
+    if (variants.length === 1) return variants[0].ebayPrice ?? null;
+    const match = variants.find(v => {
+      const vl = (v.variant || '').toLowerCase().trim();
+      return vl === label || (vl && vl.includes(label)) || (label && label.includes(vl) && vl.length > 2);
+    });
+    return match?.ebayPrice ?? null;
+  }
+
+  // Auto-fix mismatched eBay prices on mount and whenever DB prices update.
+  // Throttled to once per 5 min.
+  useEffect(() => {
     if (!groupEbayId) return;
-    try {
-      const r = await fetch(`${API}/api/ebay/listing/${groupEbayId}/prices`);
-      const d = await r.json();
-      if (!r.ok) { if (d?.error === 'not_found') setEbayListingGone(true); return; }
-      setEbayListingGone(false);
-      setEbayLivePrices(d);
-    } catch {}
-  }
-
-  async function clearEbayLink() {
-    setClearingEbayLink(true);
-    try {
-      await Promise.all(variants.map(v =>
-        fetch(`${API}/api/tracker/${v._id}/ebay`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ebayListingId: null, cloudinaryFolder: null }),
-        }).then(r => r.json()).then(updated => onUpdate?.(updated))
-      ));
-      setEbayListingGone(false);
-      setEbayLivePrices(null);
-    } finally {
-      setClearingEbayLink(false);
-    }
-  }
-
-  // Sync batch-fetched prices into state whenever AmazonPage refreshes them
-  useEffect(() => {
-    if (preloaded?.variations !== undefined) {
-      setEbayLivePrices(preloaded);
-      setEbayListingGone(preloaded?.error === 'not_found');
-    }
-  }, [preloaded]);
-
-  // Fall back to an individual fetch only when no batch data is available
-  useEffect(() => {
-    if (preloaded?.variations !== undefined) return;
-    fetchEbayPrices();
-  }, [groupEbayId]);
-
-  // Auto-fix mismatched eBay prices whenever live prices are refreshed.
-  // Throttled to once per 5 min to avoid eBay rate limits and infinite loops.
-  useEffect(() => {
-    if (!ebayLivePrices || !groupEbayId) return;
-
     const mismatches = variants.filter(v => {
       const calcPrice = calcEbayPrice(v.current, saleMode);
-      const livePrice = getLivePrice(v.variant || '');
-      return livePrice != null && Math.abs(livePrice - calcPrice) >= 0.02;
+      const storedPrice = getLivePrice(v.variant || '');
+      return storedPrice != null && Math.abs(storedPrice - calcPrice) >= 0.02;
     });
-    // Always update sidebar mismatch indicator, regardless of throttle
     if (!mismatches.length) { onPriceMismatch?.(groupEbayId, false); return; }
     onPriceMismatch?.(groupEbayId, true);
 
-    // Throttle: don't re-push if we already tried within the last 5 minutes
     const now = Date.now();
     if (now - autoSyncAt.current < 5 * 60 * 1000) return;
     autoSyncAt.current = now;
@@ -163,13 +127,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
     })).finally(() => {
       setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n; });
-      // Re-fetch actual eBay prices to confirm sync — clears price issue if all fixed
-      setTimeout(() => {
-        fetchEbayPrices();
-        onPriceMismatch?.(groupEbayId, false); // optimistically clear; will re-trigger if still mismatched
-      }, 4000);
+      onPriceMismatch?.(groupEbayId, false);
     });
-  }, [ebayLivePrices]);
+  }, [variants.map(v => `${v._id}:${v.ebayPrice}`).join(','), saleMode]);
 
   async function handleCheckOne(id) {
     setRefreshingIds(prev => new Set(prev).add(id));
@@ -177,37 +137,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setEbayPushResults(prev => { const n = { ...prev }; delete n[id]; return n; });
     try {
       const updated = await onCheck(id);
-      if (updated?.current != null && groupEbayId) {
-        const newCalcPrice = calcEbayPrice(updated.current, saleMode);
-        const variantLabel = variants.find(v => v._id === id)?.variant || '';
-        const r = await fetch(`${API}/api/ebay/listing/price`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listingId: groupEbayId, price: newCalcPrice, variantLabel }),
-        });
-        if (r.ok) {
-          setEbayPushResults(prev => ({ ...prev, [id]: 'ok' }));
-          // eBay has propagation delay — update display state optimistically
-          const label = variantLabel.toLowerCase();
-          setEbayLivePrices(prev => {
-            if (!prev) return prev;
-            if (prev.variations?.length) {
-              return {
-                ...prev,
-                variations: prev.variations.map(v => {
-                  const hit = Object.values(v.specs).some(val =>
-                    val === label || label.includes(val) || val.includes(label)
-                  );
-                  return hit ? { ...v, price: newCalcPrice } : v;
-                }),
-              };
-            }
-            return { ...prev, base: newCalcPrice };
-          });
-        } else {
-          setEbayPushResults(prev => ({ ...prev, [id]: 'fail' }));
-          await fetchEbayPrices();
-        }
+      // Scheduler handles eBay price sync and saves ebayPrice to DB — no separate push needed here
+      if (updated) {
+        onUpdate?.(updated);
+        setEbayPushResults(prev => ({ ...prev, [id]: 'ok' }));
       }
       setRefreshResults(prev => ({ ...prev, [id]: 'ok' }));
     } catch {
@@ -219,22 +152,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         setEbayPushResults(prev => { const n = { ...prev }; delete n[id]; return n; });
       }, 6000);
     }
-  }
-
-  function getLivePrice(variantLabel) {
-    if (!ebayLivePrices) return null;
-    const label = (variantLabel || '').toLowerCase().trim();
-    if (ebayLivePrices.variations?.length) {
-      const vals = ebayLivePrices.variations;
-      // Exact match first
-      let match = vals.find(v => Object.values(v.specs).some(val => val === label));
-      // Superset: eBay label contains the tracker label (e.g. "ash gray" contains "ash")
-      if (!match) match = vals.find(v => Object.values(v.specs).some(val => val.includes(label)));
-      // Subset: tracker label contains the eBay label
-      if (!match) match = vals.find(v => Object.values(v.specs).some(val => label.includes(val) && val.length > 2));
-      return match ? match.price : null;
-    }
-    return ebayLivePrices.base || null;
   }
 
   async function openEbayEdit(prefill) {
@@ -679,7 +596,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       )}
 
       {/* ── Single-item listing but multiple variants tracked ── */}
-      {groupEbayId && ebayLivePrices && ebayLivePrices.variations?.length === 0 && variants.length > 1 && (
+      {groupEbayId && !variants.some(v => v.variant) && variants.length > 1 && (
         <div className="flex items-center gap-2 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-xl px-3.5 py-2 text-xs text-amber-700">
           <span>⚠️</span>
           <span className="font-semibold">eBay listing is single-item but you have {variants.length} variants — end it and use Auto List to rebuild with all variants.</span>
@@ -717,7 +634,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         onDeleteVariant={handleDeleteVariant}
         deletingVariantId={deletingVariantId}
         groupEbayId={groupEbayId}
-        ebayPricesFetched={ebayLivePrices !== null}
+        ebayPricesFetched={variants.some(v => v.ebayPrice != null)}
         onAddVariantToEbay={handleAddVariantToEbay}
         addingToEbayId={addingToEbayId}
         addToEbayErrors={addToEbayErrors}
@@ -751,10 +668,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         <EbayListingControls
           variants={variants}
           groupEbayId={groupEbayId}
-          ebayListingGone={ebayListingGone}
-          clearEbayLink={clearEbayLink}
-          clearingEbayLink={clearingEbayLink}
-          isMultiVariation={!!(ebayLivePrices?.variations?.length)}
+          isMultiVariation={variants.some(v => v.ebayListingId && v.variant)}
           editingEbay={editingEbay}
           setEditingEbay={setEditingEbay}
           ebayInput={ebayInput}
