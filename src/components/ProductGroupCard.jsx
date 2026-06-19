@@ -109,8 +109,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
+  // Sync batch-fetched prices into state whenever AmazonPage refreshes them
   useEffect(() => {
-    // Skip individual fetch if AmazonPage already pre-loaded prices via batch endpoint
+    if (preloaded?.variations !== undefined) {
+      setEbayLivePrices(preloaded);
+      setEbayListingGone(preloaded?.error === 'not_found');
+    }
+  }, [preloaded]);
+
+  // Fall back to an individual fetch only when no batch data is available
+  useEffect(() => {
     if (preloaded?.variations !== undefined) return;
     fetchEbayPrices();
   }, [groupEbayId]);
@@ -595,11 +603,14 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
             {detailMode && (() => {
-              const totalProfit = variants.reduce((sum, v) => {
+              const priced = variants.filter(v => v.current != null);
+              if (!priced.length) return null;
+              const totalProfit = priced.reduce((sum, v) => {
                 const cp = calcEbayPrice(v.current, saleMode);
                 return sum + (cp - trueCost(v.current) - calcEbayFee(cp));
               }, 0);
-              const avgMargin = (totalProfit / variants.reduce((sum, v) => sum + calcEbayPrice(v.current, saleMode), 0) * 100).toFixed(1);
+              const totalEbayPrice = priced.reduce((sum, v) => sum + calcEbayPrice(v.current, saleMode), 0);
+              const avgMargin = totalEbayPrice > 0 ? (totalProfit / totalEbayPrice * 100).toFixed(1) : '0.0';
               return (
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ${totalProfit >= 0 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-600 ring-red-200'}`}>
                   {totalProfit >= 0 ? '▲' : '▼'} {avgMargin}% margin

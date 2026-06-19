@@ -418,7 +418,7 @@ export default function AmazonPage() {
   }
 
 
-const [cleaningOrphans, setCleaningOrphans] = useState(false);
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
   const [orphanResult, setOrphanResult] = useState(null); // { found, ended } | null
   async function handleCleanOrphans() {
     setCleaningOrphans(true);
