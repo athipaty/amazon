@@ -86,7 +86,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     try {
       const r = await fetch(`${API}/api/ebay/listing/${groupEbayId}/prices`);
       const d = await r.json();
-      if (!r.ok) { setEbayListingGone(true); return; }
+      if (!r.ok) { if (d?.error === 'not_found') setEbayListingGone(true); return; }
       setEbayListingGone(false);
       setEbayLivePrices(d);
     } catch {}
