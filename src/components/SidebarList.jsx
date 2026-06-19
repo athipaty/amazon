@@ -141,15 +141,17 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                     })()}
                     {/* eBay price badge */}
                     {(() => {
-                      const prices = item.type === 'group'
-                        ? item.variants.map(v => v.current).filter(Boolean)
-                        : [item.product.current].filter(Boolean);
-                      if (!prices.length) return null;
-                      const avgCost = prices.reduce((a, b) => a + b, 0) / prices.length;
-                      const cp = calcEbayPrice(avgCost, saleMode);
+                      const costs = item.type === 'group'
+                        ? item.variants.map(v => v.current).filter(v => v != null)
+                        : [item.product.current].filter(v => v != null);
+                      if (!costs.length) return null;
+                      const ebayPrices = costs.map(c => calcEbayPrice(c, saleMode));
+                      const lo = Math.min(...ebayPrices);
+                      const hi = Math.max(...ebayPrices);
+                      const label = lo.toFixed(2) === hi.toFixed(2) ? `$${lo.toFixed(2)}` : `$${lo.toFixed(2)}+`;
                       return (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none bg-blue-50 text-blue-600">
-                          ${cp.toFixed(2)}
+                          {label}
                         </span>
                       );
                     })()}

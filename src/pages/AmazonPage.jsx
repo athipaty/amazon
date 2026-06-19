@@ -547,7 +547,7 @@ export default function AmazonPage() {
               {selectedItem && (
                 selectedItem.type === 'group'
                   ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
-                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
+                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
               )}
             </div>
           </div>
@@ -573,7 +573,7 @@ export default function AmazonPage() {
             {selectedItem && (
               selectedItem.type === 'group'
                 ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} batchedEbayPrices={batchedEbayPrices} />
             )}
           </div>
         </div>
