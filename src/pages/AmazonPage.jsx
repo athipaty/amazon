@@ -279,7 +279,6 @@ export default function AmazonPage() {
           console.warn(`Failed to add variant ${toAdd[i].asin}:`, err.response?.data?.error || err.message);
         }
       }
-      // Small delay between calls so ScraperAPI doesn't rate-limit sequential requests
       if (i < toAdd.length - 1) await new Promise(r => setTimeout(r, 400));
     }
     // Reload from server — avoids duplicate race with the 30s poll that may have fired mid-add
