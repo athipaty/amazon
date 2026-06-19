@@ -39,6 +39,7 @@ export default function AmazonPage() {
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
   const deletingEbayIds = useRef(new Set()); // dedup concurrent eBay END calls for grouped variants
+  const lastBatchPricesFetch = useRef(0); // throttle batch prices to max once per 10 min
 
   useEffect(() => {
     document.body.style.overflow = detailOpen ? 'hidden' : '';
@@ -59,7 +60,7 @@ export default function AmazonPage() {
       else localStorage.removeItem('saleModeActive');
     }).catch(() => {});
 
-    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); });
+    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); fetchBatchPrices(); });
     checkEbayStatus();
     fetchSellingLimits();
 
@@ -108,7 +109,8 @@ export default function AmazonPage() {
     const poll = setInterval(loadProducts, 30000);
     const viewsPoll = setInterval(fetchEbayViews, 60 * 60 * 1000); // re-fetch views every hour
     const watchersPoll = setInterval(fetchEbayWatchers, 60 * 60 * 1000); // re-fetch watchers every hour
-    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); };
+    const batchPricesPoll = setInterval(fetchBatchPrices, 10 * 60 * 1000); // re-fetch eBay prices every 10 min
+    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); clearInterval(batchPricesPoll); };
   }, []);
 
   async function checkEbayStatus() {
@@ -126,14 +128,20 @@ export default function AmazonPage() {
       setProducts(data);
       const ids = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
       ebayIdsRef.current = ids;
-      // Batch-fetch eBay live prices for all listings in one call
-      if (ids.length) {
-        fetch(`${API}/api/ebay/listings/prices-batch?ids=${ids.join(',')}`)
-          .then(r => r.json())
-          .then(map => setBatchedEbayPrices(prev => ({ ...prev, ...map })))
-          .catch(() => {});
-      }
     } catch {}
+  }
+
+  // Fetch live eBay prices — throttled to once per 10 min to stay within eBay's GetItem API limit.
+  // With 195 listings, calling on every 30s poll would be 390 GetItem calls/min (way over limit).
+  async function fetchBatchPrices() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    if (Date.now() - lastBatchPricesFetch.current < 10 * 60 * 1000) return;
+    lastBatchPricesFetch.current = Date.now();
+    fetch(`${API}/api/ebay/listings/prices-batch?ids=${ids.join(',')}`)
+      .then(r => r.json())
+      .then(map => setBatchedEbayPrices(prev => ({ ...prev, ...map })))
+      .catch(() => {});
   }
 
   async function fetchSellingLimits() {
