@@ -42,7 +42,6 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         body: JSON.stringify({ ebayListingId: groupEbayId, cloudinaryFolder: existingFolder, ebayPrice: Number(price) }),
       });
       if (patchRes.ok) { const updated = await patchRes.json(); onUpdate?.(updated); }
-      await fetchEbayPrices();
     } catch (e) {
       setAddToEbayErrors(prev => ({ ...prev, [variantId]: e.message || 'Network error' }));
     } finally {
