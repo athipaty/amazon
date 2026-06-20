@@ -39,7 +39,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const patchRes = await fetch(`${API}/api/tracker/${variantId}/ebay`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ebayListingId: groupEbayId, cloudinaryFolder: existingFolder }),
+        body: JSON.stringify({ ebayListingId: groupEbayId, cloudinaryFolder: existingFolder, ebayPrice: Number(price) }),
       });
       if (patchRes.ok) { const updated = await patchRes.json(); onUpdate?.(updated); }
       await fetchEbayPrices();

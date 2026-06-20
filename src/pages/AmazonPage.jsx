@@ -257,7 +257,7 @@ export default function AmazonPage() {
               await fetch(`${API}/api/tracker/${newProduct._id}/ebay`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ebayListingId: existingEbayId, cloudinaryFolder: existingFolder }),
+                body: JSON.stringify({ ebayListingId: existingEbayId, cloudinaryFolder: existingFolder, ebayPrice: Number(price) }),
               });
             }
           } catch (ebayErr) {
