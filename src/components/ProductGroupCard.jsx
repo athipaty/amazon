@@ -79,15 +79,22 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
   // Read eBay price from DB (stored by scheduler on each successful price check).
   // No GetItem API calls needed — eliminates 4,000+ eBay API calls/day.
+  // Mirrors bestVariantMatch on the backend: exact → shortest-superset → longest-subset.
   function getLivePrice(variantLabel) {
     if (!groupEbayId) return null;
     const label = (variantLabel || '').toLowerCase().trim();
     if (variants.length === 1) return variants[0].ebayPrice ?? null;
-    const match = variants.find(v => {
-      const vl = (v.variant || '').toLowerCase().trim();
-      return vl === label || (vl && vl.includes(label)) || (label && label.includes(vl) && vl.length > 2);
-    });
-    return match?.ebayPrice ?? null;
+    const vl = v => (v.variant || '').toLowerCase().trim();
+    // 1. Exact match
+    const exact = variants.find(v => vl(v) === label);
+    if (exact) return exact.ebayPrice ?? null;
+    // 2. DB name contains label (e.g. "2pcs yellow" contains "yellow") — pick shortest
+    const supersets = variants.filter(v => vl(v).includes(label));
+    if (supersets.length) return supersets.reduce((a, b) => vl(a).length <= vl(b).length ? a : b).ebayPrice ?? null;
+    // 3. Label contains DB name (e.g. "yellow+colorful" contains "yellow") — pick longest
+    const subsets = variants.filter(v => vl(v).length > 2 && label.includes(vl(v)));
+    if (subsets.length) return subsets.reduce((a, b) => vl(a).length >= vl(b).length ? a : b).ebayPrice ?? null;
+    return null;
   }
 
   // Auto-fix mismatched eBay prices on mount and whenever DB prices update.
@@ -203,6 +210,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     for (let i = 0; i < labels.length; i++) {
       for (let j = i + 1; j < labels.length; j++) {
         if (labels[i] === labels[j]) return { subset: labels[i], superset: labels[j] };
+        // Warn when one label is a substring of another — causes eBay price lookup mismatches
+        if (labels[i].includes(labels[j]) || labels[j].includes(labels[i])) {
+          return { subset: labels[i].length < labels[j].length ? labels[i] : labels[j], superset: labels[i].length >= labels[j].length ? labels[i] : labels[j] };
+        }
       }
     }
     return null;
@@ -705,6 +716,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       </div>
 
 
+      {groupEbayId && (() => { const c = ambiguousVariantLabels(variants); return c ? (
+        <div className="bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
+          ⚠ Variant name conflict: <strong>"{c.subset}"</strong> is a substring of <strong>"{c.superset}"</strong> — eBay price lookup may return the wrong price. Rename one variant to avoid overlap.
+        </div>
+      ) : null; })()}
       {autoListWarning === 'single-item-fallback' && (
         <div className="bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
           ⚠️ eBay doesn't allow multi-variation listings in this category — listed as a single item (first variant only). Each variant needs its own separate listing.
