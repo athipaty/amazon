@@ -36,7 +36,10 @@ export default function AddProductPanel({
       {preview && (
         <div ref={previewRef} className="mb-5 bg-white border border-amber-200 rounded-2xl p-5 shadow-card animate-slide-up">
           <div className="flex justify-between items-start mb-1">
-            <div className="min-w-0">
+            {preview.image && (
+              <img src={preview.image} alt={preview.title} className="w-14 h-14 object-contain rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 mr-3" />
+            )}
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold text-slate-900">
                   {preview.variants.length} variants found
