@@ -1,5 +1,7 @@
 // URL input + the "N variants found — select which to track" preview panel shown
 // after pasting a multi-variant Amazon listing URL.
+import { useMemo } from 'react';
+
 export default function AddProductPanel({
   url, setUrl, adding, addError, preview, previewRef,
   handleAdd, handleTrackSelected,
@@ -7,6 +9,45 @@ export default function AddProductPanel({
   addingVariants, addProgress,
   setPreview, trackedAsins,
 }) {
+  // Extract unique dimensions (e.g. Color, Size) from variant attributes
+  const dimensions = useMemo(() => {
+    if (!preview?.variants?.length) return [];
+    const seen = new Set();
+    const dims = [];
+    for (const v of preview.variants) {
+      for (const a of (v.attributes || [])) {
+        if (a.dimension && !seen.has(a.dimension)) { seen.add(a.dimension); dims.push(a.dimension); }
+      }
+    }
+    return dims;
+  }, [preview]);
+
+  // Ordered unique values per dimension
+  const dimValues = useMemo(() => {
+    const map = {};
+    for (const dim of dimensions) {
+      const seen = new Set();
+      map[dim] = [];
+      for (const v of (preview?.variants || [])) {
+        const val = v.attributes?.find(a => a.dimension === dim)?.value;
+        if (val && !seen.has(val)) { seen.add(val); map[dim].push(val); }
+      }
+    }
+    return map;
+  }, [dimensions, preview]);
+
+  function toggleByDimension(dim, val) {
+    const matching = (preview?.variants || [])
+      .filter(v => !trackedAsins?.has(v.asin) && v.attributes?.some(a => a.dimension === dim && a.value === val))
+      .map(v => v.asin);
+    const allSel = matching.length > 0 && matching.every(a => selectedAsins.has(a));
+    const next = new Set(selectedAsins);
+    matching.forEach(a => allSel ? next.delete(a) : next.add(a));
+    setSelectedAsins(next);
+  }
+
+  const isMultiDim = dimensions.length >= 2;
+
   return (
     <>
       <div className="mb-4">
@@ -64,6 +105,42 @@ export default function AddProductPanel({
             </button>
           </div>
 
+          {/* Dimension filter buttons — only shown when product has 2+ dimensions (e.g. Color + Size) */}
+          {isMultiDim && (
+            <div className="mt-3 mb-2 space-y-2 border-b border-slate-100 pb-3">
+              {dimensions.map(dim => (
+                <div key={dim} className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide w-10 flex-shrink-0">{dim}</span>
+                  {dimValues[dim].map(val => {
+                    const matching = (preview.variants || [])
+                      .filter(v => !trackedAsins?.has(v.asin) && v.attributes?.some(a => a.dimension === dim && a.value === val))
+                      .map(v => v.asin);
+                    const allSel = matching.length > 0 && matching.every(a => selectedAsins.has(a));
+                    const someSel = !allSel && matching.some(a => selectedAsins.has(a));
+                    return (
+                      <button
+                        key={val}
+                        onClick={() => toggleByDimension(dim, val)}
+                        disabled={addingVariants || matching.length === 0}
+                        className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                          allSel
+                            ? 'bg-amazon border-amazon text-white font-bold shadow-sm'
+                            : someSel
+                            ? 'bg-amber-50 border-amber-400 text-slate-800 font-medium'
+                            : matching.length === 0
+                            ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1 mt-3 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
             {preview.variants.map(v => {
               const alreadyTracked = trackedAsins?.has(v.asin);
@@ -95,7 +172,6 @@ export default function AddProductPanel({
                 }
               </label>
             );})}
-
           </div>
 
           <div className="flex flex-col gap-2 mt-4">
@@ -111,7 +187,7 @@ export default function AddProductPanel({
                 {addingVariants ? addProgress : selectedAsins.size === 0 ? 'Track Selected' : `Track Selected (${selectedAsins.size})`}
               </button>
               <button
-                onClick={() => setSelectedAsins(new Set(preview.variants.map(v => v.asin)))}
+                onClick={() => setSelectedAsins(new Set(preview.variants.filter(v => !trackedAsins?.has(v.asin)).map(v => v.asin)))}
                 disabled={addingVariants}
                 className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 disabled:opacity-50 transition-colors"
               >
