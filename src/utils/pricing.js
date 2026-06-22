@@ -10,7 +10,7 @@ export function calcEbayPrice(amazonPrice) {
 }
 
 export function calcEbayFee(ebayPrice) {
-  return +(ebayPrice * EBAY_FEE_RATE + EBAY_FEE_FIXED).toFixed(2);
+  return +(ebayPrice * (EBAY_FEE_RATE + PROMO_RATE) + EBAY_FEE_FIXED).toFixed(2);
 }
 
 export function trueCost(amazonPrice) {
