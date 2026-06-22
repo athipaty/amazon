@@ -233,6 +233,22 @@ export default function AmazonPage() {
     const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
     const failed = [];
 
+    // Fix already-tracked variants from this preview that are missing the group — happens when
+    // one variant was tracked without a groupId (e.g. via deal panel or single-item track).
+    // Patch them into the group before adding the new ones so everything lands in one card.
+    if (previewGroupId) {
+      const toFix = preview.variants
+        .filter(v => trackedAsins?.has(v.asin))
+        .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin))
+        .filter(p => p && p.groupId !== previewGroupId);
+      for (const p of toFix) {
+        try {
+          const { data: updated } = await axios.patch(`${API}/api/tracker/${p._id}`, { groupId: previewGroupId });
+          setProducts(prev => prev.map(x => x._id === p._id ? updated : x));
+        } catch {}
+      }
+    }
+
     // If the group already has an eBay listing, auto-add new variants to it
     const existingEbayId = previewGroupId
       ? products.find(p => p.groupId === previewGroupId && p.ebayListingId)?.ebayListingId || null
