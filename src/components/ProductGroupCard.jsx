@@ -238,6 +238,25 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
     }
     try {
+      // Pre-step: ensure every variant has Cloudinary images before listing.
+      // Variants with no cloudinaryFolder or 0 images get a fresh Amazon scrape + upload now.
+      setAutoListStep('preparing-images');
+      const freshVariants = [...variants];
+      for (let i = 0; i < freshVariants.length; i++) {
+        const v = freshVariants[i];
+        if (!v.cloudinaryFolder || v.images.length === 0) {
+          try {
+            const res = await fetch(`${API}/api/tracker/${v._id}/refresh-images`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.images?.length) freshVariants[i] = { ...v, image: data.image || v.image, images: data.images, cloudinaryFolder: data.cloudinaryFolder || v.cloudinaryFolder };
+            }
+          } catch {}
+        }
+      }
+
       setAutoListStep('title');
       const titleRes = await fetch(`${API}/api/ebay/seo-title`, {
         method: 'POST',
@@ -252,10 +271,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       const variantCloudinaryImages = [];
       const variantCloudinaryFolders = [];
-      for (const v of variants) {
+      for (const v of freshVariants) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
         if (!varImgs.length) { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); continue; }
-        const varSlug = slug + '-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const varSlug = slug + '-' + (v.variant || String(freshVariants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
         const varFolder = `ebay-listings/${varSlug}`;
         try {
           const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
@@ -289,8 +308,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       } catch { /* fall back to generic placeholder */ }
 
       setAutoListStep('listing');
-      const variantDimension = detectVariantDimension(variants);
-      const variantPayload = variants.map((v, i) => ({
+      const variantDimension = detectVariantDimension(freshVariants);
+      const variantPayload = freshVariants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
         price: (calcEbayPrice(v.current, saleMode)).toFixed(2),
         quantity: 1,
@@ -351,8 +370,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       } catch { /* non-critical */ }
 
       setAutoListStep('saving');
-      for (let i = 0; i < variants.length; i++) {
-        const v = variants[i];
+      for (let i = 0; i < freshVariants.length; i++) {
+        const v = freshVariants[i];
         const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
