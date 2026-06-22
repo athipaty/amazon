@@ -127,9 +127,16 @@ export default function DealSearchPanel({ onTrack, trackedAsins }) {
                           )}
                         </div>
                         <div className="flex items-center justify-between mt-auto pt-2">
-                          {deal.rating ? (
-                            <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount.toLocaleString()})</span>
-                          ) : <span />}
+                          <div className="flex flex-col gap-0.5">
+                            {deal.rating ? (
+                              <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount.toLocaleString()})</span>
+                            ) : (
+                              <span className="text-[11px] text-slate-300">No rating</span>
+                            )}
+                            {deal.monthlySold && (
+                              <span className="text-[11px] text-emerald-600 font-medium">{deal.monthlySold.toLocaleString()}+ sold/mo</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5">
                             <a
                               href={deal.url}
