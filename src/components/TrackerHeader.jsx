@@ -1,9 +1,7 @@
 // Top header card: brand, status pills, "Check All", and the admin/utility row
-// (Sale Mode, Retry Errors, Clean Orphans).
+// (Retry Errors, Clean Orphans).
 export default function TrackerHeader({
   sellingLimits,
-  saleModeActive, saleMode, saleModeResetting, saleModeResult, saleModeConfirm,
-  handleSaleMode, setSaleModeConfirm,
   checking, handleCheckNow,
   products,
   retrying, retryProgress, handleRetryErrors,
@@ -34,13 +32,6 @@ export default function TrackerHeader({
                     {sellingLimits.used}/{sellingLimits.limit} listings
                   </span>
                 )}
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tracking-wider whitespace-nowrap ring-1 ring-inset ${
-                  saleModeActive
-                    ? 'bg-ebay text-white ring-ebay-dark'
-                    : 'bg-slate-50 text-slate-400 ring-slate-200'
-                }`}>
-                  {saleModeActive ? '🔥 SALE MODE' : 'NORMAL'}
-                </span>
               </div>
             </div>
           </div>
@@ -56,29 +47,6 @@ export default function TrackerHeader({
 
         {/* Admin/utility row: scrollable on mobile, visually de-emphasized vs primary action */}
         <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 overflow-x-auto scrollbar-hide">
-          <button
-            onClick={handleSaleMode}
-            onBlur={() => setSaleModeConfirm(false)}
-            disabled={saleMode || saleModeResetting || checking}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5
-              ${saleMode || saleModeResetting ? (saleModeActive ? 'bg-ebay text-white' : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200') :
-                saleModeConfirm ? (saleModeActive ? 'bg-ebay-dark text-white hover:bg-red-800' : 'bg-emerald-500 text-white hover:bg-emerald-600') :
-                saleModeActive ? 'bg-ebay text-white hover:bg-ebay-dark' :
-                'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100'}`}
-          >
-            {saleModeActive && !saleMode && !saleModeResetting && !saleModeConfirm && (
-              <span className="bg-white/90 text-ebay text-[9px] font-black px-1 py-0.5 rounded leading-none">SALE</span>
-            )}
-            {saleMode ? 'Repricing…'
-              : saleModeResetting ? 'Resetting prices…'
-              : saleModeResult?.error ? '⚠ Failed'
-              : saleModeResult && !saleModeActive ? `✓ Normal ${saleModeResult.done}/${saleModeResult.total}`
-              : saleModeResult ? `✓ Done ${saleModeResult.done}/${saleModeResult.total}`
-              : saleModeConfirm && saleModeActive ? 'Tap to confirm end sale'
-              : saleModeConfirm ? 'Tap again to confirm'
-              : saleModeActive ? '🔥 Sale ON — tap to end'
-              : '🏷️ Sale Mode (2% profit)'}
-          </button>
           {errorCount > 0 && (
             <button
               onClick={handleRetryErrors}

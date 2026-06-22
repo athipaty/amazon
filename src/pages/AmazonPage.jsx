@@ -51,13 +51,6 @@ export default function AmazonPage() {
   }, [preview]);
 
   useEffect(() => {
-    // Sync sale mode from DB
-    axios.get(`${API}/api/tracker/settings`).then(({ data }) => {
-      setSaleModeActive(data.saleModeActive);
-      if (data.saleModeActive) localStorage.setItem('saleModeActive', 'true');
-      else localStorage.removeItem('saleModeActive');
-    }).catch(() => {});
-
     loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); });
     checkEbayStatus();
     fetchSellingLimits();
@@ -262,7 +255,7 @@ export default function AmazonPage() {
       try {
         const { data: newProduct } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
         if (existingEbayId && newProduct.variant) {
-          const price = calcEbayPrice(newProduct.current, saleModeActive).toFixed(2);
+          const price = calcEbayPrice(newProduct.current).toFixed(2);
           try {
             const r = await fetch(`${API}/api/ebay/listing/${existingEbayId}/add-variation`, {
               method: 'POST',
@@ -360,7 +353,7 @@ export default function AmazonPage() {
 
   async function handleCheckOne(id) {
     try {
-      const { data } = await axios.post(`${API}/api/tracker/check/${id}`, { saleMode: saleModeActive });
+      const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
       setProducts(prev => prev.map(p => p._id === id ? data : p));
       return data;
     } catch (err) {
@@ -377,50 +370,6 @@ export default function AmazonPage() {
     } catch {
       setChecking(false);
       setStatusMsg('');
-    }
-  }
-
-
-  const [saleModeActivating, setSaleModeActivating] = useState(false);
-  const [saleModeResetting, setSaleModeResetting] = useState(false);
-  const [saleModeResult, setSaleModeResult] = useState(null);
-  const [saleModeConfirm, setSaleModeConfirm] = useState(false);
-  const [saleModeActive, setSaleModeActive] = useState(() => localStorage.getItem('saleModeActive') === 'true');
-  async function handleSaleMode() {
-    if (!saleModeConfirm) { setSaleModeConfirm(true); return; }
-    setSaleModeConfirm(false);
-    setSaleModeResult(null);
-
-    if (saleModeActive) {
-      // Turn OFF: reprice back to normal and clear DB flag
-      setSaleModeResetting(true);
-      try {
-        const { data } = await axios.post(`${API}/api/ebay/sale-mode`, { active: false });
-        setSaleModeResult(data);
-        if (!data.error) {
-          setSaleModeActive(false);
-          localStorage.removeItem('saleModeActive');
-        }
-      } catch (e) {
-        setSaleModeResult({ error: e.response?.data?.error || e.message });
-      } finally {
-        setSaleModeResetting(false);
-      }
-    } else {
-      // Turn ON: reprice at sale pricing and set DB flag
-      setSaleModeActivating(true);
-      try {
-        const { data } = await axios.post(`${API}/api/ebay/sale-mode`, { active: true });
-        setSaleModeResult(data);
-        if (!data.error) {
-          setSaleModeActive(true);
-          localStorage.setItem('saleModeActive', 'true');
-        }
-      } catch (e) {
-        setSaleModeResult({ error: e.response?.data?.error || e.message });
-      } finally {
-        setSaleModeActivating(false);
-      }
     }
   }
 
@@ -456,7 +405,7 @@ export default function AmazonPage() {
       for (let i = 0; i < errorProducts.length; i += BATCH) {
         await Promise.all(errorProducts.slice(i, i + BATCH).map(async p => {
           try {
-            const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`, { saleMode: saleModeActive });
+            const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`);
             setProducts(prev => prev.map(q => q._id === p._id ? data : q));
           } catch {}
           done++;
@@ -475,9 +424,6 @@ export default function AmazonPage() {
     <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
       <TrackerHeader
         sellingLimits={sellingLimits}
-        saleModeActive={saleModeActive} saleMode={saleModeActivating} saleModeResetting={saleModeResetting}
-        saleModeResult={saleModeResult} saleModeConfirm={saleModeConfirm}
-        handleSaleMode={handleSaleMode} setSaleModeConfirm={setSaleModeConfirm}
         checking={checking} handleCheckNow={handleCheckNow}
         products={products}
         retrying={retrying} retryProgress={retryProgress} handleRetryErrors={handleRetryErrors}
@@ -524,7 +470,7 @@ export default function AmazonPage() {
               ebayWatchers={ebayWatchers}
               apiUrl={API}
               ebayConnected={ebayConnected}
-              saleMode={saleModeActive}
+
               blankPhotoIds={blankPhotoIds}
             />
           </div>
@@ -545,7 +491,7 @@ export default function AmazonPage() {
               ebayWatchers={ebayWatchers}
               apiUrl={API}
               ebayConnected={ebayConnected}
-              saleMode={saleModeActive}
+
               blankPhotoIds={blankPhotoIds}
             />
 
@@ -553,8 +499,8 @@ export default function AmazonPage() {
             <div className="flex-1 min-w-0">
               {selectedItem && (
                 selectedItem.type === 'group'
-                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
-                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                  ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+                  : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
               )}
             </div>
           </div>
@@ -579,8 +525,8 @@ export default function AmazonPage() {
           <div className="flex-1 overflow-y-auto p-3 pb-8">
             {selectedItem && (
               selectedItem.type === 'group'
-                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} saleMode={saleModeActive} />
+                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
             )}
           </div>
         </div>

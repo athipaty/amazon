@@ -7,7 +7,7 @@ import Countdown from './Countdown';
 export default function VariantSwatchGrid({
   variants, detailMode, activeIdx, toggleExpand, allExpanded,
   refreshingIds, refreshResults, ebayPushResults, autoSyncErrors,
-  getLivePrice, handleCheckOne, saleMode, apiUrl,
+  getLivePrice, handleCheckOne, apiUrl,
   onDeleteVariant, deletingVariantId,
   groupEbayId, ebayPricesFetched, onAddVariantToEbay, addingToEbayId, addToEbayErrors,
 }) {
@@ -15,7 +15,7 @@ export default function VariantSwatchGrid({
     <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
       {variants.map((v, i) => {
         const label     = v.variant || `Variant ${i + 1}`;
-        const calcPrice = calcEbayPrice(v.current, saleMode);
+        const calcPrice = calcEbayPrice(v.current);
         const ebayFee   = calcEbayFee(calcPrice);
         const profit    = +(calcPrice - trueCost(v.current) - ebayFee).toFixed(2);
         const marginPct = ((profit / calcPrice) * 100).toFixed(1);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { calcEbayPrice } from '../utils/pricing';
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, saleMode = false, blankPhotoIds = new Set() }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -145,7 +145,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                         ? item.variants.map(v => v.current).filter(v => v != null)
                         : [item.product.current].filter(v => v != null);
                       if (!costs.length) return null;
-                      const ebayPrices = costs.map(c => calcEbayPrice(c, saleMode));
+                      const ebayPrices = costs.map(c => calcEbayPrice(c));
                       const lo = Math.min(...ebayPrices);
                       const hi = Math.max(...ebayPrices);
                       const label = lo.toFixed(2) === hi.toFixed(2) ? `$${lo.toFixed(2)}` : `$${lo.toFixed(2)}+`;

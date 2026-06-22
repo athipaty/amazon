@@ -8,7 +8,7 @@ import SpecsPanel from './SpecsPanel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, saleMode = false }) {
+export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -27,7 +27,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setAddingToEbayId(variantId);
     setAddToEbayErrors(prev => { const n = { ...prev }; delete n[variantId]; return n; });
     try {
-      const price = calcEbayPrice(variant.current, saleMode).toFixed(2);
+      const price = calcEbayPrice(variant.current).toFixed(2);
       const r = await fetch(`${API}/api/ebay/listing/${groupEbayId}/add-variation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,7 +101,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   useEffect(() => {
     if (!groupEbayId) return;
     const mismatches = variants.filter(v => {
-      const calcPrice = calcEbayPrice(v.current, saleMode);
+      const calcPrice = calcEbayPrice(v.current);
       const storedPrice = getLivePrice(v.variant || '');
       return storedPrice != null && Math.abs(storedPrice - calcPrice) >= 0.02;
     });
@@ -117,7 +117,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setAutoSyncErrors({});
 
     Promise.all(mismatches.map(async v => {
-      const calcPrice = calcEbayPrice(v.current, saleMode);
+      const calcPrice = calcEbayPrice(v.current);
       try {
         const r = await fetch(`${API}/api/ebay/listing/price`, {
           method: 'POST',
@@ -135,7 +135,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       setRefreshingIds(prev => { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n; });
       onPriceMismatch?.(groupEbayId, false);
     });
-  }, [variants.map(v => `${v._id}:${v.ebayPrice}`).join(','), saleMode]);
+  }, [variants.map(v => `${v._id}:${v.ebayPrice}`).join(',')]);
 
   async function handleCheckOne(id) {
     setRefreshingIds(prev => new Set(prev).add(id));
@@ -189,7 +189,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         setLinkStatus('pushing');
         let anyFail = false;
         for (const v of variants) {
-          const calcPrice = calcEbayPrice(v.current, saleMode);
+          const calcPrice = calcEbayPrice(v.current);
           const r = await fetch(`${API}/api/ebay/listing/price`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -311,7 +311,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const variantDimension = detectVariantDimension(freshVariants);
       const variantPayload = freshVariants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
-        price: (calcEbayPrice(v.current, saleMode)).toFixed(2),
+        price: (calcEbayPrice(v.current)).toFixed(2),
         quantity: 1,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
@@ -322,7 +322,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: ebayTitle,
-          price: (calcEbayPrice(active.current, saleMode)).toFixed(2),
+          price: calcEbayPrice(active.current).toFixed(2),
           imageUrls: cloudinaryUrls,
           upc: active.upc,
           specs: active.specs || {},
@@ -552,10 +552,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
               const priced = variants.filter(v => v.current != null);
               if (!priced.length) return null;
               const totalProfit = priced.reduce((sum, v) => {
-                const cp = calcEbayPrice(v.current, saleMode);
+                const cp = calcEbayPrice(v.current);
                 return sum + (cp - trueCost(v.current) - calcEbayFee(cp));
               }, 0);
-              const totalEbayPrice = priced.reduce((sum, v) => sum + calcEbayPrice(v.current, saleMode), 0);
+              const totalEbayPrice = priced.reduce((sum, v) => sum + calcEbayPrice(v.current), 0);
               const avgMargin = totalEbayPrice > 0 ? (totalProfit / totalEbayPrice * 100).toFixed(1) : '0.0';
               return (
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ${totalProfit >= 0 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-600 ring-red-200'}`}>
@@ -658,7 +658,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         autoSyncErrors={autoSyncErrors}
         getLivePrice={getLivePrice}
         handleCheckOne={handleCheckOne}
-        saleMode={saleMode}
+
         apiUrl={API}
         onDeleteVariant={handleDeleteVariant}
         deletingVariantId={deletingVariantId}
