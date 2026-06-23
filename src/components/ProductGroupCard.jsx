@@ -241,24 +241,22 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
     }
     try {
-      // Pre-step: ensure every variant has Cloudinary images before listing.
-      // Variants with no cloudinaryFolder or 0 images get a fresh Amazon scrape + upload now.
+      // Pre-step: scrape fresh per-variant images from Amazon via ScraperAPI for every
+      // variant — always, regardless of existing Cloudinary images. This guarantees each
+      // colour gets its own 7-image gallery before the listing is created.
       setAutoListStep('preparing-images');
       const freshVariants = [...variants];
       for (let i = 0; i < freshVariants.length; i++) {
         const v = freshVariants[i];
-        const hasCloudinaryImages = v.images?.some(u => u.includes('cloudinary'));
-        if (!hasCloudinaryImages) {
-          try {
-            const res = await fetch(`${API}/api/tracker/${v._id}/refresh-images`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.images?.length) freshVariants[i] = { ...v, image: data.image || v.image, images: data.images, cloudinaryFolder: data.cloudinaryFolder || v.cloudinaryFolder };
-            }
-          } catch {}
-        }
+        try {
+          const res = await fetch(`${API}/api/tracker/${v._id}/refresh-images`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.images?.length) freshVariants[i] = { ...v, image: data.image || v.image, images: data.images, cloudinaryFolder: data.cloudinaryFolder || v.cloudinaryFolder };
+          }
+        } catch {}
       }
 
       setAutoListStep('title');
