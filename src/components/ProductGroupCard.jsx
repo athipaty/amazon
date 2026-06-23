@@ -523,7 +523,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setDeleting(true);
     setDeleteError(null);
     try {
-      await Promise.all(variants.map(v => onDelete(v._id)));
+      for (const v of variants) { await onDelete(v._id); }
     } catch (e) {
       setDeleteError(e.response?.data?.error || e.message || 'Delete failed');
       setDeleting(false);
