@@ -209,11 +209,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   function ambiguousVariantLabels(variantList) {
     if (variantList.length < 2) return null;
     const labels = variantList.map(v => (v.variant || '').toLowerCase().trim()).filter(Boolean);
+    // Check if `sub` appears as a standalone word-boundary token within `sup`.
+    // Prevents "8" falsely matching inside "18" (different numbers, not substrings).
+    const isWordSubstring = (sub, sup) => {
+      const esc = sub.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(?<![\\w])${esc}(?![\\w])`).test(sup);
+    };
     for (let i = 0; i < labels.length; i++) {
       for (let j = i + 1; j < labels.length; j++) {
         if (labels[i] === labels[j]) return { subset: labels[i], superset: labels[j] };
-        // Warn when one label is a substring of another — causes eBay price lookup mismatches
-        if (labels[i].includes(labels[j]) || labels[j].includes(labels[i])) {
+        if (isWordSubstring(labels[j], labels[i]) || isWordSubstring(labels[i], labels[j])) {
           return { subset: labels[i].length < labels[j].length ? labels[i] : labels[j], superset: labels[i].length >= labels[j].length ? labels[i] : labels[j] };
         }
       }
