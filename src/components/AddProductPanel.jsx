@@ -22,6 +22,17 @@ export default function AddProductPanel({
     return dims;
   }, [preview]);
 
+  // Price range across preview variants (for header display)
+  const priceRange = useMemo(() => {
+    if (!preview?.variants?.length) return null;
+    const prices = preview.variants.map(v => v.price).filter(p => p != null);
+    if (!prices.length) return null;
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const c = preview.currency || '$';
+    return min === max ? `${c}${min.toLocaleString()}` : `${c}${min.toLocaleString()}–${c}${max.toLocaleString()}`;
+  }, [preview]);
+
   // Ordered unique values per dimension
   const dimValues = useMemo(() => {
     const map = {};
@@ -59,6 +70,14 @@ export default function AddProductPanel({
               placeholder="Paste an Amazon product URL to track…"
               value={url}
               onChange={e => setUrl(e.target.value)}
+              onPaste={e => {
+                const pasted = e.clipboardData.getData('text').trim();
+                if (pasted && !adding && !preview) {
+                  e.preventDefault();
+                  setUrl(pasted);
+                  handleAdd({ preventDefault: () => {} }, pasted);
+                }
+              }}
               disabled={adding || !!preview}
               className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 transition-all disabled:bg-slate-50 placeholder:text-slate-400 shadow-soft"
             />
@@ -84,6 +103,7 @@ export default function AddProductPanel({
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold text-slate-900">
                   {preview.variants.length} variants found
+                  {priceRange && <span className="text-slate-500 font-normal ml-1.5">· {priceRange}</span>}
                   {trackedAsins && preview.variants.filter(v => trackedAsins.has(v.asin)).length > 0 && (
                     <span className="text-slate-400 font-normal ml-1">
                       ({preview.variants.filter(v => trackedAsins.has(v.asin)).length} already tracking)

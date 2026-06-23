@@ -65,6 +65,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [autoListStep, setAutoListStep] = useState('');
   const [autoListError, setAutoListError] = useState('');
   const [autoListWarning, setAutoListWarning] = useState('');
+  const [priceConfirming, setPriceConfirming] = useState(false);
+  const [customPrices, setCustomPrices] = useState({});
+  const [autoListSuccess, setAutoListSuccess] = useState(null);
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
@@ -218,7 +221,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     return null;
   }
 
-  async function autoListOnEbay() {
+  async function autoListOnEbay(pricesOverride = {}) {
     setAutoListing(true);
     setAutoListError('');
     setAutoListWarning('');
@@ -311,7 +314,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const variantDimension = detectVariantDimension(freshVariants);
       const variantPayload = freshVariants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
-        price: (calcEbayPrice(v.current)).toFixed(2),
+        price: (parseFloat(pricesOverride[v._id]) || calcEbayPrice(v.current)).toFixed(2),
         quantity: 1,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
@@ -322,7 +325,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: ebayTitle,
-          price: calcEbayPrice(active.current).toFixed(2),
+          price: (parseFloat(pricesOverride[active._id]) || calcEbayPrice(active.current)).toFixed(2),
           imageUrls: cloudinaryUrls,
           upc: active.upc,
           specs: active.specs || {},
@@ -380,12 +383,32 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         const updated = await saveRes.json();
         onUpdate?.(updated);
       }
+      setAutoListSuccess({ listingId: listData.listingId, title: ebayTitle });
+      setTimeout(() => setAutoListSuccess(null), 10000);
     } catch (e) {
       setAutoListError(e.message.slice(0, 300));
     } finally {
       setAutoListing(false);
       setAutoListStep('');
     }
+  }
+
+  function startAutoList() {
+    const initial = {};
+    for (const v of variants) {
+      initial[v._id] = calcEbayPrice(v.current).toFixed(2);
+    }
+    setCustomPrices(initial);
+    setPriceConfirming(true);
+    setAutoListError('');
+    setAutoListSuccess(null);
+  }
+
+  function cancelPriceConfirm() { setPriceConfirming(false); }
+
+  async function confirmAutoList() {
+    setPriceConfirming(false);
+    await autoListOnEbay(customPrices);
   }
 
   async function fixVariationPhotos() {
@@ -713,10 +736,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           redoDescription={redoDescription}
           redoingDescription={redoingDescription}
           redoDescriptionStatus={redoDescriptionStatus}
-          onAutoList={autoListOnEbay}
+          onAutoList={startAutoList}
           autoListing={autoListing}
           autoListStep={autoListStep}
           autoListError={autoListError}
+          priceConfirming={priceConfirming}
+          customPrices={customPrices}
+          setCustomPrices={setCustomPrices}
+          onConfirmList={confirmAutoList}
+          onCancelPriceConfirm={cancelPriceConfirm}
+          autoListSuccess={autoListSuccess}
         />
         {linkStatus === 'pushing' && (
           <span className="text-xs text-blue-500 whitespace-nowrap">Pushing prices…</span>

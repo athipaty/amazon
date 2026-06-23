@@ -164,10 +164,14 @@ export default function AmazonPage() {
     } catch { /* non-critical */ }
   }
 
-  async function handleAdd(e) {
+  async function handleAdd(e, urlOverride) {
     e.preventDefault();
-    const trimmed = url.trim();
+    const trimmed = (urlOverride ?? url).trim();
     if (!trimmed) return;
+    if (!/amazon\.|amzn\.(to|com)|a\.co/i.test(trimmed)) {
+      setAddError('Please enter a valid Amazon product URL.');
+      return;
+    }
     setAdding(true);
     setAddError('');
     try {
