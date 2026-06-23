@@ -240,9 +240,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     if (variants.length > 1) {
       const clash = ambiguousVariantLabels(variants);
       if (clash) {
-        setAutoListError(`Duplicate variant labels: two variants share the name "${clash.subset}" — eBay cannot list them as separate variations. Give each variant a unique name.`);
-        setAutoListing(false);
-        return;
+        // Warn but don't block — eBay lists these fine. Only our backend price-sync
+        // could have issues matching "Grass Green" vs "Red and Grass Green".
+        setAutoListWarning('variant-name-overlap');
       }
     }
     try {
@@ -773,6 +773,11 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
           ⚠ Variant name conflict: <strong>"{c.subset}"</strong> is a substring of <strong>"{c.superset}"</strong> — eBay price lookup may return the wrong price. Rename one variant to avoid overlap.
         </div>
       ) : null; })()}
+      {autoListWarning === 'variant-name-overlap' && (
+        <div className="flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
+          ⚠️ Some variant names overlap (e.g. "Grass Green" inside "Red and Grass Green"). eBay will list them correctly — but price sync may occasionally match the wrong variant.
+        </div>
+      )}
       {autoListWarning === 'single-item-fallback' && (
         <div className="bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
           ⚠️ eBay doesn't allow multi-variation listings in this category — listed as a single item (first variant only). Each variant needs its own separate listing.
