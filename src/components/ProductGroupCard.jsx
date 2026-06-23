@@ -247,7 +247,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const freshVariants = [...variants];
       for (let i = 0; i < freshVariants.length; i++) {
         const v = freshVariants[i];
-        if (!v.cloudinaryFolder || v.images.length === 0) {
+        const hasCloudinaryImages = v.images?.some(u => u.includes('cloudinary'));
+        if (!hasCloudinaryImages) {
           try {
             const res = await fetch(`${API}/api/tracker/${v._id}/refresh-images`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
@@ -417,14 +418,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setFixPhotosStatus('');
     setFixPhotosError('');
     try {
-      // Step 1: Refresh images from Amazon for each variant (gets full hi-res set, not just what was scraped)
-      const refreshed = await Promise.all(
-        variants.map(v =>
-          fetch(`${API}/api/tracker/${v._id}/refresh-images`, { method: 'POST' })
-            .then(r => r.json())
-            .catch(() => null)
-        )
-      );
+      // Step 1: Refresh images from Amazon for each variant sequentially to avoid concurrent
+      // Amazon scrapes triggering bot detection — same reason we queue background uploads.
+      const refreshed = [];
+      for (const v of variants) {
+        const result = await fetch(`${API}/api/tracker/${v._id}/refresh-images`, { method: 'POST' })
+          .then(r => r.json())
+          .catch(() => null);
+        refreshed.push(result);
+      }
 
       // Merge refreshed image list back into variant data
       const variantsWithFreshImages = variants.map((v, i) => ({
