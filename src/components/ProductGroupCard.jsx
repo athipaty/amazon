@@ -543,16 +543,25 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setDeletingVariantId(variantId);
     try {
       if (groupEbayId && variant.variant) {
-        await fetch(`${API}/api/ebay/listing/${groupEbayId}/variation`, {
+        const ebayRes = await fetch(`${API}/api/ebay/listing/${groupEbayId}/variation`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ variantLabel: variant.variant }),
-        }).catch(() => {});
+        });
+        const ebayData = await ebayRes.json().catch(() => ({}));
+        if (!ebayRes.ok) {
+          const msg = ebayData.error || 'eBay error';
+          alert(`Could not remove "${variant.variant}" from eBay: ${msg}`);
+          return;
+        }
+        if (ebayData.zeroed) {
+          alert(`"${variant.variant}" has sales history — eBay set it to qty 0 instead of deleting. It will be hidden from buyers.`);
+        }
       }
       await fetch(`${API}/api/tracker/${variantId}`, { method: 'DELETE' });
       onVariantDeleted?.(variantId);
     } catch (e) {
-      console.error('Failed to delete variant:', e.message);
+      alert(`Delete failed: ${e.message}`);
     } finally {
       setDeletingVariantId(null);
     }
