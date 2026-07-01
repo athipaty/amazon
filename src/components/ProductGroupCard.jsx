@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 import { detectVariantDimension, AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
+import { useAutoListState, setAutoListState } from '../utils/autoListStore';
 import AmazonPrimeBadge from './AmazonPrimeBadge';
 import VariantSwatchGrid from './VariantSwatchGrid';
 import EbayListingControls from './EbayListingControls';
@@ -61,13 +62,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [refreshResults, setRefreshResults] = useState({}); // id -> 'ok' | 'fail'
   const [ebayPushResults, setEbayPushResults] = useState({}); // id -> 'ok' | 'fail'
   const [linkStatus, setLinkStatus] = useState(''); // '' | 'pushing' | 'ok' | 'fail'
-  const [autoListing, setAutoListing] = useState(false);
-  const [autoListStep, setAutoListStep] = useState('');
-  const [autoListError, setAutoListError] = useState('');
-  const [autoListWarning, setAutoListWarning] = useState('');
+  // Progress lives in an external store keyed by product/group id (not local useState) so
+  // it survives this component unmounting when the user selects a different item and
+  // remounting when they come back — see utils/autoListStore.js.
+  const groupKey = variants[0]?.groupId ? `group-${variants[0].groupId}` : `single-${variants[0]?._id}`;
+  const { autoListing, autoListStep, autoListError, autoListWarning, autoListSuccess } = useAutoListState(groupKey);
+  const setAutoListing = (v) => setAutoListState(groupKey, { autoListing: v });
+  const setAutoListStep = (v) => setAutoListState(groupKey, { autoListStep: v });
+  const setAutoListError = (v) => setAutoListState(groupKey, { autoListError: v });
+  const setAutoListWarning = (v) => setAutoListState(groupKey, { autoListWarning: v });
+  const setAutoListSuccess = (v) => setAutoListState(groupKey, { autoListSuccess: v });
   const [priceConfirming, setPriceConfirming] = useState(false);
   const [customPrices, setCustomPrices] = useState({});
-  const [autoListSuccess, setAutoListSuccess] = useState(null);
   const [fixingPhotos, setFixingPhotos] = useState(false);
   const [fixPhotosStatus, setFixPhotosStatus] = useState(''); // '' | 'ok' | 'fail'
   const [fixPhotosError, setFixPhotosError] = useState('');
@@ -227,6 +233,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   }
 
   async function autoListOnEbay(pricesOverride = {}) {
+    if (autoListing) return; // already running for this product/group — don't start a second concurrent listing
     setAutoListing(true);
     setAutoListError('');
     setAutoListWarning('');
@@ -398,6 +405,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   }
 
   function startAutoList() {
+    if (autoListing) return; // already running for this product/group
     const initial = {};
     for (const v of variants) {
       initial[v._id] = calcEbayPrice(v.current).toFixed(2);
