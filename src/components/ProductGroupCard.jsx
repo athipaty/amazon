@@ -300,7 +300,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         } catch { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); }
       }
       const cloudinaryUrls = [...new Set(variantCloudinaryImages.flat())].slice(0, 12);
-      if (!cloudinaryUrls.length) throw new Error('No product images could be uploaded to Cloudinary. Please check the product has images and try again.');
+      if (!cloudinaryUrls.length) throw new Error('No product images could be uploaded to storage. Please check the product has images and try again.');
 
       setAutoListStep('description');
       let listingDescription = null;

@@ -12,7 +12,7 @@ export function detectVariantDimension(variants) {
 }
 
 export const AUTO_LIST_STEP_LABELS = {
-  'preparing-images': '📸 Saving images to Cloudinary…',
+  'preparing-images': '📸 Saving images to storage…',
   images: '📸 Uploading images…',
   title: '✍️ Writing title…',
   description: '📝 Writing description…',
