@@ -1,0 +1,419 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import axios from 'axios';
+import { getItemKey, getItemStatus, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
+import { calcEbayPrice } from '../utils/pricing';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Shared "product tracker" state — lifted out of AmazonPage so the deal-search flow
+// (which can trigger the same multi-variant picker) works from its own tab too.
+export default function useProductTracker() {
+  const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+  const [url, setUrl] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [statusMsg, setStatusMsg] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [preview, setPreview] = useState(null); // { title, price, currency, image, variants, groupId }
+  const [selectedAsins, setSelectedAsins] = useState(new Set());
+  const [addingVariants, setAddingVariants] = useState(false);
+  const [addProgress, setAddProgress] = useState('');
+  const [previewGroupId, setPreviewGroupId] = useState(null);
+  const [ebayConnected, setEbayConnected] = useState(true);
+  const [ebayTokenDaysLeft, setEbayTokenDaysLeft] = useState(null);
+  const [ebayFailedIds, setEbayFailedIds] = useState(new Set());
+  const [priceMismatchIds, setPriceMismatchIds] = useState(new Set()); // eBay listing IDs with price mismatch
+  const [ebayViews, setEbayViews] = useState({}); // listingId → view count
+  const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
+  const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
+  const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
+  const [orphanResult, setOrphanResult] = useState(null); // { found, ended } | null
+  const [retrying, setRetrying] = useState(false);
+  const [retryProgress, setRetryProgress] = useState(null); // { done, total }
+  const socketRef = useRef(null);
+  const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
+  const previewRef = useRef(null);
+  const deletingEbayIds = useRef(new Set()); // dedup concurrent eBay END calls for grouped variants
+
+  useEffect(() => {
+    if (preview && previewRef.current) {
+      previewRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [preview]);
+
+  useEffect(() => {
+    loadProducts().then(() => { fetchEbayViews(); fetchEbayWatchers(); fetchPhotoStatus(); });
+    checkEbayStatus();
+    fetchSellingLimits();
+
+    socketRef.current = io(API);
+    const socket = socketRef.current;
+
+    socket.on('tracker:check:start', ({ count }) => {
+      setChecking(true);
+      setStatusMsg(`Checking ${count} product${count !== 1 ? 's' : ''}...`);
+    });
+
+    socket.on('tracker:check:done', () => {
+      setChecking(false);
+      setStatusMsg('');
+      loadProducts();
+    });
+
+    socket.on('tracker:listing:ended', () => {
+      loadProducts();
+    });
+
+    socket.on('tracker:orphan:cleanup', ({ found, ended }) => {
+      setCleaningOrphans(false);
+      if (found > 0) {
+        setOrphanResult({ found, ended });
+        setTimeout(() => setOrphanResult(null), 8000);
+      } else {
+        setOrphanResult({ found: 0, ended: 0 });
+        setTimeout(() => setOrphanResult(null), 4000);
+      }
+    });
+
+    socket.on('tracker:price:drop', ({ product }) => {
+      setProducts(prev => prev.map(p => p._id === product._id ? product : p));
+    });
+
+    socket.on('tracker:ebay:sync:fail', ({ productId }) => {
+      setEbayFailedIds(prev => new Set([...prev, productId]));
+    });
+
+    socket.on('tracker:ebay:sync:ok', ({ productId }) => {
+      setEbayFailedIds(prev => { const next = new Set(prev); next.delete(productId); return next; });
+    });
+
+    const poll = setInterval(loadProducts, 30000);
+    const viewsPoll = setInterval(fetchEbayViews, 60 * 60 * 1000); // re-fetch views every hour
+    const watchersPoll = setInterval(fetchEbayWatchers, 60 * 60 * 1000); // re-fetch watchers every hour
+    return () => { socket.disconnect(); clearInterval(poll); clearInterval(viewsPoll); clearInterval(watchersPoll); };
+  }, []);
+
+  async function checkEbayStatus() {
+    try {
+      const { data } = await axios.get(`${API}/api/ebay/auth/status`);
+      setEbayConnected(data.connected === true);
+      setEbayTokenDaysLeft(data.refreshTokenDaysLeft ?? null);
+    } catch { setEbayConnected(false); }
+  }
+
+  async function loadProducts() {
+    try {
+      const { data } = await axios.get(`${API}/api/tracker`);
+      setProducts(data);
+      const ids = [...new Set(data.map(p => p.ebayListingId).filter(Boolean))];
+      ebayIdsRef.current = ids;
+    } catch {}
+  }
+
+  async function fetchSellingLimits() {
+    try {
+      const { data } = await axios.get(`${API}/api/ebay/selling-limits`);
+      setSellingLimits(data.items);
+    } catch {}
+  }
+
+  async function fetchEbayViews() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listings/views?ids=${ids.join(',')}`);
+      const json = await r.json();
+      if (json._error) console.warn('[eBay views] batch error:', json._error);
+      if (json.views) setEbayViews(json.views);
+    } catch (e) { console.warn('[eBay views] batch fetch failed:', e.message); }
+  }
+
+  async function fetchEbayWatchers() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listings/watchers?ids=${ids.join(',')}`);
+      const json = await r.json();
+      if (json.watchers) setEbayWatchers(json.watchers);
+    } catch (e) { console.warn('[eBay watchers] batch fetch failed:', e.message); }
+  }
+
+  async function fetchPhotoStatus() {
+    const ids = ebayIdsRef.current;
+    if (!ids.length) return;
+    try {
+      const r = await fetch(`${API}/api/ebay/listings/photo-status?ids=${ids.join(',')}`);
+      const data = await r.json();
+      const blank = new Set(
+        Object.entries(data)
+          .filter(([, v]) => v.hasPhoto === false)
+          .map(([id]) => id)
+      );
+      setBlankPhotoIds(blank);
+    } catch { /* non-critical */ }
+  }
+
+  const trackedAsins = new Set(products.map(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i) || [])[1]).filter(Boolean));
+
+  async function handleAdd(e, urlOverride) {
+    e.preventDefault();
+    const trimmed = (urlOverride ?? url).trim();
+    if (!trimmed) return;
+    if (!/amazon\.|amzn\.(to|com)|a\.co/i.test(trimmed)) {
+      setAddError('Please enter a valid Amazon product URL.');
+      return;
+    }
+    setAdding(true);
+    setAddError('');
+    try {
+      const { data } = await axios.post(`${API}/api/tracker/preview`, { url: trimmed });
+      if (data.variants && data.variants.length > 1) {
+        // If any variant is already tracked, inherit its groupId so new variants
+        // join the existing group rather than creating a split group.
+        const existingGroupId = data.variants
+          .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin)?.groupId)
+          .find(Boolean);
+        setPreview(data);
+        setPreviewGroupId(existingGroupId || data.groupId || null);
+        setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
+      } else {
+        const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
+        setProducts(prev => [product, ...prev]);
+        setUrl('');
+        setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
+        setTimeout(() => setStatusMsg(''), 4000);
+      }
+    } catch (err) {
+      setAddError(err.response?.data?.error || err.message || 'Failed to reach the server.');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleTrackDeal(url) {
+    try {
+      const { data } = await axios.post(`${API}/api/tracker/preview`, { url });
+      if (data.variants && data.variants.length > 1) {
+        const existingGroupId = data.variants
+          .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin)?.groupId)
+          .find(Boolean);
+        setPreview(data);
+        setPreviewGroupId(existingGroupId || data.groupId || null);
+        setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
+        // The variant picker lives on the Tracker tab — jump there so it's visible
+        // immediately even when this was triggered from the Deals tab.
+        navigate('/');
+      } else {
+        const { data: product } = await axios.post(`${API}/api/tracker`, { url });
+        setProducts(prev => [product, ...prev]);
+        setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
+        setTimeout(() => setStatusMsg(''), 4000);
+      }
+    } catch (err) {
+      if (err.response?.status !== 409) {
+        setStatusMsg(err.response?.data?.error || 'Failed to track item.');
+        setTimeout(() => setStatusMsg(''), 4000);
+      }
+    }
+  }
+
+  async function handleTrackSelected() {
+    if (!preview || selectedAsins.size === 0) return;
+    setAddingVariants(true);
+    setAddError('');
+    const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
+    const failed = [];
+
+    // Fix already-tracked variants from this preview that are missing the group — happens when
+    // one variant was tracked without a groupId (e.g. via deal panel or single-item track).
+    // Patch them into the group before adding the new ones so everything lands in one card.
+    if (previewGroupId) {
+      const toFix = preview.variants
+        .filter(v => trackedAsins?.has(v.asin))
+        .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin))
+        .filter(p => p && p.groupId !== previewGroupId);
+      for (const p of toFix) {
+        try {
+          const { data: updated } = await axios.patch(`${API}/api/tracker/${p._id}`, { groupId: previewGroupId });
+          setProducts(prev => prev.map(x => x._id === p._id ? updated : x));
+        } catch {}
+      }
+    }
+
+    // If the group already has an eBay listing, auto-add new variants to it
+    const existingEbayId = previewGroupId
+      ? products.find(p => p.groupId === previewGroupId && p.ebayListingId)?.ebayListingId || null
+      : null;
+    const existingFolder = existingEbayId
+      ? products.find(p => p.groupId === previewGroupId && p.cloudinaryFolder)?.cloudinaryFolder || null
+      : null;
+
+    for (let i = 0; i < toAdd.length; i++) {
+      setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
+      try {
+        const { data: newProduct } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
+        if (existingEbayId && newProduct.variant) {
+          const price = calcEbayPrice(newProduct.current).toFixed(2);
+          try {
+            const r = await fetch(`${API}/api/ebay/listing/${existingEbayId}/add-variation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ variantLabel: newProduct.variant, price }),
+            });
+            if (r.ok) {
+              await fetch(`${API}/api/tracker/${newProduct._id}/ebay`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ebayListingId: existingEbayId, cloudinaryFolder: existingFolder, ebayPrice: Number(price) }),
+              });
+            }
+          } catch (ebayErr) {
+            console.warn(`Auto-add to eBay failed for "${newProduct.variant}":`, ebayErr);
+          }
+        }
+      } catch (err) {
+        if (err.response?.status !== 409) {
+          // 409 = already tracking, safe to ignore; anything else = real failure
+          failed.push({ variant: toAdd[i], reason: err.response?.data?.error || err.message });
+          console.warn(`Failed to add variant ${toAdd[i].asin}:`, err.response?.data?.error || err.message);
+        }
+      }
+      if (i < toAdd.length - 1) await new Promise(r => setTimeout(r, 400));
+    }
+    // Reload from server — avoids duplicate race with the 30s poll that may have fired mid-add
+    await loadProducts();
+    setPreview(null);
+    setSelectedAsins(new Set());
+    setPreviewGroupId(null);
+    setAddingVariants(false);
+    setAddProgress('');
+    if (failed.length > 0) {
+      const names = failed.map(f => `"${f.variant.label}"`).join(', ');
+      const reason = failed[0].reason ? ` (${failed[0].reason})` : '';
+      setAddError(`Failed to add ${names}${reason}. Paste the URL again and track just that variant.`);
+      setUrl('');
+    } else {
+      setUrl('');
+    }
+  }
+
+  // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
+  const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
+  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers);
+
+  function toggleVariant(asin, checked) {
+    const next = new Set(selectedAsins);
+    if (checked) next.add(asin); else next.delete(asin);
+    setSelectedAsins(next);
+  }
+
+  async function handleDelete(id) {
+    const product = products.find(p => p._id === id);
+    if (product?.ebayListingId) {
+      const lid = String(product.ebayListingId);
+      if (!deletingEbayIds.current.has(lid)) {
+        deletingEbayIds.current.add(lid);
+        await axios.delete(`${API}/api/ebay/listing/${lid}`).catch(() => {});
+        deletingEbayIds.current.delete(lid);
+      }
+    }
+    await axios.delete(`${API}/api/tracker/${id}`);
+    setProducts(prev => prev.filter(p => p._id !== id));
+  }
+
+  function handleVariantDeleted(variantId) {
+    setProducts(prev => prev.filter(p => p._id !== variantId));
+  }
+
+  function handleUpdate(updated) {
+    setProducts(prev => prev.map(p => p._id === updated._id ? updated : p));
+  }
+
+  function handlePriceMismatch(ebayListingId, hasMismatch) {
+    if (!ebayListingId) return;
+    setPriceMismatchIds(prev => {
+      const next = new Set(prev);
+      if (hasMismatch) next.add(String(ebayListingId));
+      else next.delete(String(ebayListingId));
+      return next;
+    });
+  }
+
+  async function handleCheckOne(id) {
+    try {
+      const { data } = await axios.post(`${API}/api/tracker/check/${id}`);
+      setProducts(prev => prev.map(p => p._id === id ? data : p));
+      return data;
+    } catch (err) {
+      alert(err.response?.data?.error || err.message || 'Check failed');
+      throw err;
+    }
+  }
+
+  async function handleCheckNow() {
+    try {
+      await axios.post(`${API}/api/tracker/check`);
+      // tracker:check:start and tracker:check:done socket events handle the
+      // checking spinner, statusMsg, and loadProducts() reload.
+    } catch {
+      setChecking(false);
+      setStatusMsg('');
+    }
+  }
+
+  async function handleCleanOrphans() {
+    setCleaningOrphans(true);
+    setOrphanResult(null);
+    try {
+      // DELETE triggers the scheduler's orphanCleanup which emits tracker:orphan:cleanup when done
+      await axios.delete(`${API}/api/ebay/orphan-listings`);
+      // Result comes back via socket — spinner will stop there
+    } catch (e) {
+      setOrphanResult({ error: e.response?.data?.error || e.message });
+      setCleaningOrphans(false);
+      setTimeout(() => setOrphanResult(null), 6000);
+    }
+  }
+
+  async function handleRetryErrors() {
+    const errorProducts = products.filter(p => ['error', 'unavailable', 'out_of_stock'].includes(p.status));
+    if (!errorProducts.length) return;
+    setRetrying(true);
+    setRetryProgress({ done: 0, total: errorProducts.length });
+    try {
+      await axios.post(`${API}/api/tracker/retry-errors`).catch(() => {}); // non-fatal
+      const total = errorProducts.length;
+      let done = 0;
+      const BATCH = 5;
+      for (let i = 0; i < errorProducts.length; i += BATCH) {
+        await Promise.all(errorProducts.slice(i, i + BATCH).map(async p => {
+          try {
+            const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`);
+            setProducts(prev => prev.map(q => q._id === p._id ? data : q));
+          } catch {}
+          done++;
+          setRetryProgress({ done, total });
+        }));
+      }
+    } catch {
+    } finally {
+      setRetrying(false);
+      setTimeout(() => setRetryProgress(null), 4000);
+    }
+  }
+
+  return {
+    API, products, setProducts, url, setUrl, adding, addError, statusMsg, checking,
+    preview, setPreview, selectedAsins, setSelectedAsins, addingVariants, addProgress,
+    previewGroupId, ebayConnected, ebayTokenDaysLeft, ebayFailedIds, priceMismatchIds,
+    ebayViews, ebayWatchers, blankPhotoIds, sellingLimits, cleaningOrphans, orphanResult,
+    retrying, retryProgress, previewRef, loadProducts, handleAdd, handleTrackDeal,
+    handleTrackSelected, toggleVariant, handleDelete, handleVariantDeleted, handleUpdate,
+    handlePriceMismatch, handleCheckOne, handleCheckNow, handleCleanOrphans, handleRetryErrors,
+    itemStatus, renderItems, trackedAsins,
+  };
+}

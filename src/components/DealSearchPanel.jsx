@@ -27,8 +27,8 @@ const CATEGORIES = [
 
 // Pick an Amazon category and find Prime-eligible items under $15 with
 // a 4+ star rating. Discount is shown when present but not required.
-export default function DealSearchPanel({ onTrack, trackedAsins }) {
-  const [open, setOpen] = useState(false);
+export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [category, setCategory] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
