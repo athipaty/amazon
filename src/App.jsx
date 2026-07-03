@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Component } from 'react';
 import AmazonPage from './pages/AmazonPage';
 import OrdersPage from './pages/OrdersPage';
@@ -24,20 +24,30 @@ class ErrorBoundary extends Component {
 }
 
 export default function App() {
+  const location = useLocation();
+  const onOrders = location.pathname === '/orders';
+
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased pb-16">
-        <Routes>
-          <Route path="/" element={<AmazonPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-        </Routes>
-        <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-2 bg-white border-t border-slate-200/70 shadow-lift">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased pb-[calc(4rem+env(safe-area-inset-bottom))]">
+        {/* Both pages stay mounted permanently (just hidden) instead of unmounting on
+            navigation — switching tabs used to tear down the socket connection and
+            re-fetch everything from scratch every time, making it feel like a full reload. */}
+        <div style={{ display: onOrders ? 'none' : 'block' }}>
+          <AmazonPage />
+        </div>
+        <div style={{ display: onOrders ? 'block' : 'none' }}>
+          <OrdersPage />
+        </div>
+        <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-2 bg-white border-t border-slate-200/70 shadow-lift pb-[env(safe-area-inset-bottom)]">
           <NavLink to="/" end
-            className={({ isActive }) => `text-sm font-semibold py-3 text-center transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            <span className="text-lg leading-none">📦</span>
             Tracker
           </NavLink>
           <NavLink to="/orders"
-            className={({ isActive }) => `text-sm font-semibold py-3 text-center transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            <span className="text-lg leading-none">🧾</span>
             Orders
           </NavLink>
         </nav>

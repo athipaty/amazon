@@ -513,7 +513,7 @@ export default function AmazonPage() {
 
       {/* ── Mobile detail sheet ── */}
       {detailOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-slate-50 flex flex-col animate-slide-in-right">
+        <div className="lg:hidden fixed inset-0 z-[60] bg-slate-50 flex flex-col animate-slide-in-right">
           <div className="flex items-center gap-3 px-3 py-3 bg-white/90 backdrop-blur-sm border-b border-slate-100 flex-shrink-0 shadow-soft">
             <button
               onClick={() => setDetailOpen(false)}
