@@ -72,6 +72,7 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null); // { sent, messageText }
   const [messageCopied, setMessageCopied] = useState(false);
+  const [notifyError, setNotifyError] = useState('');
 
   const status = STATUS_STYLES[order.status] || STATUS_STYLES.needs_purchase;
 
@@ -118,9 +119,12 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
 
   async function handleNotify() {
     setNotifying(true);
+    setNotifyError('');
     try {
       const result = await onNotifyBuyer();
       setNotifyResult(result);
+    } catch (e) {
+      setNotifyError(e.message || 'Failed to create message');
     } finally {
       setNotifying(false);
     }
@@ -254,10 +258,13 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
         {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
       </div>
 
-      {/* Notify buyer — generates a thank-you message for you to copy into eBay */}
+      {/* Notify buyer — generates a thank-you message for you to copy into eBay.
+          Gated on having a real tracking number so we never imply "delivered"
+          before the order has actually shipped. */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button onClick={handleNotify} disabled={notifying}
-          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40">
+        <button onClick={handleNotify} disabled={notifying || !order.trackingNumber}
+          title={!order.trackingNumber ? 'Add a tracking number first' : undefined}
+          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:hover:bg-emerald-50">
           {notifying ? 'Creating…' : order.buyerMessageSent ? '✓ Message Ready' : '✉️ Notify Buyer'}
         </button>
         {order.ebayOrderId && (
@@ -267,6 +274,10 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
             💬 Message Buyer on eBay ↗
           </a>
         )}
+        {!order.trackingNumber && (
+          <span className="text-[11px] text-slate-400">Add tracking before notifying the buyer</span>
+        )}
+        {notifyError && <span className="text-[11px] text-red-500">⚠ {notifyError}</span>}
       </div>
 
       {/* Remove — for orders you've already fully handled */}

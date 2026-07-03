@@ -51,9 +51,13 @@ export default function OrdersPage() {
   }
 
   async function handleNotifyBuyer(orderId) {
-    const { data } = await axios.post(`${API}/api/orders/${orderId}/notify-buyer`);
-    patchOrder(data.order);
-    return data;
+    try {
+      const { data } = await axios.post(`${API}/api/orders/${orderId}/notify-buyer`);
+      patchOrder(data.order);
+      return data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || err.message);
+    }
   }
 
   async function handleRemove(orderId) {
