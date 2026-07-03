@@ -1,6 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, NavLink } from 'react-router-dom';
 import { Component } from 'react';
 import AmazonPage from './pages/AmazonPage';
+import OrdersPage from './pages/OrdersPage';
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -26,8 +27,19 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased">
+        <nav className="flex items-center gap-1 px-4 py-2 bg-white border-b border-slate-200/70">
+          <NavLink to="/" end
+            className={({ isActive }) => `text-sm font-semibold px-3 py-1.5 rounded-full transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            Tracker
+          </NavLink>
+          <NavLink to="/orders"
+            className={({ isActive }) => `text-sm font-semibold px-3 py-1.5 rounded-full transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            Orders
+          </NavLink>
+        </nav>
         <Routes>
           <Route path="/" element={<AmazonPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
         </Routes>
       </div>
     </ErrorBoundary>

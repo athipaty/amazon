@@ -1,0 +1,197 @@
+import { useState } from 'react';
+
+const STATUS_STYLES = {
+  needs_purchase: { label: 'Needs purchase', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  purchased:      { label: 'Purchased',       cls: 'bg-blue-50 text-blue-700 ring-blue-200' },
+  shipped:        { label: 'Shipped',         cls: 'bg-indigo-50 text-indigo-700 ring-indigo-200' },
+  notified:       { label: 'Buyer notified',  cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+};
+
+const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL'];
+
+function formatAddress(a) {
+  if (!a) return '';
+  return [a.name, a.street1, a.street2, [a.cityName, a.stateOrProvince, a.postalCode].filter(Boolean).join(', '), a.country]
+    .filter(Boolean).join('\n');
+}
+
+export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer }) {
+  const [addressCopied, setAddressCopied] = useState(false);
+  const [amazonOrderId, setAmazonOrderId] = useState(order.amazonOrderId || '');
+  const [editingPurchase, setEditingPurchase] = useState(false);
+  const [savingPurchase, setSavingPurchase] = useState(false);
+
+  const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || '');
+  const [carrier, setCarrier] = useState(order.carrier || CARRIERS[0]);
+  const [editingTracking, setEditingTracking] = useState(false);
+  const [savingTracking, setSavingTracking] = useState(false);
+  const [trackingError, setTrackingError] = useState('');
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const [notifying, setNotifying] = useState(false);
+  const [notifyResult, setNotifyResult] = useState(null); // { sent, messageText }
+  const [messageCopied, setMessageCopied] = useState(false);
+
+  const status = STATUS_STYLES[order.status] || STATUS_STYLES.needs_purchase;
+
+  function copyAddress() {
+    navigator.clipboard.writeText(formatAddress(order.shippingAddress)).then(() => {
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 2000);
+    });
+  }
+
+  async function submitPurchase() {
+    if (!amazonOrderId.trim()) return;
+    setSavingPurchase(true);
+    try {
+      await onMarkPurchased(amazonOrderId.trim());
+      setEditingPurchase(false);
+    } finally {
+      setSavingPurchase(false);
+    }
+  }
+
+  async function submitTracking() {
+    if (!trackingNumber.trim()) return;
+    setSavingTracking(true);
+    setTrackingError('');
+    try {
+      await onAddTracking(trackingNumber.trim(), carrier);
+      setEditingTracking(false);
+    } catch (e) {
+      setTrackingError(e.message || 'Failed to push tracking to eBay');
+    } finally {
+      setSavingTracking(false);
+    }
+  }
+
+  async function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      await onUploadPhoto(file);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function handleNotify() {
+    setNotifying(true);
+    try {
+      const result = await onNotifyBuyer();
+      setNotifyResult(result);
+    } finally {
+      setNotifying(false);
+    }
+  }
+
+  function copyMessage() {
+    navigator.clipboard.writeText(notifyResult?.messageText || order.buyerMessageText || '').then(() => {
+      setMessageCopied(true);
+      setTimeout(() => setMessageCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/70 shadow-card p-4 md:p-5 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-800 truncate">{order.title || order.ebayItemId}</p>
+          <p className="text-xs text-slate-500">
+            {order.variationValue ? `${order.variationValue} · ` : ''}Qty {order.quantity} · ${order.price?.toFixed?.(2) ?? order.price}
+            {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
+          </p>
+        </div>
+        <span className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset whitespace-nowrap ${status.cls}`}>
+          {status.label}
+        </span>
+      </div>
+
+      {/* Shipping address */}
+      <div className="flex items-start justify-between gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5">
+        <pre className="text-xs text-slate-600 whitespace-pre-wrap font-sans">{formatAddress(order.shippingAddress) || 'No address captured'}</pre>
+        <button onClick={copyAddress}
+          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 transition-colors whitespace-nowrap">
+          {addressCopied ? '✓ Copied!' : '📋 Copy Address'}
+        </button>
+      </div>
+
+      {/* Mark purchased */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {editingPurchase ? (
+          <>
+            <input value={amazonOrderId} onChange={e => setAmazonOrderId(e.target.value)}
+              placeholder="Amazon order ID"
+              className="text-xs px-3 py-1.5 rounded-full ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-amazon flex-1 min-w-[160px]" />
+            <button onClick={submitPurchase} disabled={savingPurchase}
+              className="text-xs font-bold px-3 py-1.5 rounded-full bg-amazon text-white hover:bg-amazon-dark transition-colors disabled:opacity-50">
+              {savingPurchase ? 'Saving…' : 'Save'}
+            </button>
+            <button onClick={() => setEditingPurchase(false)} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+          </>
+        ) : (
+          <button onClick={() => setEditingPurchase(true)}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors">
+            {order.amazonOrderId ? `📦 Amazon: ${order.amazonOrderId}` : '📦 Mark Purchased'}
+          </button>
+        )}
+      </div>
+
+      {/* Tracking */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {editingTracking ? (
+          <>
+            <select value={carrier} onChange={e => setCarrier(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-full ring-1 ring-inset ring-slate-200 focus:outline-none">
+              {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <input value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)}
+              placeholder="Tracking number"
+              className="text-xs px-3 py-1.5 rounded-full ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-ebay flex-1 min-w-[160px]" />
+            <button onClick={submitTracking} disabled={savingTracking}
+              className="text-xs font-bold px-3 py-1.5 rounded-full bg-ebay text-white hover:bg-ebay-dark transition-colors disabled:opacity-50">
+              {savingTracking ? 'Pushing…' : 'Push to eBay'}
+            </button>
+            <button onClick={() => setEditingTracking(false)} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+          </>
+        ) : (
+          <button onClick={() => setEditingTracking(true)}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-red-50 text-ebay ring-1 ring-inset ring-red-200 hover:bg-red-100 transition-colors">
+            {order.trackingNumber ? `🚚 ${order.carrier} ${order.trackingNumber}` : '🚚 Add Tracking'}
+          </button>
+        )}
+        {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
+      </div>
+
+      {/* Delivery photo + notify buyer */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 transition-colors cursor-pointer">
+          {uploadingPhoto ? 'Uploading…' : order.deliveryPhotoUrl ? '📷 Photo Added ✓' : '📷 Add Delivery Photo'}
+          <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={uploadingPhoto} />
+        </label>
+
+        <button onClick={handleNotify} disabled={notifying || !order.deliveryPhotoUrl}
+          title={!order.deliveryPhotoUrl ? 'Add a delivery photo first' : ''}
+          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40">
+          {notifying ? 'Sending…' : order.buyerMessageSent ? '✓ Buyer Notified' : '✉️ Notify Buyer'}
+        </button>
+      </div>
+
+      {notifyResult && !notifyResult.sent && (
+        <div className="flex items-start justify-between gap-2 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-xl px-3.5 py-2.5">
+          <div>
+            <p className="text-xs text-amber-700 font-semibold mb-1">Couldn't auto-send — copy and paste into eBay messages:</p>
+            <p className="text-xs text-amber-700 whitespace-pre-wrap">{notifyResult.messageText}</p>
+          </div>
+          <button onClick={copyMessage}
+            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-amber-700 ring-1 ring-inset ring-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap">
+            {messageCopied ? '✓ Copied!' : '📋 Copy Message'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
