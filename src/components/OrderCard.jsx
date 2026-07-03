@@ -209,6 +209,13 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
             {order.amazonOrderId ? `📦 Amazon: ${order.amazonOrderId}` : '📦 Mark Purchased'}
           </button>
         )}
+        {order.amazonOrderId && (
+          <a href={`https://www.amazon.com/gp/your-account/order-details?orderID=${encodeURIComponent(order.amazonOrderId)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
+            🚚 Track on Amazon ↗
+          </a>
+        )}
       </div>
 
       {/* Tracking */}
