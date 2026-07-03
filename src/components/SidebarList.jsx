@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { calcEbayPrice } from '../utils/pricing';
 
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
@@ -9,7 +8,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
   return (
     <div className={mobile
       ? "flex flex-col overflow-hidden bg-white border border-slate-200/70 rounded-2xl shadow-soft"
-      : "w-72 flex-shrink-0 border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-soft sticky top-4 max-h-[calc(100vh-120px)] flex flex-col"
+      : "w-full sm:w-96 md:w-[30rem] lg:w-[36rem] flex-shrink-0 border border-slate-200/70 rounded-2xl overflow-hidden bg-white shadow-soft sticky top-4 max-h-[calc(100vh-120px)] flex flex-col"
     }>
       {/* Header + search */}
       <div className="px-3.5 py-3 bg-slate-50/80 border-b border-slate-100 flex-shrink-0">
@@ -42,14 +41,16 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           />
         </div>
       </div>
-      {/* Items */}
-      <div className={mobile ? "flex flex-col divide-y divide-slate-50" : "overflow-y-auto flex-1 scrollbar-thin divide-y divide-slate-50"}>
+      {/* Items — responsive photo grid: more columns as the screen gets wider */}
+      <div className={mobile
+        ? "grid grid-cols-3 sm:grid-cols-4 gap-2 p-2"
+        : "overflow-y-auto flex-1 scrollbar-thin grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 p-2"
+      }>
         {filtered.length === 0 && (
-          <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
+          <p className="col-span-full text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
         )}
         {filtered.map(item => {
           const key = getItemKey(item);
-          const status = getItemStatus(item);
           const image = getItemImage(item);
           const title = getItemTitle(item);
           const isSelected = selectedKey === key;
@@ -57,12 +58,13 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
             <button
               key={key}
               onClick={() => onSelect(key)}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors ${isSelected ? 'bg-blue-50/70 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent hover:bg-slate-50'}`}
+              title={title}
+              className={`flex items-center justify-center p-1.5 rounded-xl transition-colors ${isSelected ? 'bg-blue-50/70 ring-2 ring-blue-500' : 'ring-1 ring-transparent hover:bg-slate-50'}`}
             >
               <div className="relative flex-shrink-0">
                 {image
-                  ? <img src={image} alt="" className="w-11 h-11 object-contain rounded-xl bg-slate-50 border border-slate-100" />
-                  : <div className="w-11 h-11 rounded-xl bg-slate-100" />
+                  ? <img src={image} alt="" className="w-16 h-16 object-contain rounded-xl bg-slate-50 border border-slate-100" />
+                  : <div className="w-16 h-16 rounded-xl bg-slate-100" />
                 }
                 {(() => {
                   const ebayId = item.type === 'group'
@@ -88,20 +90,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                     </span>
                   );
                 })()}
-                {/* Amazon discount badge — % off the list/strikethrough price */}
-                {(() => {
-                  const rep = item.type === 'group'
-                    ? item.variants.find(v => v.listPrice > v.current)
-                    : (item.product?.listPrice > item.product?.current ? item.product : null);
-                  if (!rep) return null;
-                  const pct = Math.round((1 - rep.current / rep.listPrice) * 100);
-                  if (pct <= 0) return null;
-                  return (
-                    <span className="absolute -bottom-1.5 -left-1.5 min-w-[28px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 leading-none shadow-sm ring-2 ring-white">
-                      −{pct}%
-                    </span>
-                  );
-                })()}
                 {/* Blank eBay photo warning badge */}
                 {(() => {
                   const ebayId = item.type === 'group'
@@ -114,49 +102,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                     </span>
                   );
                 })()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-[11px] font-medium leading-snug line-clamp-2 ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>{title}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <div className="flex items-center gap-1">
-                    {status === 'ok'       && <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" /><span className="text-[10px] text-emerald-600 font-semibold">Listed OK</span></>}
-                    {status === 'price'    && <><span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse" /><span className="text-[10px] text-amber-600 font-semibold">Price issue</span></>}
-                    {status === 'issue'    && <><span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" /><span className="text-[10px] text-orange-500 font-semibold">Issue</span></>}
-                    {status === 'unlisted' && <><span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" /><span className="text-[10px] text-slate-400">Not listed</span></>}
-                    {item.type === 'group' && <span className="ml-1 text-[9px] text-slate-300 font-medium">{item.variants.length}v</span>}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {/* Days listed badge */}
-                    {(() => {
-                      const listedAt = item.type === 'group'
-                        ? item.variants.find(v => v.listedAt)?.listedAt
-                        : item.product?.listedAt;
-                      if (!listedAt) return null;
-                      const days = Math.max(0, Math.floor((Date.now() - new Date(listedAt).getTime()) / 86400000));
-                      return (
-                        <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md leading-none whitespace-nowrap">
-                          {days}d listed
-                        </span>
-                      );
-                    })()}
-                    {/* eBay price badge */}
-                    {(() => {
-                      const costs = item.type === 'group'
-                        ? item.variants.map(v => v.current).filter(v => v != null)
-                        : [item.product.current].filter(v => v != null);
-                      if (!costs.length) return null;
-                      const ebayPrices = costs.map(c => calcEbayPrice(c));
-                      const lo = Math.min(...ebayPrices);
-                      const hi = Math.max(...ebayPrices);
-                      const label = lo.toFixed(2) === hi.toFixed(2) ? `$${lo.toFixed(2)}` : `$${lo.toFixed(2)}+`;
-                      return (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none bg-blue-50 text-blue-600">
-                          {label}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                </div>
               </div>
             </button>
           );
