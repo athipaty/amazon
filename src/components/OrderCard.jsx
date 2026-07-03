@@ -9,14 +9,16 @@ const STATUS_STYLES = {
 
 const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL'];
 
-function formatAddress(a) {
-  if (!a) return '';
-  return [a.name, a.street1, a.street2, [a.cityName, a.stateOrProvince, a.postalCode].filter(Boolean).join(', '), a.country]
-    .filter(Boolean).join('\n');
+function addressLines(a) {
+  if (!a) return [];
+  const phone = a.phone && a.phone !== 'Invalid Request' ? a.phone : null;
+  return [a.name, a.street1, a.street2, [a.cityName, a.stateOrProvince, a.postalCode].filter(Boolean).join(', '), a.country, phone]
+    .filter(Boolean);
 }
 
 export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer }) {
   const [addressCopied, setAddressCopied] = useState(false);
+  const [copiedLines, setCopiedLines] = useState(new Set());
   const [amazonOrderId, setAmazonOrderId] = useState(order.amazonOrderId || '');
   const [editingPurchase, setEditingPurchase] = useState(false);
   const [savingPurchase, setSavingPurchase] = useState(false);
@@ -35,10 +37,19 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
 
   const status = STATUS_STYLES[order.status] || STATUS_STYLES.needs_purchase;
 
+  const lines = addressLines(order.shippingAddress);
+
   function copyAddress() {
-    navigator.clipboard.writeText(formatAddress(order.shippingAddress)).then(() => {
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setAddressCopied(true);
       setTimeout(() => setAddressCopied(false), 2000);
+    });
+  }
+
+  function copyLine(idx, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedLines(prev => new Set(prev).add(idx));
+      setTimeout(() => setCopiedLines(prev => { const next = new Set(prev); next.delete(idx); return next; }), 2000);
     });
   }
 
@@ -110,17 +121,34 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
         </span>
       </div>
 
-      {/* Shipping address */}
+      {/* Shipping address — click any line to copy just that line */}
       <div className="flex items-start justify-between gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5">
-        <pre className="text-xs text-slate-600 whitespace-pre-wrap font-sans">{formatAddress(order.shippingAddress) || 'No address captured'}</pre>
+        {lines.length ? (
+          <div className="flex flex-col gap-1 min-w-0">
+            {lines.map((line, idx) => (
+              <button key={idx} onClick={() => copyLine(idx, line)} title="Click to copy this line"
+                className={`text-left text-xs px-2.5 py-1 rounded-lg transition-colors truncate ${copiedLines.has(idx) ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 hover:bg-amber-100 ring-1 ring-inset ring-slate-200'}`}>
+                {line}{copiedLines.has(idx) ? ' ✓' : ''}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">No address captured</p>
+        )}
         <button onClick={copyAddress}
           className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 transition-colors whitespace-nowrap">
-          {addressCopied ? '✓ Copied!' : '📋 Copy Address'}
+          {addressCopied ? '✓ Copied!' : '📋 Copy All'}
         </button>
       </div>
 
       {/* Mark purchased */}
       <div className="flex items-center gap-2 flex-wrap">
+        {order.amazonUrl && (
+          <a href={order.amazonUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors whitespace-nowrap">
+            Amazon ↗
+          </a>
+        )}
         {editingPurchase ? (
           <>
             <input value={amazonOrderId} onChange={e => setAmazonOrderId(e.target.value)}
