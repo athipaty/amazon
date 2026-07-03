@@ -2,10 +2,10 @@ import { useState } from 'react';
 import FadeImg from './FadeImg';
 
 const STATUS_STYLES = {
-  needs_purchase: { label: 'Needs purchase', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  purchased:      { label: 'Purchased',       cls: 'bg-blue-50 text-blue-700 ring-blue-200' },
-  shipped:        { label: 'Shipped',         cls: 'bg-indigo-50 text-indigo-700 ring-indigo-200' },
-  notified:       { label: 'Buyer notified',  cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  needs_purchase: { label: 'Needs purchase', cls: 'text-amber-600' },
+  purchased:      { label: 'Purchased',       cls: 'text-blue-600' },
+  shipped:        { label: 'Shipped',         cls: 'text-indigo-600' },
+  notified:       { label: 'Buyer notified',  cls: 'text-emerald-600' },
 };
 
 const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL', 'Other'];
@@ -158,10 +158,10 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset whitespace-nowrap ${status.cls}`}>
+          <span className={`text-[11px] font-semibold whitespace-nowrap ${status.cls}`}>
             {status.label}
           </span>
-          <span className="text-slate-400 text-xs">{expanded ? '▲' : '▼'}</span>
+          <span className={`text-xs transition-colors duration-200 ${expanded ? 'text-indigo-600' : 'text-slate-300'}`}>{expanded ? '▲' : '▼'}</span>
         </div>
       </button>
 
