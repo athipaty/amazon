@@ -50,13 +50,6 @@ export default function OrdersPage() {
     }
   }
 
-  async function handleUploadPhoto(orderId, file) {
-    const form = new FormData();
-    form.append('photo', file);
-    const { data } = await axios.post(`${API}/api/orders/${orderId}/delivery-photo`, form);
-    patchOrder(data);
-  }
-
   async function handleNotifyBuyer(orderId) {
     const { data } = await axios.post(`${API}/api/orders/${orderId}/notify-buyer`);
     patchOrder(data.order);
@@ -83,7 +76,6 @@ export default function OrdersPage() {
             order={order}
             onMarkPurchased={(amazonOrderId) => handleMarkPurchased(order._id, amazonOrderId)}
             onAddTracking={(trackingNumber, carrier) => handleAddTracking(order._id, trackingNumber, carrier)}
-            onUploadPhoto={(file) => handleUploadPhoto(order._id, file)}
             onNotifyBuyer={() => handleNotifyBuyer(order._id)}
             onRemove={() => handleRemove(order._id)}
           />

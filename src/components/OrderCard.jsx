@@ -52,7 +52,7 @@ function addressGroups(a) {
   return groups.filter(g => g.length);
 }
 
-export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer, onRemove }) {
+export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNotifyBuyer, onRemove }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -67,8 +67,6 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
   const [editingTracking, setEditingTracking] = useState(false);
   const [savingTracking, setSavingTracking] = useState(false);
   const [trackingError, setTrackingError] = useState('');
-
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null); // { sent, messageText }
@@ -114,17 +112,6 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
       setTrackingError(e.message || 'Failed to push tracking to eBay');
     } finally {
       setSavingTracking(false);
-    }
-  }
-
-  async function handlePhotoChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingPhoto(true);
-    try {
-      await onUploadPhoto(file);
-    } finally {
-      setUploadingPhoto(false);
     }
   }
 
@@ -266,17 +253,19 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
         {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
       </div>
 
-      {/* Delivery photo (optional) + notify buyer */}
+      {/* Notify buyer — generates a thank-you message for you to copy into eBay */}
       <div className="flex items-center gap-2 flex-wrap">
-        <label className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 transition-colors cursor-pointer">
-          {uploadingPhoto ? 'Uploading…' : order.deliveryPhotoUrl ? '📷 Photo Added ✓' : '📷 Add Delivery Photo (optional)'}
-          <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={uploadingPhoto} />
-        </label>
-
         <button onClick={handleNotify} disabled={notifying}
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40">
-          {notifying ? 'Sending…' : order.buyerMessageSent ? '✓ Buyer Notified' : '✉️ Notify Buyer'}
+          {notifying ? 'Creating…' : order.buyerMessageSent ? '✓ Message Ready' : '✉️ Notify Buyer'}
         </button>
+        {order.ebayOrderId && (
+          <a href={`https://www.ebay.com/sh/ord/details?orderid=${encodeURIComponent(order.ebayOrderId)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-red-50 text-ebay ring-1 ring-inset ring-red-200 hover:bg-red-100 transition-colors whitespace-nowrap">
+            💬 Message Buyer on eBay ↗
+          </a>
+        )}
       </div>
 
       {/* Remove — for orders you've already fully handled */}
@@ -298,14 +287,14 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
         )}
       </div>
 
-      {notifyResult && !notifyResult.sent && (
-        <div className="flex items-start justify-between gap-2 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-xl px-3.5 py-2.5">
+      {(notifyResult?.messageText || order.buyerMessageText) && (
+        <div className="flex items-start justify-between gap-2 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-xl px-3.5 py-2.5">
           <div>
-            <p className="text-xs text-amber-700 font-semibold mb-1">Couldn't auto-send — copy and paste into eBay messages:</p>
-            <p className="text-xs text-amber-700 whitespace-pre-wrap">{notifyResult.messageText}</p>
+            <p className="text-xs text-emerald-700 font-semibold mb-1">Copy this and paste into eBay's message center:</p>
+            <p className="text-xs text-emerald-700 whitespace-pre-wrap">{notifyResult?.messageText || order.buyerMessageText}</p>
           </div>
           <button onClick={copyMessage}
-            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-amber-700 ring-1 ring-inset ring-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap">
+            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap">
             {messageCopied ? '✓ Copied!' : '📋 Copy Message'}
           </button>
         </div>
