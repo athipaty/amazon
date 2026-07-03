@@ -64,11 +64,14 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     <div className="mb-5">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors"
+        className="w-full flex items-center gap-3 bg-white border border-slate-200/70 rounded-2xl px-4 py-3.5 shadow-soft hover:shadow-card active:scale-[0.99] transition-all text-left"
       >
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 shadow-soft">🏷️</span>
-        Find items on sale
-        <span className="text-slate-300 text-xs">{open ? '▲' : '▼'}</span>
+        <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">🏷️</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-800">Find items on sale</p>
+          <p className="text-xs text-slate-400">Browse discounted, Prime-eligible deals by category</p>
+        </div>
+        <span className={`text-slate-300 text-sm flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
 
       {open && (

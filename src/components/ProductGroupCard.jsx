@@ -613,6 +613,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 {variants.length} variant{variants.length !== 1 ? 's' : ''}
               </span>
             )}
+            {detailMode && (() => {
+              const listedAt = variants.find(v => v.listedAt)?.listedAt;
+              if (!listedAt) return null;
+              const days = Math.max(0, Math.floor((Date.now() - new Date(listedAt).getTime()) / 86400000));
+              return (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-200">
+                  {days}d listed
+                </span>
+              );
+            })()}
           </div>
         </div>
         {deleting ? (

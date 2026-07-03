@@ -1,14 +1,13 @@
-import TrackerHeader from '../components/TrackerHeader';
 import TrackerBanners from '../components/TrackerBanners';
 import ProductListDetail from '../components/ProductListDetail';
 
 export default function AmazonPage({ tracker }) {
   const {
-    API, products, statusMsg, checking,
+    API, products, statusMsg,
     ebayConnected, ebayTokenDaysLeft, ebayFailedIds, ebayViews, ebayWatchers,
-    blankPhotoIds, sellingLimits, cleaningOrphans, orphanResult,
+    blankPhotoIds, sellingLimits,
     handleDelete, handleUpdate, handlePriceMismatch, handleCheckOne,
-    handleVariantDeleted, handleCleanOrphans, itemStatus, renderItems,
+    handleVariantDeleted, itemStatus, hasIssue, renderItems,
   } = tracker;
 
   // Items not yet listed on eBay live on the Deals tab instead — this tab is just
@@ -17,12 +16,6 @@ export default function AmazonPage({ tracker }) {
 
   return (
     <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
-      <TrackerHeader
-        sellingLimits={sellingLimits}
-        checking={checking}
-        cleaningOrphans={cleaningOrphans} orphanResult={orphanResult} handleCleanOrphans={handleCleanOrphans}
-      />
-
       <TrackerBanners
         apiUrl={API}
         ebayConnected={ebayConnected} ebayTokenDaysLeft={ebayTokenDaysLeft}
@@ -50,6 +43,8 @@ export default function AmazonPage({ tracker }) {
         ebayWatchers={ebayWatchers}
         blankPhotoIds={blankPhotoIds}
         itemStatus={itemStatus}
+        hasIssue={hasIssue}
+        sellingLimits={sellingLimits}
         ebayFailedIds={ebayFailedIds}
         handleCheckOne={handleCheckOne}
         handleDelete={handleDelete}

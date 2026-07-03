@@ -27,7 +27,7 @@ export default function DealsPage({ tracker }) {
         trackedAsins={trackedAsins}
       />
 
-      <DealSearchPanel onTrack={handleTrackDeal} trackedAsins={trackedAsins} defaultOpen />
+      <DealSearchPanel onTrack={handleTrackDeal} trackedAsins={trackedAsins} />
 
       <div className="mt-5">
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Not yet listed on eBay</h2>

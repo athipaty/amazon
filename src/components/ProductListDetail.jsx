@@ -8,7 +8,7 @@ import { getItemKey, getItemImage, getItemTitle } from '../utils/trackerItems';
 // (items tracked but not yet listed on eBay), so this list-driving logic only lives once.
 export default function ProductListDetail({
   items, emptyState, API, ebayConnected, ebayViews, ebayWatchers, blankPhotoIds,
-  itemStatus, ebayFailedIds, handleCheckOne, handleDelete, handleUpdate,
+  itemStatus, hasIssue, sellingLimits, ebayFailedIds, handleCheckOne, handleDelete, handleUpdate,
   handleVariantDeleted, handlePriceMismatch,
 }) {
   const [selectedKey, setSelectedKey] = useState(null);
@@ -42,6 +42,8 @@ export default function ProductListDetail({
           getItemTitle={getItemTitle}
           getItemImage={getItemImage}
           getItemStatus={itemStatus}
+          hasIssue={hasIssue}
+          sellingLimits={sellingLimits}
           ebayViews={ebayViews}
           ebayWatchers={ebayWatchers}
           apiUrl={API}
@@ -61,6 +63,8 @@ export default function ProductListDetail({
           getItemTitle={getItemTitle}
           getItemImage={getItemImage}
           getItemStatus={itemStatus}
+          hasIssue={hasIssue}
+          sellingLimits={sellingLimits}
           ebayViews={ebayViews}
           ebayWatchers={ebayWatchers}
           apiUrl={API}

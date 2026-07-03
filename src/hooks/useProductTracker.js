@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
-import { getItemStatus, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
+import { getItemStatus, itemHasIssue, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
 import { calcEbayPrice } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -28,8 +28,6 @@ export default function useProductTracker() {
   const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
   const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
-  const [cleaningOrphans, setCleaningOrphans] = useState(false);
-  const [orphanResult, setOrphanResult] = useState(null); // { found, ended } | null
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
@@ -62,17 +60,6 @@ export default function useProductTracker() {
 
     socket.on('tracker:listing:ended', () => {
       loadProducts();
-    });
-
-    socket.on('tracker:orphan:cleanup', ({ found, ended }) => {
-      setCleaningOrphans(false);
-      if (found > 0) {
-        setOrphanResult({ found, ended });
-        setTimeout(() => setOrphanResult(null), 8000);
-      } else {
-        setOrphanResult({ found: 0, ended: 0 });
-        setTimeout(() => setOrphanResult(null), 4000);
-      }
     });
 
     socket.on('tracker:price:drop', ({ product }) => {
@@ -296,6 +283,7 @@ export default function useProductTracker() {
 
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
   const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
+  const hasIssue = (item) => itemHasIssue(item, ebayFailedIds, priceMismatchIds);
   const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers);
 
   function toggleVariant(asin, checked) {
@@ -347,28 +335,14 @@ export default function useProductTracker() {
     }
   }
 
-  async function handleCleanOrphans() {
-    setCleaningOrphans(true);
-    setOrphanResult(null);
-    try {
-      // DELETE triggers the scheduler's orphanCleanup which emits tracker:orphan:cleanup when done
-      await axios.delete(`${API}/api/ebay/orphan-listings`);
-      // Result comes back via socket — spinner will stop there
-    } catch (e) {
-      setOrphanResult({ error: e.response?.data?.error || e.message });
-      setCleaningOrphans(false);
-      setTimeout(() => setOrphanResult(null), 6000);
-    }
-  }
-
   return {
     API, products, setProducts, url, setUrl, adding, addError, statusMsg, checking,
     preview, setPreview, selectedAsins, setSelectedAsins, addingVariants, addProgress,
     previewGroupId, ebayConnected, ebayTokenDaysLeft, ebayFailedIds, priceMismatchIds,
-    ebayViews, ebayWatchers, blankPhotoIds, sellingLimits, cleaningOrphans, orphanResult,
+    ebayViews, ebayWatchers, blankPhotoIds, sellingLimits,
     previewRef, loadProducts, handleAdd, handleTrackDeal,
     handleTrackSelected, toggleVariant, handleDelete, handleVariantDeleted, handleUpdate,
-    handlePriceMismatch, handleCheckOne, handleCleanOrphans,
-    itemStatus, renderItems, trackedAsins,
+    handlePriceMismatch, handleCheckOne,
+    itemStatus, hasIssue, renderItems, trackedAsins,
   };
 }
