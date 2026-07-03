@@ -52,8 +52,10 @@ function addressGroups(a) {
   return groups.filter(g => g.length);
 }
 
-export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer }) {
-  const [expanded, setExpanded] = useState(true);
+export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer, onRemove }) {
+  const [expanded, setExpanded] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
   const [copiedLines, setCopiedLines] = useState(new Set());
   const [amazonOrderId, setAmazonOrderId] = useState(order.amazonOrderId || '');
@@ -141,6 +143,15 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
       setMessageCopied(true);
       setTimeout(() => setMessageCopied(false), 2000);
     });
+  }
+
+  async function confirmRemove() {
+    setRemoving(true);
+    try {
+      await onRemove();
+    } finally {
+      setRemoving(false);
+    }
   }
 
   return (
@@ -266,6 +277,25 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40">
           {notifying ? 'Sending…' : order.buyerMessageSent ? '✓ Buyer Notified' : '✉️ Notify Buyer'}
         </button>
+      </div>
+
+      {/* Remove — for orders you've already fully handled */}
+      <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-slate-100">
+        {confirmingRemove ? (
+          <>
+            <span className="text-[11px] text-slate-500">Remove this order from the list?</span>
+            <button onClick={confirmRemove} disabled={removing}
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
+              {removing ? 'Removing…' : 'Yes'}
+            </button>
+            <button onClick={() => setConfirmingRemove(false)} className="text-[11px] text-slate-400 hover:text-slate-600">Cancel</button>
+          </>
+        ) : (
+          <button onClick={() => setConfirmingRemove(true)}
+            className="text-[11px] text-slate-400 hover:text-red-500 transition-colors mt-1">
+            🗑️ Remove
+          </button>
+        )}
       </div>
 
       {notifyResult && !notifyResult.sent && (

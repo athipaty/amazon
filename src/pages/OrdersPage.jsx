@@ -63,6 +63,11 @@ export default function OrdersPage() {
     return data;
   }
 
+  async function handleRemove(orderId) {
+    await axios.delete(`${API}/api/orders/${orderId}`);
+    setOrders(prev => prev.filter(o => o._id !== orderId));
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-4">
       <h1 className="text-lg font-bold text-slate-800">Sold Orders</h1>
@@ -80,6 +85,7 @@ export default function OrdersPage() {
             onAddTracking={(trackingNumber, carrier) => handleAddTracking(order._id, trackingNumber, carrier)}
             onUploadPhoto={(file) => handleUploadPhoto(order._id, file)}
             onNotifyBuyer={() => handleNotifyBuyer(order._id)}
+            onRemove={() => handleRemove(order._id)}
           />
         ))
       )}
