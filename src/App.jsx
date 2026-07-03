@@ -26,21 +26,21 @@ class ErrorBoundary extends Component {
 export default function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased">
-        <nav className="flex items-center gap-1 px-4 py-2 bg-white border-b border-slate-200/70">
-          <NavLink to="/" end
-            className={({ isActive }) => `text-sm font-semibold px-3 py-1.5 rounded-full transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
-            Tracker
-          </NavLink>
-          <NavLink to="/orders"
-            className={({ isActive }) => `text-sm font-semibold px-3 py-1.5 rounded-full transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
-            Orders
-          </NavLink>
-        </nav>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased pb-16">
         <Routes>
           <Route path="/" element={<AmazonPage />} />
           <Route path="/orders" element={<OrdersPage />} />
         </Routes>
+        <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-2 bg-white border-t border-slate-200/70 shadow-lift">
+          <NavLink to="/" end
+            className={({ isActive }) => `text-sm font-semibold py-3 text-center transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            Tracker
+          </NavLink>
+          <NavLink to="/orders"
+            className={({ isActive }) => `text-sm font-semibold py-3 text-center transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+            Orders
+          </NavLink>
+        </nav>
       </div>
     </ErrorBoundary>
   );

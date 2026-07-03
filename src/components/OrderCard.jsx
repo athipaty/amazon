@@ -53,6 +53,7 @@ function addressGroups(a) {
 }
 
 export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer }) {
+  const [expanded, setExpanded] = useState(true);
   const [addressCopied, setAddressCopied] = useState(false);
   const [copiedLines, setCopiedLines] = useState(new Set());
   const [amazonOrderId, setAmazonOrderId] = useState(order.amazonOrderId || '');
@@ -144,7 +145,7 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/70 shadow-card p-4 md:p-5 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
+      <button onClick={() => setExpanded(e => !e)} className="flex items-start justify-between gap-2 text-left w-full">
         <div className="flex items-start gap-3 min-w-0">
           {order.productImage && (
             <img src={order.productImage} alt="" className="w-12 h-12 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0" />
@@ -157,11 +158,16 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
             </p>
           </div>
         </div>
-        <span className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset whitespace-nowrap ${status.cls}`}>
-          {status.label}
-        </span>
-      </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset whitespace-nowrap ${status.cls}`}>
+            {status.label}
+          </span>
+          <span className="text-slate-400 text-xs">{expanded ? '▲' : '▼'}</span>
+        </div>
+      </button>
 
+      {expanded && (
+      <>
       {/* Shipping address — click any piece to copy just that piece */}
       <div className="flex items-start justify-between gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5">
         {groups.length ? (
@@ -273,6 +279,8 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
             {messageCopied ? '✓ Copied!' : '📋 Copy Message'}
           </button>
         </div>
+      )}
+      </>
       )}
     </div>
   );
