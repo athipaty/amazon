@@ -29,11 +29,27 @@ function expandState(s) {
   return US_STATE_NAMES[s.trim().toUpperCase()] || s;
 }
 
-function addressLines(a) {
+const COUNTRY_NAMES = { US: 'United States', CA: 'Canada', GB: 'United Kingdom', UK: 'United Kingdom', AU: 'Australia' };
+
+function expandCountry(c) {
+  if (!c) return c;
+  return COUNTRY_NAMES[c.trim().toUpperCase()] || c;
+}
+
+// Each entry is a group of pieces shown on one visual line, wrapped together —
+// but each piece stays its own click-to-copy chip.
+function addressGroups(a) {
   if (!a) return [];
   const phone = a.phone && a.phone !== 'Invalid Request' ? a.phone : null;
-  return [a.name, a.street1, a.street2, a.cityName, expandState(a.stateOrProvince), a.postalCode, a.country, phone]
-    .filter(Boolean);
+  const groups = [
+    [expandCountry(a.country)],
+    [a.name],
+    [phone],
+    [a.street1],
+    [a.street2],
+    [a.cityName, expandState(a.stateOrProvince), a.postalCode],
+  ].map(g => g.filter(Boolean));
+  return groups.filter(g => g.length);
 }
 
 export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUploadPhoto, onNotifyBuyer }) {
@@ -57,10 +73,10 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
 
   const status = STATUS_STYLES[order.status] || STATUS_STYLES.needs_purchase;
 
-  const lines = addressLines(order.shippingAddress);
+  const groups = addressGroups(order.shippingAddress);
 
   function copyAddress() {
-    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    navigator.clipboard.writeText(groups.map(g => g.join(', ')).join('\n')).then(() => {
       setAddressCopied(true);
       setTimeout(() => setAddressCopied(false), 2000);
     });
@@ -141,15 +157,22 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
         </span>
       </div>
 
-      {/* Shipping address — click any line to copy just that line */}
+      {/* Shipping address — click any piece to copy just that piece */}
       <div className="flex items-start justify-between gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5">
-        {lines.length ? (
+        {groups.length ? (
           <div className="flex flex-col gap-1 min-w-0">
-            {lines.map((line, idx) => (
-              <button key={idx} onClick={() => copyLine(idx, line)} title="Click to copy this line"
-                className={`text-left text-xs px-2.5 py-1 rounded-lg transition-colors truncate ${copiedLines.has(idx) ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 hover:bg-amber-100 ring-1 ring-inset ring-slate-200'}`}>
-                {line}{copiedLines.has(idx) ? ' ✓' : ''}
-              </button>
+            {groups.map((group, gIdx) => (
+              <div key={gIdx} className="flex flex-wrap items-center gap-1">
+                {group.map((piece, pIdx) => {
+                  const idx = `${gIdx}-${pIdx}`;
+                  return (
+                    <button key={idx} onClick={() => copyLine(idx, piece)} title="Click to copy this piece"
+                      className={`text-left text-xs px-2.5 py-1 rounded-lg transition-colors ${copiedLines.has(idx) ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 hover:bg-amber-100 ring-1 ring-inset ring-slate-200'}`}>
+                      {piece}{copiedLines.has(idx) ? ' ✓' : ''}
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </div>
         ) : (
