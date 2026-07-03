@@ -44,19 +44,19 @@ function AppShell() {
       <div style={{ display: tab === 'orders' ? 'block' : 'none' }}>
         <OrdersPage />
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 bg-white border-t border-slate-200/70 shadow-lift pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 bg-white/90 backdrop-blur-md border-t border-slate-200/60 pb-[env(safe-area-inset-bottom)]">
         <NavLink to="/deals"
-          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
           <span className="text-lg leading-none">🏷️</span>
           Deals
         </NavLink>
         <NavLink to="/" end
-          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
           <span className="text-lg leading-none">📦</span>
           Tracker
         </NavLink>
         <NavLink to="/orders"
-          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
           <span className="text-lg leading-none">🧾</span>
           Orders
         </NavLink>
