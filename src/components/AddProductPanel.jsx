@@ -1,6 +1,7 @@
 // URL input + the "N variants found — select which to track" preview panel shown
 // after pasting a multi-variant Amazon listing URL.
 import { useMemo } from 'react';
+import FadeImg from './FadeImg';
 
 export default function AddProductPanel({
   url, setUrl, adding, addError, preview, previewRef,
@@ -97,7 +98,7 @@ export default function AddProductPanel({
         <div ref={previewRef} className="mb-5 bg-white border border-amber-200 rounded-2xl p-5 shadow-card animate-slide-up">
           <div className="flex justify-between items-start mb-1">
             {preview.image && (
-              <img src={preview.image} alt={preview.title} className="w-14 h-14 object-contain rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 mr-3" />
+              <FadeImg src={preview.image} alt={preview.title} className="w-14 h-14 object-contain rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 mr-3" />
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -177,7 +178,7 @@ export default function AddProductPanel({
                   className="w-4 h-4 accent-amazon flex-shrink-0"
                 />
                 {v.image && (
-                  <img src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
+                  <FadeImg src={v.image} alt={v.label} className="w-9 h-9 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
                 )}
                 <span className="text-sm text-slate-700 flex-1">{v.label}</span>
                 {alreadyTracked && (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import FadeImg from './FadeImg';
 
 const STATUS_STYLES = {
   needs_purchase: { label: 'Needs purchase', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
@@ -146,7 +147,7 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
       <button onClick={() => setExpanded(e => !e)} className="flex items-start justify-between gap-2 text-left w-full">
         <div className="flex items-start gap-3 min-w-0">
           {order.productImage && (
-            <img src={order.productImage} alt="" className="w-12 h-12 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0" />
+            <FadeImg src={order.productImage} alt="" className="w-12 h-12 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0" />
           )}
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-800 truncate">{order.title || order.ebayItemId}</p>

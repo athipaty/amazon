@@ -1,5 +1,6 @@
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 import Countdown from './Countdown';
+import FadeImg from './FadeImg';
 
 // Grid of per-variant tiles on a group card: a full price/profit/sync
 // breakdown per tile in detail mode, or a compact swatch grid (with an
@@ -56,7 +57,7 @@ export default function VariantSwatchGrid({
             {/* Image */}
             <div className={`flex items-center justify-center p-2.5 ${isActive ? 'bg-red-50/60' : 'bg-slate-50'}`}>
               {v.image
-                ? <img src={v.image} alt={label} className="w-16 h-16 object-contain" />
+                ? <FadeImg src={v.image} alt={label} className="w-16 h-16 object-contain" />
                 : <div className="w-16 h-16 bg-slate-100 rounded-xl" />
               }
             </div>
@@ -172,7 +173,7 @@ export default function VariantSwatchGrid({
                 ? <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${synced ? 'text-emerald-500' : 'text-red-500'}`}>{synced ? '✓' : '✗'}</span>
                 : <span className="absolute top-0.5 right-0.5 text-[8px] font-bold leading-none text-slate-300">○</span>
             )}
-            {v.image && <img src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />}
+            {v.image && <FadeImg src={v.image} alt={label} className="w-5 h-5 object-contain rounded flex-shrink-0" />}
             <span className={`font-medium truncate max-w-[60px] text-[10px] text-center ${isActive ? 'text-ebay' : 'text-slate-700'}`}>{label}</span>
             {allExpanded && (
               <>

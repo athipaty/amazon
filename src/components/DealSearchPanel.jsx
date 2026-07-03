@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import FadeImg from './FadeImg';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -116,7 +117,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                   return (
                     <div key={deal.asin} className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
                       {deal.image && (
-                        <img src={deal.image} alt={deal.title} className="w-16 h-16 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
+                        <FadeImg src={deal.image} alt={deal.title} className="w-16 h-16 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
                       )}
                       <div className="min-w-0 flex-1 flex flex-col">
                         <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>

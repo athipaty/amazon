@@ -6,6 +6,7 @@ import AmazonPrimeBadge from './AmazonPrimeBadge';
 import VariantSwatchGrid from './VariantSwatchGrid';
 import EbayListingControls from './EbayListingControls';
 import SpecsPanel from './SpecsPanel';
+import FadeImg from './FadeImg';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -586,7 +587,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       {/* ── Group header ── */}
       <div className={`flex items-start gap-3 min-w-0 ${detailMode ? 'gap-4 md:gap-5' : ''}`}>
         {active.image
-          ? <img src={active.image} alt={active.title} className={`object-contain rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
+          ? <FadeImg src={active.image} alt={active.title} className={`object-contain rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
           : <div className={`rounded-2xl bg-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
         }
         <div className="flex-1 min-w-0">

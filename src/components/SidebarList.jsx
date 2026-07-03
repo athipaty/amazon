@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import FadeImg from './FadeImg';
 
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
@@ -29,7 +30,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       >
         <div className="relative flex-shrink-0">
           {image
-            ? <img src={image} alt="" className="w-16 h-16 object-contain rounded-xl bg-slate-50 border border-slate-100" />
+            ? <FadeImg src={image} alt="" className="w-16 h-16 object-contain rounded-xl bg-slate-50 border border-slate-100" />
             : <div className="w-16 h-16 rounded-xl bg-slate-100" />
           }
           {(() => {
