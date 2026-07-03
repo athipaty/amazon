@@ -7,7 +7,7 @@ const STATUS_STYLES = {
   notified:       { label: 'Buyer notified',  cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
 };
 
-const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL'];
+const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL', 'Other'];
 
 const US_STATE_NAMES = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
