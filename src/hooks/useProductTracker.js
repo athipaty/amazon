@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import axios from 'axios';
-import { getItemKey, getItemStatus, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
+import { getItemStatus, buildRenderItems, sortRenderItems } from '../utils/trackerItems';
 import { calcEbayPrice } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -10,7 +9,6 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Shared "product tracker" state — lifted out of AmazonPage so the deal-search flow
 // (which can trigger the same multi-variant picker) works from its own tab too.
 export default function useProductTracker() {
-  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [url, setUrl] = useState('');
   const [adding, setAdding] = useState(false);
@@ -32,8 +30,6 @@ export default function useProductTracker() {
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
   const [cleaningOrphans, setCleaningOrphans] = useState(false);
   const [orphanResult, setOrphanResult] = useState(null); // { found, ended } | null
-  const [retrying, setRetrying] = useState(false);
-  const [retryProgress, setRetryProgress] = useState(null); // { done, total }
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
@@ -204,9 +200,6 @@ export default function useProductTracker() {
         setPreview(data);
         setPreviewGroupId(existingGroupId || data.groupId || null);
         setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
-        // The variant picker lives on the Tracker tab — jump there so it's visible
-        // immediately even when this was triggered from the Deals tab.
-        navigate('/');
       } else {
         const { data: product } = await axios.post(`${API}/api/tracker`, { url });
         setProducts(prev => [product, ...prev]);
@@ -354,17 +347,6 @@ export default function useProductTracker() {
     }
   }
 
-  async function handleCheckNow() {
-    try {
-      await axios.post(`${API}/api/tracker/check`);
-      // tracker:check:start and tracker:check:done socket events handle the
-      // checking spinner, statusMsg, and loadProducts() reload.
-    } catch {
-      setChecking(false);
-      setStatusMsg('');
-    }
-  }
-
   async function handleCleanOrphans() {
     setCleaningOrphans(true);
     setOrphanResult(null);
@@ -379,41 +361,14 @@ export default function useProductTracker() {
     }
   }
 
-  async function handleRetryErrors() {
-    const errorProducts = products.filter(p => ['error', 'unavailable', 'out_of_stock'].includes(p.status));
-    if (!errorProducts.length) return;
-    setRetrying(true);
-    setRetryProgress({ done: 0, total: errorProducts.length });
-    try {
-      await axios.post(`${API}/api/tracker/retry-errors`).catch(() => {}); // non-fatal
-      const total = errorProducts.length;
-      let done = 0;
-      const BATCH = 5;
-      for (let i = 0; i < errorProducts.length; i += BATCH) {
-        await Promise.all(errorProducts.slice(i, i + BATCH).map(async p => {
-          try {
-            const { data } = await axios.post(`${API}/api/tracker/check/${p._id}`);
-            setProducts(prev => prev.map(q => q._id === p._id ? data : q));
-          } catch {}
-          done++;
-          setRetryProgress({ done, total });
-        }));
-      }
-    } catch {
-    } finally {
-      setRetrying(false);
-      setTimeout(() => setRetryProgress(null), 4000);
-    }
-  }
-
   return {
     API, products, setProducts, url, setUrl, adding, addError, statusMsg, checking,
     preview, setPreview, selectedAsins, setSelectedAsins, addingVariants, addProgress,
     previewGroupId, ebayConnected, ebayTokenDaysLeft, ebayFailedIds, priceMismatchIds,
     ebayViews, ebayWatchers, blankPhotoIds, sellingLimits, cleaningOrphans, orphanResult,
-    retrying, retryProgress, previewRef, loadProducts, handleAdd, handleTrackDeal,
+    previewRef, loadProducts, handleAdd, handleTrackDeal,
     handleTrackSelected, toggleVariant, handleDelete, handleVariantDeleted, handleUpdate,
-    handlePriceMismatch, handleCheckOne, handleCheckNow, handleCleanOrphans, handleRetryErrors,
+    handlePriceMismatch, handleCheckOne, handleCleanOrphans,
     itemStatus, renderItems, trackedAsins,
   };
 }
