@@ -145,12 +145,17 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
   return (
     <div className="bg-white rounded-2xl border border-slate-200/70 shadow-card p-4 md:p-5 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-800 truncate">{order.title || order.ebayItemId}</p>
-          <p className="text-xs text-slate-500">
-            {order.variationValue ? `${order.variationValue} · ` : ''}Qty {order.quantity} · ${order.price?.toFixed?.(2) ?? order.price}
-            {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
-          </p>
+        <div className="flex items-start gap-3 min-w-0">
+          {order.productImage && (
+            <img src={order.productImage} alt="" className="w-12 h-12 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0" />
+          )}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-800 truncate">{order.title || order.ebayItemId}</p>
+            <p className="text-xs text-slate-500">
+              {order.variationValue ? `${order.variationValue} · ` : ''}Qty {order.quantity} · ${order.price?.toFixed?.(2) ?? order.price}
+              {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
+            </p>
+          </div>
         </div>
         <span className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset whitespace-nowrap ${status.cls}`}>
           {status.label}
