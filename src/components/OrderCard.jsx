@@ -249,15 +249,14 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onUpl
         {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
       </div>
 
-      {/* Delivery photo + notify buyer */}
+      {/* Delivery photo (optional) + notify buyer */}
       <div className="flex items-center gap-2 flex-wrap">
         <label className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 transition-colors cursor-pointer">
-          {uploadingPhoto ? 'Uploading…' : order.deliveryPhotoUrl ? '📷 Photo Added ✓' : '📷 Add Delivery Photo'}
+          {uploadingPhoto ? 'Uploading…' : order.deliveryPhotoUrl ? '📷 Photo Added ✓' : '📷 Add Delivery Photo (optional)'}
           <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={uploadingPhoto} />
         </label>
 
-        <button onClick={handleNotify} disabled={notifying || !order.deliveryPhotoUrl}
-          title={!order.deliveryPhotoUrl ? 'Add a delivery photo first' : ''}
+        <button onClick={handleNotify} disabled={notifying}
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40">
           {notifying ? 'Sending…' : order.buyerMessageSent ? '✓ Buyer Notified' : '✉️ Notify Buyer'}
         </button>
