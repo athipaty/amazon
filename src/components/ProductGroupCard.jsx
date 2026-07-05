@@ -624,6 +624,21 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
                 </span>
               );
             })()}
+            {(() => {
+              // Surfaces SKUs that keep blowing eBay's 24h tracking deadline, so their
+              // handling time can be bumped — sourcing lag isn't something auto-tracking
+              // can fix, only more slack in the listing's stated handling time can.
+              const lateCount = Math.max(0, ...variants.map(v => v.lateShipmentCount || 0));
+              if (lateCount < 2) return null;
+              return (
+                <span
+                  title="This SKU has repeatedly missed eBay's 24h tracking deadline — consider extending its handling time"
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 ring-1 ring-inset ring-red-200"
+                >
+                  🐌 Late {lateCount}×
+                </span>
+              );
+            })()}
           </div>
         </div>
         {deleting ? (
