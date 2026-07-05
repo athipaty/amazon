@@ -50,6 +50,11 @@ export default function OrdersPage() {
     }
   }
 
+  async function handleMarkDelivered(orderId) {
+    const { data } = await axios.patch(`${API}/api/orders/${orderId}/delivered`);
+    patchOrder(data);
+  }
+
   async function handleNotifyBuyer(orderId) {
     try {
       const { data } = await axios.post(`${API}/api/orders/${orderId}/notify-buyer`);
@@ -91,6 +96,7 @@ export default function OrdersPage() {
             order={order}
             onMarkPurchased={(amazonOrderId) => handleMarkPurchased(order._id, amazonOrderId)}
             onAddTracking={(trackingNumber, carrier) => handleAddTracking(order._id, trackingNumber, carrier)}
+            onMarkDelivered={() => handleMarkDelivered(order._id)}
             onNotifyBuyer={() => handleNotifyBuyer(order._id)}
             onRemove={() => handleRemove(order._id)}
           />

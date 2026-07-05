@@ -6,18 +6,20 @@ const STATUS_STYLES = {
   needs_purchase: { label: 'Needs purchase', cls: 'text-amber-600' },
   purchased:      { label: 'Purchased',       cls: 'text-blue-600' },
   shipped:        { label: 'Shipped',         cls: 'text-indigo-600' },
-  notified:       { label: 'Buyer notified',  cls: 'text-emerald-600' },
+  delivered:      { label: 'Delivered',       cls: 'text-teal-600' },
+  notified:       { label: '✅ Completed',    cls: 'text-emerald-600 font-bold' },
 };
 
 const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL', 'Other'];
 
-// Maps order.status onto the buyer-facing shipping stages we can actually vouch for
-// from our own data — no carrier tracking API involved. "Delivered" reflects the
-// existing Notify-Buyer flow, which already assumes delivery was confirmed before
-// clicking it (see the message text in onNotifyBuyer).
-const SHIP_STAGES = ['Paid', 'Shipped', 'Delivered'];
+// Maps order.status onto the buyer-facing shipping stages. "Delivered" is a manual
+// checkpoint (confirmed via carrier tracking or an Amazon delivery email) distinct from
+// "Message Customer" — notifying the buyer only makes sense once delivery is confirmed,
+// so these are two separate, ordered steps rather than one combined assumption.
+const SHIP_STAGES = ['Paid', 'Shipped', 'Delivered', 'Message Customer'];
 function shipStageIndex(status) {
-  if (status === 'notified') return 2;
+  if (status === 'notified') return 3;
+  if (status === 'delivered') return 2;
   if (status === 'shipped') return 1;
   return 0;
 }
@@ -129,7 +131,7 @@ function addressGroups(a) {
   return groups.filter(g => g.length);
 }
 
-export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNotifyBuyer, onRemove }) {
+export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMarkDelivered, onNotifyBuyer, onRemove }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -144,6 +146,8 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
   const [editingTracking, setEditingTracking] = useState(false);
   const [savingTracking, setSavingTracking] = useState(false);
   const [trackingError, setTrackingError] = useState('');
+
+  const [markingDelivered, setMarkingDelivered] = useState(false);
 
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null); // { sent, messageText }
@@ -190,6 +194,15 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
       setTrackingError(e.message || 'Failed to push tracking to eBay');
     } finally {
       setSavingTracking(false);
+    }
+  }
+
+  async function handleMarkDelivered() {
+    setMarkingDelivered(true);
+    try {
+      await onMarkDelivered();
+    } finally {
+      setMarkingDelivered(false);
     }
   }
 
@@ -342,14 +355,25 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
         {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
       </div>
 
+      {/* Mark delivered — a manual checkpoint you confirm yourself (carrier tracking page,
+          Amazon delivery email, etc.) before messaging the buyer. Only relevant once shipped. */}
+      {order.trackingNumber && order.status !== 'delivered' && order.status !== 'notified' && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleMarkDelivered} disabled={markingDelivered}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-200 hover:bg-teal-100 transition-colors disabled:opacity-50">
+            {markingDelivered ? 'Saving…' : '📬 Mark Delivered'}
+          </button>
+        </div>
+      )}
+
       {/* Notify buyer — generates a thank-you message for you to copy into eBay.
-          Gated on having a real tracking number so we never imply "delivered"
-          before the order has actually shipped. */}
+          Gated on delivery being confirmed first, so we never message the buyer about
+          delivery before it's actually happened. */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button onClick={handleNotify} disabled={notifying || !order.trackingNumber}
-          title={!order.trackingNumber ? 'Add a tracking number first' : undefined}
+        <button onClick={handleNotify} disabled={notifying || order.status !== 'delivered'}
+          title={order.status !== 'delivered' ? 'Mark delivered first' : undefined}
           className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:hover:bg-emerald-50">
-          {notifying ? 'Creating…' : order.buyerMessageSent ? '✓ Message Ready' : '✉️ Notify Buyer'}
+          {notifying ? 'Creating…' : order.buyerMessageSent ? '✓ Message Ready' : '✉️ Message Customer'}
         </button>
         {order.ebayOrderId && (
           <a href={`https://www.ebay.com/sh/ord/details?orderid=${encodeURIComponent(order.ebayOrderId)}`}
@@ -358,8 +382,8 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
             💬 Message Buyer on eBay ↗
           </a>
         )}
-        {!order.trackingNumber && (
-          <span className="text-[11px] text-slate-400">Add tracking before notifying the buyer</span>
+        {order.status !== 'delivered' && order.status !== 'notified' && (
+          <span className="text-[11px] text-slate-400">Mark delivered before messaging the buyer</span>
         )}
         {notifyError && <span className="text-[11px] text-red-500">⚠ {notifyError}</span>}
       </div>
