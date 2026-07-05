@@ -65,9 +65,20 @@ export default function OrdersPage() {
     setOrders(prev => prev.filter(o => o._id !== orderId));
   }
 
+  const overdueCount = orders.filter(o => o.isOverdue).length;
+  const dueSoonCount = orders.filter(o => !o.isOverdue && o.hoursLeft != null && o.hoursLeft <= 6).length;
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-4">
       <h1 className="text-lg font-bold text-slate-800">Sold Orders</h1>
+
+      {(overdueCount > 0 || dueSoonCount > 0) && (
+        <div className="rounded-xl bg-red-50 ring-1 ring-inset ring-red-200 px-4 py-2.5 text-sm text-red-700 font-medium">
+          {overdueCount > 0 && `🚨 ${overdueCount} order${overdueCount > 1 ? 's' : ''} overdue for tracking`}
+          {overdueCount > 0 && dueSoonCount > 0 && ' · '}
+          {dueSoonCount > 0 && `⏰ ${dueSoonCount} due within 6h`}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading…</p>

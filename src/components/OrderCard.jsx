@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FadeImg from './FadeImg';
+import Countdown from './Countdown';
 
 const STATUS_STYLES = {
   needs_purchase: { label: 'Needs purchase', cls: 'text-amber-600' },
@@ -35,6 +36,51 @@ const COUNTRY_NAMES = { US: 'United States', CA: 'Canada', GB: 'United Kingdom',
 function expandCountry(c) {
   if (!c) return c;
   return COUNTRY_NAMES[c.trim().toUpperCase()] || c;
+}
+
+// Counts up from a past deadline — how long an order has been overdue. Separate from
+// Countdown (which counts down and stops at "soon"), since overdue needs to keep
+// climbing so the badge conveys how bad it's gotten, not just that it's passed.
+function OverdueTimer({ target }) {
+  const [elapsed, setElapsed] = useState('');
+  useEffect(() => {
+    function update() {
+      const diff = Date.now() - new Date(target).getTime();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setElapsed(h > 0 ? `${h}ชม. ${m}นาที` : `${m}นาที`);
+    }
+    update();
+    const id = setInterval(update, 30000);
+    return () => clearInterval(id);
+  }, [target]);
+  return elapsed || '…';
+}
+
+// Shows how much time is left before eBay's 24h shipping-tracking deadline, or how
+// overdue it already is. Hidden once tracking is added — no more urgency at that point.
+function ShipDeadlineBadge({ order }) {
+  if (order.trackingNumber || order.hoursLeft == null) return null;
+
+  if (order.isOverdue) {
+    return (
+      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white whitespace-nowrap animate-pulse">
+        🚨 เกินกำหนด <OverdueTimer target={order.shipDeadline} />
+      </span>
+    );
+  }
+
+  const urgent = order.hoursLeft <= 6;
+  const warn = order.hoursLeft <= 12;
+  return (
+    <span
+      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+        urgent ? 'bg-red-100 text-red-700' : warn ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+      }`}
+    >
+      ⏱ เหลือ <Countdown target={order.shipDeadline} />
+    </span>
+  );
 }
 
 // Each entry is a group of pieces shown on one visual line, wrapped together —
@@ -146,8 +192,14 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
     }
   }
 
+  const cardTone = order.isOverdue
+    ? 'border-red-300 bg-red-50/40'
+    : order.hoursLeft != null && order.hoursLeft <= 12
+    ? 'border-amber-300 bg-amber-50/30'
+    : 'border-slate-200/70 bg-white';
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/70 shadow-card p-4 md:p-5 flex flex-col gap-3">
+    <div className={`rounded-2xl border shadow-card p-4 md:p-5 flex flex-col gap-3 transition-colors ${cardTone}`}>
       <button onClick={() => setExpanded(e => !e)} className="flex items-start justify-between gap-2 text-left w-full">
         <div className="flex items-start gap-3 min-w-0">
           {order.productImage && (
@@ -162,6 +214,7 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <ShipDeadlineBadge order={order} />
           <span className={`text-[11px] font-semibold whitespace-nowrap ${status.cls}`}>
             {status.label}
           </span>
