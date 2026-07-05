@@ -11,6 +11,36 @@ const STATUS_STYLES = {
 
 const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL', 'Other'];
 
+// Maps order.status onto the buyer-facing shipping stages we can actually vouch for
+// from our own data — no carrier tracking API involved. "Delivered" reflects the
+// existing Notify-Buyer flow, which already assumes delivery was confirmed before
+// clicking it (see the message text in onNotifyBuyer).
+const SHIP_STAGES = ['Paid', 'Shipped', 'Delivered'];
+function shipStageIndex(status) {
+  if (status === 'notified') return 2;
+  if (status === 'shipped') return 1;
+  return 0;
+}
+
+function ShipStatusStepper({ status }) {
+  const current = shipStageIndex(status);
+  return (
+    <div className="flex items-center gap-1 mt-1">
+      {SHIP_STAGES.map((label, i) => (
+        <div key={label} className="flex items-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i <= current ? 'bg-indigo-500' : 'bg-slate-200'}`} />
+          <span className={`text-[10px] font-medium whitespace-nowrap ${i <= current ? 'text-indigo-600' : 'text-slate-300'}`}>
+            {label}
+          </span>
+          {i < SHIP_STAGES.length - 1 && (
+            <span className={`h-px w-3 ${i < current ? 'bg-indigo-400' : 'bg-slate-200'}`} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const US_STATE_NAMES = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
   CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia',
@@ -211,6 +241,7 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onNot
               {order.variationValue ? `${order.variationValue} · ` : ''}Qty {order.quantity} · ${order.price?.toFixed?.(2) ?? order.price}
               {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
             </p>
+            <ShipStatusStepper status={order.status} />
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
