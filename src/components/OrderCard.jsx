@@ -78,7 +78,7 @@ function OverdueTimer({ target }) {
       const diff = Date.now() - new Date(target).getTime();
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      setElapsed(h > 0 ? `${h}ชม. ${m}นาที` : `${m}นาที`);
+      setElapsed(h > 0 ? `${h}h ${m}m` : `${m}m`);
     }
     update();
     const id = setInterval(update, 30000);
@@ -95,7 +95,7 @@ function ShipDeadlineBadge({ order }) {
   if (order.isOverdue) {
     return (
       <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white whitespace-nowrap animate-pulse">
-        🚨 เกินกำหนด <OverdueTimer target={order.shipDeadline} />
+        🚨 OVERDUE <OverdueTimer target={order.shipDeadline} />
       </span>
     );
   }
