@@ -347,7 +347,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         }),
       });
       const listData = await listRes.json();
-      if (!listRes.ok) throw new Error(listData.error || 'eBay listing failed');
+      if (!listRes.ok) throw new Error(listData.message || listData.error || 'eBay listing failed');
 
       setAutoListStep('photos');
       if (variantPayload.length > 1 && listData.isMultiVariation !== false) {
