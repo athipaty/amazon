@@ -282,14 +282,18 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       const ebayTitle = titleData.title || active.title;
 
       setAutoListStep('images');
-      const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
 
+      // Folder slug uses EACH variant's own ASIN, not one shared "active" variant's —
+      // otherwise every variant's B2 folder name is misleadingly prefixed with whichever
+      // variant happened to be active, instead of reflecting which product it actually holds.
       const variantCloudinaryImages = [];
       const variantCloudinaryFolders = [];
       for (const v of freshVariants) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
         if (!varImgs.length) { variantCloudinaryImages.push([]); variantCloudinaryFolders.push(null); continue; }
-        const varSlug = slug + '-' + (v.variant || String(freshVariants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const vAsin = v.specs?.asin || v.url?.match(/\/dp\/([A-Z0-9]{10})/i)?.[1] || String(v._id).slice(-8);
+        const vSlugBase = vAsin.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const varSlug = vSlugBase + '-' + (v.variant || String(freshVariants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
         const varFolder = `ebay-listings/${varSlug}`;
         try {
           const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
@@ -446,13 +450,16 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         images: refreshed[i]?.images?.length ? refreshed[i].images : (v.images?.length ? v.images : [v.image].filter(Boolean)),
       }));
 
-      // Step 2: Upload ALL images per variant separately
-      const slug = (active.specs?.asin || String(active._id).slice(-8)).toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Step 2: Upload ALL images per variant separately — folder slug uses EACH
+      // variant's own ASIN, not a single shared "active" one, so B2 folder names
+      // actually reflect which product's photos are inside.
       const variantCloudinaryImages = [];
       for (const v of variantsWithFreshImages) {
         const varImgs = [...new Set([v.image, ...(v.images || [])].filter(Boolean))].slice(0, 8);
         if (!varImgs.length) { variantCloudinaryImages.push([]); continue; }
-        const varSlug = slug + '-fix-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const vAsin = v.specs?.asin || v.url?.match(/\/dp\/([A-Z0-9]{10})/i)?.[1] || String(v._id).slice(-8);
+        const vSlugBase = vAsin.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const varSlug = vSlugBase + '-fix-' + (v.variant || String(variants.indexOf(v))).toLowerCase().replace(/[^a-z0-9]/g, '');
         try {
           const uploadRes = await fetch(`${API}/api/ebay/upload-images`, {
             method: 'POST',
