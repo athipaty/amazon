@@ -84,17 +84,28 @@ export function itemEbayWatchers(item, ebayWatchers) {
   }, 0);
 }
 
+export function itemEbaySold(item, ebaySold) {
+  const variants = item.type === 'group' ? item.variants : [item.product];
+  return variants.reduce((max, v) => {
+    const sold = v.ebayListingId ? (ebaySold[String(v.ebayListingId)] ?? 0) : 0;
+    return Math.max(max, sold);
+  }, 0);
+}
+
 export function itemListedAt(item) {
   const variants = item.type === 'group' ? item.variants : [item.product];
   const dates = variants.map(v => v.listedAt).filter(Boolean).map(d => new Date(d).getTime());
   return dates.length ? Math.max(...dates) : null;
 }
 
-// Sort: issues first, then most watchers, then most views, then most recently listed
-export function sortRenderItems(renderItems, ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers = {}) {
+// Sort: issues first, then most sold, then most watchers, then most views, then most recently listed
+export function sortRenderItems(renderItems, ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers = {}, ebaySold = {}) {
   return [...renderItems].sort((a, b) => {
     const issueDiff = Number(itemHasIssue(b, ebayFailedIds, priceMismatchIds)) - Number(itemHasIssue(a, ebayFailedIds, priceMismatchIds));
     if (issueDiff !== 0) return issueDiff;
+
+    const soldDiff = itemEbaySold(b, ebaySold) - itemEbaySold(a, ebaySold);
+    if (soldDiff !== 0) return soldDiff;
 
     const watchersDiff = itemEbayWatchers(b, ebayWatchers) - itemEbayWatchers(a, ebayWatchers);
     if (watchersDiff !== 0) return watchersDiff;

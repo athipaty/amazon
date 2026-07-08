@@ -286,7 +286,7 @@ export default function useProductTracker() {
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
   const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
   const hasIssue = (item) => itemHasIssue(item, ebayFailedIds, priceMismatchIds);
-  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers);
+  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers, ebaySold);
 
   function toggleVariant(asin, checked) {
     const next = new Set(selectedAsins);
