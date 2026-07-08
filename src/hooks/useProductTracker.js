@@ -26,6 +26,7 @@ export default function useProductTracker() {
   const [priceMismatchIds, setPriceMismatchIds] = useState(new Set()); // eBay listing IDs with price mismatch
   const [ebayViews, setEbayViews] = useState({}); // listingId → view count
   const [ebayWatchers, setEbayWatchers] = useState({}); // listingId → watcher count
+  const [ebaySold, setEbaySold] = useState({}); // listingId → quantity sold
   const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
   const socketRef = useRef(null);
@@ -122,6 +123,7 @@ export default function useProductTracker() {
       const r = await fetch(`${API}/api/ebay/listings/watchers?ids=${ids.join(',')}`);
       const json = await r.json();
       if (json.watchers) setEbayWatchers(json.watchers);
+      if (json.sold) setEbaySold(json.sold);
     } catch (e) { console.warn('[eBay watchers] batch fetch failed:', e.message); }
   }
 
@@ -339,7 +341,7 @@ export default function useProductTracker() {
     API, products, setProducts, url, setUrl, adding, addError, statusMsg, checking,
     preview, setPreview, selectedAsins, setSelectedAsins, addingVariants, addProgress,
     previewGroupId, ebayConnected, ebayTokenDaysLeft, ebayFailedIds, priceMismatchIds,
-    ebayViews, ebayWatchers, blankPhotoIds, sellingLimits,
+    ebayViews, ebayWatchers, ebaySold, blankPhotoIds, sellingLimits,
     previewRef, loadProducts, handleAdd, handleTrackDeal,
     handleTrackSelected, toggleVariant, handleDelete, handleVariantDeleted, handleUpdate,
     handlePriceMismatch, handleCheckOne,

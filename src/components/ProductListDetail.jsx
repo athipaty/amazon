@@ -7,7 +7,7 @@ import { getItemKey, getItemImage, getItemTitle } from '../utils/trackerItems';
 // sheet on mobile) — used by both the Tracker tab (listed items) and the Deals tab
 // (items tracked but not yet listed on eBay), so this list-driving logic only lives once.
 export default function ProductListDetail({
-  items, emptyState, API, ebayConnected, ebayViews, ebayWatchers, blankPhotoIds,
+  items, emptyState, API, ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds,
   itemStatus, hasIssue, sellingLimits, ebayFailedIds, handleCheckOne, handleDelete, handleUpdate,
   handleVariantDeleted, handlePriceMismatch,
 }) {
@@ -46,6 +46,7 @@ export default function ProductListDetail({
           sellingLimits={sellingLimits}
           ebayViews={ebayViews}
           ebayWatchers={ebayWatchers}
+          ebaySold={ebaySold}
           apiUrl={API}
           ebayConnected={ebayConnected}
           blankPhotoIds={blankPhotoIds}
@@ -67,6 +68,7 @@ export default function ProductListDetail({
           sellingLimits={sellingLimits}
           ebayViews={ebayViews}
           ebayWatchers={ebayWatchers}
+          ebaySold={ebaySold}
           apiUrl={API}
           ebayConnected={ebayConnected}
           blankPhotoIds={blankPhotoIds}

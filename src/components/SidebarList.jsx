@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import FadeImg from './FadeImg';
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, ebaySold = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -37,11 +37,11 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
             const ebayId = item.type === 'group'
               ? item.variants.find(v => v.ebayListingId)?.ebayListingId
               : item.product?.ebayListingId;
-            const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
-            if (!views) return null;
+            const sold = ebayId != null ? ebaySold[String(ebayId)] : undefined;
+            if (!sold) return null;
             return (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-ebay text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
-                {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
+              <span className="absolute -top-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-emerald-600 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
+                {sold >= 1000 ? `${(sold / 1000).toFixed(1)}k` : sold}
               </span>
             );
           })()}
@@ -52,7 +52,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
             const watchers = ebayId != null ? ebayWatchers[String(ebayId)] : undefined;
             if (!watchers) return null;
             return (
-              <span className="absolute -top-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-amber-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-amber-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
                 {watchers >= 1000 ? `${(watchers / 1000).toFixed(1)}k` : watchers}
               </span>
             );

@@ -4,7 +4,7 @@ import ProductListDetail from '../components/ProductListDetail';
 export default function AmazonPage({ tracker }) {
   const {
     API, products, statusMsg,
-    ebayConnected, ebayTokenDaysLeft, ebayFailedIds, ebayViews, ebayWatchers,
+    ebayConnected, ebayTokenDaysLeft, ebayFailedIds, ebayViews, ebayWatchers, ebaySold,
     blankPhotoIds, sellingLimits,
     handleDelete, handleUpdate, handlePriceMismatch, handleCheckOne,
     handleVariantDeleted, itemStatus, hasIssue, renderItems,
@@ -41,6 +41,7 @@ export default function AmazonPage({ tracker }) {
         ebayConnected={ebayConnected}
         ebayViews={ebayViews}
         ebayWatchers={ebayWatchers}
+        ebaySold={ebaySold}
         blankPhotoIds={blankPhotoIds}
         itemStatus={itemStatus}
         hasIssue={hasIssue}

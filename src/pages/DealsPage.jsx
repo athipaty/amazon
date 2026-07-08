@@ -7,7 +7,7 @@ export default function DealsPage({ tracker }) {
     API, url, setUrl, adding, addError, preview, setPreview, previewRef,
     selectedAsins, setSelectedAsins, addingVariants, addProgress,
     handleAdd, handleTrackDeal, handleTrackSelected, toggleVariant, trackedAsins,
-    ebayConnected, ebayViews, ebayWatchers, blankPhotoIds, itemStatus, ebayFailedIds,
+    ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds, itemStatus, ebayFailedIds,
     handleCheckOne, handleDelete, handleUpdate, handleVariantDeleted, handlePriceMismatch,
     renderItems,
   } = tracker;
@@ -42,6 +42,7 @@ export default function DealsPage({ tracker }) {
           ebayConnected={ebayConnected}
           ebayViews={ebayViews}
           ebayWatchers={ebayWatchers}
+          ebaySold={ebaySold}
           blankPhotoIds={blankPhotoIds}
           itemStatus={itemStatus}
           ebayFailedIds={ebayFailedIds}
