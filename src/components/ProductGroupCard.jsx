@@ -254,6 +254,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
     }
     try {
+      // Pre-flight: register every sibling's hero image before any of them get scraped
+      // for real, so the cross-sibling contamination filter is fully primed even on a
+      // brand-new group's very first listing attempt.
+      if (variants.length > 1 && variants[0]?.groupId) {
+        try {
+          await fetch(`${API}/api/tracker/group/${variants[0].groupId}/preflight-images`, { method: 'POST' });
+        } catch {}
+      }
+
       // Pre-step: scrape fresh per-variant images from Amazon via ScraperAPI for every
       // variant — always, regardless of existing Cloudinary images. This guarantees each
       // colour gets its own 7-image gallery before the listing is created.
@@ -434,6 +443,15 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setFixPhotosStatus('');
     setFixPhotosError('');
     try {
+      // Pre-flight: register every sibling's hero image before any of them get scraped
+      // for real, so the cross-sibling contamination filter is fully primed from this
+      // very first click instead of only protecting whichever variant gets scraped later.
+      if (variants.length > 1 && variants[0]?.groupId) {
+        try {
+          await fetch(`${API}/api/tracker/group/${variants[0].groupId}/preflight-images`, { method: 'POST' });
+        } catch {}
+      }
+
       // Step 1: Refresh images from Amazon for each variant sequentially to avoid concurrent
       // Amazon scrapes triggering bot detection — same reason we queue background uploads.
       const refreshed = [];
