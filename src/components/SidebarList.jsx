@@ -21,6 +21,10 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
     const image = getItemImage(item);
     const title = getItemTitle(item);
     const isSelected = selectedKey === key;
+    const ebayId = item.type === 'group'
+      ? item.variants.find(v => v.ebayListingId)?.ebayListingId
+      : item.product?.ebayListingId;
+    const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
     return (
       <button
         key={key}
@@ -30,13 +34,15 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       >
         <div className="relative flex-shrink-0">
           {image
-            ? <FadeImg src={image} alt="" className="w-16 h-16 object-contain rounded-xl bg-slate-50 border border-slate-100" />
-            : <div className="w-16 h-16 rounded-xl bg-slate-100" />
+            ? <FadeImg src={image} alt="" className="w-16 h-16 object-contain rounded-xl bg-slate-50 border border-slate-100 opacity-60" />
+            : <div className="w-16 h-16 rounded-xl bg-slate-100 opacity-60" />
           }
+          {views != null && (
+            <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-slate-900 [text-shadow:0_1px_2px_rgba(255,255,255,0.9),0_0_4px_rgba(255,255,255,0.7)] pointer-events-none">
+              {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
+            </span>
+          )}
           {(() => {
-            const ebayId = item.type === 'group'
-              ? item.variants.find(v => v.ebayListingId)?.ebayListingId
-              : item.product?.ebayListingId;
             const sold = ebayId != null ? ebaySold[String(ebayId)] : undefined;
             if (!sold) return null;
             return (
@@ -46,9 +52,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
             );
           })()}
           {(() => {
-            const ebayId = item.type === 'group'
-              ? item.variants.find(v => v.ebayListingId)?.ebayListingId
-              : item.product?.ebayListingId;
             const watchers = ebayId != null ? ebayWatchers[String(ebayId)] : undefined;
             if (!watchers) return null;
             return (
@@ -59,9 +62,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           })()}
           {/* Blank eBay photo warning badge */}
           {(() => {
-            const ebayId = item.type === 'group'
-              ? item.variants.find(v => v.ebayListingId)?.ebayListingId
-              : item.product?.ebayListingId;
             if (!ebayId || !blankPhotoIds.has(String(ebayId))) return null;
             return (
               <span className="absolute -bottom-1.5 -right-1.5 w-[17px] h-[17px] flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full leading-none shadow-sm ring-2 ring-white" title="No photos on eBay listing">
