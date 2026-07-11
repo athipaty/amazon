@@ -7,6 +7,7 @@ import VariantSwatchGrid from './VariantSwatchGrid';
 import EbayListingControls from './EbayListingControls';
 import SpecsPanel from './SpecsPanel';
 import FadeImg from './FadeImg';
+import ConfirmDialog from './ConfirmDialog';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -19,6 +20,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [deletingVariantId, setDeletingVariantId] = useState(null);
+  const [confirmingVariantId, setConfirmingVariantId] = useState(null);
+  const [variantDeleteError, setVariantDeleteError] = useState(null);
   const [addingToEbayId, setAddingToEbayId] = useState(null);
   const [addToEbayErrors, setAddToEbayErrors] = useState({}); // variantId → error
 
@@ -564,7 +567,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     }
   }
 
-  async function handleDeleteVariant(variantId) {
+  function handleDeleteVariant(variantId) {
     if (deletingVariantId) return;
     const variant = variants.find(v => v._id === variantId);
     if (!variant) return;
@@ -574,7 +577,17 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       return;
     }
 
+    setVariantDeleteError(null);
+    setConfirmingVariantId(variantId);
+  }
+
+  async function performVariantDelete() {
+    const variantId = confirmingVariantId;
+    const variant = variants.find(v => v._id === variantId);
+    if (!variant) { setConfirmingVariantId(null); return; }
+
     setDeletingVariantId(variantId);
+    setVariantDeleteError(null);
     try {
       if (groupEbayId && variant.variant) {
         const ebayRes = await fetch(`${API}/api/ebay/listing/${groupEbayId}/variation`, {
@@ -584,8 +597,7 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
         });
         const ebayData = await ebayRes.json().catch(() => ({}));
         if (!ebayRes.ok) {
-          const msg = ebayData.error || 'eBay error';
-          alert(`Could not remove "${variant.variant}" from eBay: ${msg}`);
+          setVariantDeleteError(ebayData.error || 'eBay error');
           return;
         }
         if (ebayData.zeroed) {
@@ -594,8 +606,9 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
       }
       await fetch(`${API}/api/tracker/${variantId}`, { method: 'DELETE' });
       onVariantDeleted?.(variantId);
+      setConfirmingVariantId(null);
     } catch (e) {
-      alert(`Delete failed: ${e.message}`);
+      setVariantDeleteError(e.message || 'Delete failed');
     } finally {
       setDeletingVariantId(null);
     }
@@ -674,26 +687,8 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
             </svg>
             <span className="text-[11px] text-red-400">Deleting…</span>
           </div>
-        ) : deleteError ? (
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="text-[11px] text-red-500 max-w-[140px] truncate" title={deleteError}>⚠ {deleteError}</span>
-            <button onClick={() => { setDeleteError(null); setConfirmingDelete(false); }}
-              className="text-[11px] text-slate-400 hover:text-slate-600">✕</button>
-          </div>
-        ) : confirmingDelete ? (
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="text-[11px] text-slate-500 whitespace-nowrap hidden sm:inline">{variants.length === 1 ? 'Stop tracking?' : `Remove all ${variants.length} variants?`}</span>
-            <button
-              onClick={confirmDeleteAll}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap"
-            >Yes</button>
-            <button
-              onClick={() => setConfirmingDelete(false)}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-            >No</button>
-          </div>
         ) : (
-          <button onClick={() => setConfirmingDelete(true)} title="Stop tracking all variants"
+          <button onClick={() => { setDeleteError(null); setConfirmingDelete(true); }} title="Stop tracking all variants"
             className="w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm flex-shrink-0">✕</button>
         )}
       </div>
@@ -873,6 +868,42 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
 
       {/* ── Specs panel ── */}
       {showSpecs && <SpecsPanel active={active} activeIdx={activeIdx} />}
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title={variants.length === 1 ? 'Stop tracking this product?' : `Remove all ${variants.length} variants?`}
+        message={
+          groupEbayId
+            ? `This will end eBay listing #${groupEbayId} and permanently remove ${variants.length === 1 ? 'it' : `all ${variants.length} variants`} from the tracker. This can't be undone.`
+            : `This will permanently remove ${variants.length === 1 ? 'it' : `all ${variants.length} variants`} from the tracker. This can't be undone.`
+        }
+        confirmLabel="Yes, delete"
+        loading={deleting}
+        error={deleteError}
+        onConfirm={confirmDeleteAll}
+        onCancel={() => { setConfirmingDelete(false); setDeleteError(null); }}
+      />
+
+      {confirmingVariantId && (() => {
+        const v = variants.find(x => x._id === confirmingVariantId);
+        const label = v?.variant || 'this variant';
+        return (
+          <ConfirmDialog
+            open={true}
+            title={`Remove "${label}"?`}
+            message={
+              groupEbayId && v?.variant
+                ? `This will remove the "${label}" variation from eBay listing #${groupEbayId} (or set it to qty 0 if it has sales history) and stop tracking it. This can't be undone.`
+                : `This will stop tracking "${label}". This can't be undone.`
+            }
+            confirmLabel="Yes, remove"
+            loading={deletingVariantId === confirmingVariantId}
+            error={variantDeleteError}
+            onConfirm={performVariantDelete}
+            onCancel={() => { setConfirmingVariantId(null); setVariantDeleteError(null); }}
+          />
+        );
+      })()}
 
     </div>
   );
