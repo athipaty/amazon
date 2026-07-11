@@ -188,14 +188,24 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
     setLinkStatus('');
     try {
       const id = ebayInput.trim().replace(/.*\/itm\/(\d+).*/,'$1');
+      const linkFailures = [];
       for (const v of variants) {
         const res = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ebayListingId: id || null }),
         });
-        const updated = await res.json();
-        onUpdate?.(updated);
+        if (res.ok) {
+          const updated = await res.json();
+          onUpdate?.(updated);
+        } else {
+          linkFailures.push(v.variant || v.title || v._id);
+        }
+      }
+      if (linkFailures.length) {
+        setLinkStatus('fail');
+        setTimeout(() => setLinkStatus(''), 5000);
+        return;
       }
       setEditingEbay(false);
       if (id) {
@@ -401,15 +411,30 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
       } catch { /* non-critical */ }
 
       setAutoListStep('saving');
+      const saveFailures = [];
       for (let i = 0; i < freshVariants.length; i++) {
         const v = freshVariants[i];
-        const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ebayListingId: listData.listingId, cloudinaryFolder: variantCloudinaryFolders[i] || null }),
-        });
-        const updated = await saveRes.json();
-        onUpdate?.(updated);
+        try {
+          const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ebayListingId: listData.listingId, cloudinaryFolder: variantCloudinaryFolders[i] || null }),
+          });
+          if (saveRes.ok) {
+            const updated = await saveRes.json();
+            onUpdate?.(updated);
+          } else {
+            saveFailures.push(v.variant || `Variant ${i + 1}`);
+          }
+        } catch {
+          saveFailures.push(v.variant || `Variant ${i + 1}`);
+        }
+      }
+      // The eBay listing (listData.listingId) already exists on eBay regardless of whether
+      // every save below succeeded — so we still report success, but flag which variants
+      // didn't get linked in our own DB so they don't end up silently stuck unlinked.
+      if (saveFailures.length) {
+        setAutoListWarning(`save-failed:${saveFailures.join(', ')}`);
       }
       setAutoListSuccess({ listingId: listData.listingId, title: ebayTitle });
       setTimeout(() => setAutoListSuccess(null), 10000);
@@ -847,6 +872,11 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
       {autoListWarning === 'single-item-fallback' && (
         <div className="bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
           ⚠️ eBay doesn't allow multi-variation listings in this category — listed as a single item (first variant only). Each variant needs its own separate listing.
+        </div>
+      )}
+      {autoListWarning?.startsWith('save-failed:') && (
+        <div className="flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
+          <span>⚠️ eBay listing created, but the listing ID failed to save for: <strong>{autoListWarning.slice('save-failed:'.length)}</strong>. Use "+ link existing listing manually" to fix.</span>
         </div>
       )}
       {autoListWarning === 'photos-failed' && (

@@ -208,6 +208,7 @@ export default function useProductTracker() {
     setAddError('');
     const toAdd = preview.variants.filter(v => selectedAsins.has(v.asin));
     const failed = [];
+    const ebayLinkFailed = [];
 
     // Fix already-tracked variants from this preview that are missing the group — happens when
     // one variant was tracked without a groupId (e.g. via deal panel or single-item track).
@@ -246,13 +247,21 @@ export default function useProductTracker() {
               body: JSON.stringify({ variantLabel: newProduct.variant, price }),
             });
             if (r.ok) {
-              await fetch(`${API}/api/tracker/${newProduct._id}/ebay`, {
+              const patchRes = await fetch(`${API}/api/tracker/${newProduct._id}/ebay`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ebayListingId: existingEbayId, cloudinaryFolder: existingFolder, ebayPrice: Number(price) }),
               });
+              if (!patchRes.ok) {
+                ebayLinkFailed.push(newProduct.variant);
+                console.warn(`Added "${newProduct.variant}" to eBay listing ${existingEbayId} but failed to save the listing ID to the tracker.`);
+              }
+            } else {
+              ebayLinkFailed.push(newProduct.variant);
+              console.warn(`Auto-add to eBay failed for "${newProduct.variant}": HTTP ${r.status}`);
             }
           } catch (ebayErr) {
+            ebayLinkFailed.push(newProduct.variant);
             console.warn(`Auto-add to eBay failed for "${newProduct.variant}":`, ebayErr);
           }
         }
@@ -272,14 +281,18 @@ export default function useProductTracker() {
     setPreviewGroupId(null);
     setAddingVariants(false);
     setAddProgress('');
+    const messages = [];
     if (failed.length > 0) {
       const names = failed.map(f => `"${f.variant.label}"`).join(', ');
       const reason = failed[0].reason ? ` (${failed[0].reason})` : '';
-      setAddError(`Failed to add ${names}${reason}. Paste the URL again and track just that variant.`);
-      setUrl('');
-    } else {
-      setUrl('');
+      messages.push(`Failed to add ${names}${reason}. Paste the URL again and track just that variant.`);
     }
+    if (ebayLinkFailed.length > 0) {
+      const names = ebayLinkFailed.map(v => `"${v}"`).join(', ');
+      messages.push(`${names} ${ebayLinkFailed.length > 1 ? 'were' : 'was'} added to eBay listing ${existingEbayId} but the listing ID didn't save to the tracker — use "+ link existing listing manually" on the group to fix.`);
+    }
+    setAddError(messages.join(' '));
+    setUrl('');
   }
 
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
