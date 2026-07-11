@@ -32,7 +32,6 @@ export default function useProductTracker() {
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
-  const deletingEbayIds = useRef(new Set()); // dedup concurrent eBay END calls for grouped variants
 
   useEffect(() => {
     if (preview && previewRef.current) {
@@ -294,18 +293,20 @@ export default function useProductTracker() {
     setSelectedAsins(next);
   }
 
-  async function handleDelete(id) {
-    const product = products.find(p => p._id === id);
-    if (product?.ebayListingId) {
-      const lid = String(product.ebayListingId);
-      if (!deletingEbayIds.current.has(lid)) {
-        deletingEbayIds.current.add(lid);
-        await axios.delete(`${API}/api/ebay/listing/${lid}`).catch(() => {});
-        deletingEbayIds.current.delete(lid);
-      }
+  // Deletes an entire variant group in ONE request instead of one sequential request per
+  // variant. A client-side loop of N requests is fragile for large groups — closing the tab
+  // or losing connection partway through leaves every variant after that point untouched.
+  // A single request runs the whole batch server-side, so it finishes even if the browser
+  // that fired it is gone a second later.
+  async function handleDeleteGroup(ids) {
+    const { data } = await axios.post(`${API}/api/tracker/group-delete`, { ids });
+    const results = data.results || [];
+    const succeededIds = new Set(results.filter(r => r.success).map(r => r.id));
+    setProducts(prev => prev.filter(p => !succeededIds.has(p._id)));
+    const failed = results.filter(r => !r.success);
+    if (failed.length) {
+      throw new Error(failed.map(f => f.error).join('; '));
     }
-    await axios.delete(`${API}/api/tracker/${id}`);
-    setProducts(prev => prev.filter(p => p._id !== id));
   }
 
   function handleVariantDeleted(variantId) {
@@ -343,7 +344,7 @@ export default function useProductTracker() {
     previewGroupId, ebayConnected, ebayTokenDaysLeft, ebayFailedIds, priceMismatchIds,
     ebayViews, ebayWatchers, ebaySold, blankPhotoIds, sellingLimits,
     previewRef, loadProducts, handleAdd, handleTrackDeal,
-    handleTrackSelected, toggleVariant, handleDelete, handleVariantDeleted, handleUpdate,
+    handleTrackSelected, toggleVariant, handleDeleteGroup, handleVariantDeleted, handleUpdate,
     handlePriceMismatch, handleCheckOne,
     itemStatus, hasIssue, renderItems, trackedAsins,
   };

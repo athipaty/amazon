@@ -8,7 +8,7 @@ export default function DealsPage({ tracker }) {
     selectedAsins, setSelectedAsins, addingVariants, addProgress,
     handleAdd, handleTrackDeal, handleTrackSelected, toggleVariant, trackedAsins,
     ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds, itemStatus, ebayFailedIds,
-    handleCheckOne, handleDelete, handleUpdate, handleVariantDeleted, handlePriceMismatch,
+    handleCheckOne, handleDeleteGroup, handleUpdate, handleVariantDeleted, handlePriceMismatch,
     renderItems,
   } = tracker;
 
@@ -47,7 +47,7 @@ export default function DealsPage({ tracker }) {
           itemStatus={itemStatus}
           ebayFailedIds={ebayFailedIds}
           handleCheckOne={handleCheckOne}
-          handleDelete={handleDelete}
+          handleDeleteGroup={handleDeleteGroup}
           handleUpdate={handleUpdate}
           handleVariantDeleted={handleVariantDeleted}
           handlePriceMismatch={handlePriceMismatch}

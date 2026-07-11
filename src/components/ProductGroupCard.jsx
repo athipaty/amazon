@@ -11,7 +11,7 @@ import ConfirmDialog from './ConfirmDialog';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch }) {
+export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -560,7 +560,10 @@ export default function ProductGroupCard({ variants, onCheck, onDelete, onUpdate
     setDeleting(true);
     setDeleteError(null);
     try {
-      for (const v of variants) { await onDelete(v._id); }
+      // Single request for the whole group — runs entirely server-side, so it finishes
+      // even if this tab closes or loses connection right after firing it. See
+      // useProductTracker's handleDeleteGroup for why that beats one request per variant.
+      await onDeleteGroup(variants.map(v => v._id));
     } catch (e) {
       setDeleteError(e.response?.data?.error || e.message || 'Delete failed');
       setDeleting(false);

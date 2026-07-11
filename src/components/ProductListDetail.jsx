@@ -8,7 +8,7 @@ import { getItemKey, getItemImage, getItemTitle } from '../utils/trackerItems';
 // (items tracked but not yet listed on eBay), so this list-driving logic only lives once.
 export default function ProductListDetail({
   items, emptyState, API, ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds,
-  itemStatus, hasIssue, sellingLimits, ebayFailedIds, handleCheckOne, handleDelete, handleUpdate,
+  itemStatus, hasIssue, sellingLimits, ebayFailedIds, handleCheckOne, handleDeleteGroup, handleUpdate,
   handleVariantDeleted, handlePriceMismatch,
 }) {
   const [selectedKey, setSelectedKey] = useState(null);
@@ -78,8 +78,8 @@ export default function ProductListDetail({
         <div className="flex-1 min-w-0">
           {selectedItem && (
             selectedItem.type === 'group'
-              ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
-              : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={handleDelete} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+              ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDeleteGroup={handleDeleteGroup} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+              : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDeleteGroup={handleDeleteGroup} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
           )}
         </div>
       </div>
@@ -102,8 +102,8 @@ export default function ProductListDetail({
           <div className="flex-1 overflow-y-auto p-3 pb-8">
             {selectedItem && (
               selectedItem.type === 'group'
-                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDelete={(id) => { handleDelete(id); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDeleteGroup={(ids) => { handleDeleteGroup(ids); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDeleteGroup={(ids) => { handleDeleteGroup(ids); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
             )}
           </div>
         </div>
