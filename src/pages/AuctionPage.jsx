@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import FadeImg from '../components/FadeImg';
 import DealSearchPanel from '../components/DealSearchPanel';
+import Countdown from '../components/Countdown';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -42,11 +43,21 @@ export default function AuctionPage() {
   // rather than mixed into the fixed-price Deals/Tracker views.
   const [myAuctions, setMyAuctions] = useState([]);
   const [loadingAuctions, setLoadingAuctions] = useState(true);
+  // listingId → { bidCount, endTime } | { error } — fetched separately since it needs a live
+  // eBay GetItem call per listing, not something the tracked-product record itself stores.
+  const [auctionStatus, setAuctionStatus] = useState({});
 
   async function loadMyAuctions() {
     try {
       const { data } = await axios.get(`${API}/api/tracker`);
-      setMyAuctions(data.filter(p => p.listingType === 'AUCTION'));
+      const auctions = data.filter(p => p.listingType === 'AUCTION');
+      setMyAuctions(auctions);
+      const ids = auctions.map(p => p.ebayListingId).filter(Boolean);
+      if (ids.length) {
+        axios.get(`${API}/api/ebay/listings/auction-status`, { params: { ids: ids.join(',') } })
+          .then(({ data }) => setAuctionStatus(data))
+          .catch(() => {});
+      }
     } catch { /* leave the previous list showing rather than clearing it on a transient failure */ }
     finally {
       setLoadingAuctions(false);
@@ -440,6 +451,24 @@ export default function AuctionPage() {
                     )}
                     <span className="text-slate-400">starting bid</span>
                   </div>
+                  {(() => {
+                    const status = auctionStatus[p.ebayListingId];
+                    if (!status || status.error) return null;
+                    return (
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap text-[11px]">
+                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-full">
+                          🔨 {status.bidCount} {status.bidCount === 1 ? 'bid' : 'bids'}
+                        </span>
+                        {status.endTime && (
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full">
+                            {new Date(status.endTime) > new Date()
+                              ? <>⏳ <Countdown target={status.endTime} /> left</>
+                              : '🔴 Ended'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div className="flex items-center justify-between mt-auto pt-2">
                     <span className="text-[11px] text-slate-400">
                       {p.listedAt ? `Listed ${new Date(p.listedAt).toLocaleDateString()}` : ''}
