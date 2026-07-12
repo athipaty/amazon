@@ -10,6 +10,7 @@
 // of the Deals/Tracker views, so auction listings stay on their own list here instead of mixing
 // in with fixed-price ones.
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import FadeImg from '../components/FadeImg';
 import DealSearchPanel from '../components/DealSearchPanel';
@@ -26,6 +27,7 @@ const STEP_LABELS = { ...AUTO_LIST_STEP_LABELS, tracking: '📌 Tracking product
 const STEP_ORDER = ['tracking', 'title', 'preparing-images', 'images', 'description', 'listing', 'saving'];
 
 export default function AuctionPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [url, setUrl] = useState('');
   const [looking, setLooking] = useState(false);
   const [lookupError, setLookupError] = useState('');
@@ -65,6 +67,21 @@ export default function AuctionPage() {
   }
 
   useEffect(() => { loadMyAuctions(); }, []);
+
+  // Deep-link from the "🔨 Auto Auction" button on Deals cards (?url=<amazon-url>) — prefill and
+  // run the same lookup a pasted URL would trigger, then drop the param so it doesn't re-fire on
+  // any later re-render or back/forward navigation. Every tab in this app stays mounted
+  // permanently (see App.jsx) instead of unmounting on navigation, so this can't rely on a
+  // mount-only effect — it has to react to the param itself, since clicking "Auto Auction" a
+  // second time for a different product navigates into an already-mounted AuctionPage instance.
+  const prefillUrl = searchParams.get('url');
+  useEffect(() => {
+    if (prefillUrl) {
+      handleLookup({ preventDefault: () => {} }, prefillUrl);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillUrl]);
 
   const variants = preview?.variants || [];
   const hasVariants = variants.length > 1;
@@ -222,6 +239,11 @@ export default function AuctionPage() {
       } catch { /* fall back to backend's generic placeholder */ }
 
       setStep('listing');
+      // productId + cloudinaryFolder ride along in this same request so the backend links the
+      // tracked record to the listing server-side, right after creating it — not as a separate
+      // follow-up call from here. A real incident (2026-07-12) had the eBay listing succeed while
+      // a later, separate PATCH from the browser never landed, leaving a live listing with no
+      // ebayListingId anywhere in the DB. See the matching backend comment in routes/ebay.js.
       const listRes = await axios.post(`${API}/api/ebay/trading-create-auction-listing`, {
         title: ebayTitle,
         price: Number(startingPrice).toFixed(2),
@@ -230,18 +252,36 @@ export default function AuctionPage() {
         specs: preview.specs || {},
         ...(description ? { description } : {}),
         durationDays,
+        productId: trackedProduct._id,
+        cloudinaryFolder: `ebay-listings/${slug}`,
       });
       setResult(listRes.data);
 
       setStep('saving');
-      try {
-        await axios.patch(`${API}/api/tracker/${trackedProduct._id}/ebay`, {
-          ebayListingId: listRes.data.listingId,
-          cloudinaryFolder: `ebay-listings/${slug}`,
-          ebayPrice: Number(startingPrice),
-          listingType: 'AUCTION',
-        });
-      } catch { /* listing succeeded either way — this just links it back to the tracked record */ }
+      // The backend link should have already succeeded above — this only runs as a fallback for
+      // the rare case it didn't (linkFailed), retrying with backoff instead of giving up after
+      // one try. The eBay listing exists either way, so silently losing track of it is not an
+      // acceptable failure mode here.
+      if (listRes.data.linkFailed) {
+        let linked = false;
+        for (let attempt = 0; attempt < 3 && !linked; attempt++) {
+          if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 2000));
+          try {
+            await axios.patch(`${API}/api/tracker/${trackedProduct._id}/ebay`, {
+              ebayListingId: listRes.data.listingId,
+              cloudinaryFolder: `ebay-listings/${slug}`,
+              ebayPrice: Number(startingPrice),
+              listingType: 'AUCTION',
+            });
+            linked = true;
+          } catch { /* retry */ }
+        }
+        if (!linked) {
+          setListingError(`Auction was created on eBay (listing ${listRes.data.listingId}, view it at ${listRes.data.url}) but could not be linked in the tracker after retrying. It won't show up below until this is fixed manually.`);
+          setStep('error');
+          return;
+        }
+      }
 
       setStep('done');
       loadMyAuctions();

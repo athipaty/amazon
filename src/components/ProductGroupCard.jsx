@@ -359,6 +359,11 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
         quantity: 1,
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
+        // productId + cloudinaryFolder let the backend link each variant's tracker record to the
+        // listing server-side, inside this same request — see the "saving" step below and the
+        // matching comment in routes/ebay.js for why that used to be a separate, fragile PATCH.
+        productId: v._id,
+        cloudinaryFolder: variantCloudinaryFolders[i] || null,
       }));
 
       const listRes = await fetch(`${API}/api/ebay/trading-create-listing`, {
@@ -414,24 +419,33 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
       } catch { /* non-critical */ }
 
       setAutoListStep('saving');
+      // The backend already linked every variant server-side inside trading-create-listing (see
+      // the productId/cloudinaryFolder passed into variantPayload above) — this loop just fetches
+      // the updated records for local UI state. listData.linkFailures names the (rare) ids where
+      // the server-side link itself failed; those get real retries with backoff here as the last
+      // line of defense, since at that point the eBay listing exists but nothing else will retry.
+      const linkFailureIds = new Set(listData.linkFailures || []);
       const saveFailures = [];
       for (let i = 0; i < freshVariants.length; i++) {
         const v = freshVariants[i];
-        try {
-          const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ebayListingId: listData.listingId, cloudinaryFolder: variantCloudinaryFolders[i] || null }),
-          });
-          if (saveRes.ok) {
-            const updated = await saveRes.json();
-            onUpdate?.(updated);
-          } else {
-            saveFailures.push(v.variant || `Variant ${i + 1}`);
-          }
-        } catch {
-          saveFailures.push(v.variant || `Variant ${i + 1}`);
+        const attempts = linkFailureIds.has(v._id) ? 3 : 1;
+        let saved = false;
+        for (let attempt = 0; attempt < attempts && !saved; attempt++) {
+          if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 2000));
+          try {
+            const saveRes = await fetch(`${API}/api/tracker/${v._id}/ebay`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ebayListingId: listData.listingId, cloudinaryFolder: variantCloudinaryFolders[i] || null }),
+            });
+            if (saveRes.ok) {
+              const updated = await saveRes.json();
+              onUpdate?.(updated);
+              saved = true;
+            }
+          } catch { /* retry */ }
         }
+        if (!saved) saveFailures.push(v.variant || `Variant ${i + 1}`);
       }
       // The eBay listing (listData.listingId) already exists on eBay regardless of whether
       // every save below succeeded — so we still report success, but flag which variants
@@ -841,6 +855,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           redoingDescription={redoingDescription}
           redoDescriptionStatus={redoDescriptionStatus}
           onAutoList={startAutoList}
+          amazonUrl={active.url?.startsWith('http') ? active.url : active.url ? `https://${active.url}` : null}
           autoListing={autoListing}
           autoListStep={autoListStep}
           autoListError={autoListError}

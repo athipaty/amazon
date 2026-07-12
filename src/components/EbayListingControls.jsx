@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 
 const STEP_ORDER = ['preparing-images', 'title', 'images', 'description', 'listing', 'photos', 'verifying', 'saving'];
@@ -10,8 +11,9 @@ export default function EbayListingControls({
   redoDescription, redoingDescription, redoDescriptionStatus,
   onAutoList, autoListing, autoListStep, autoListError,
   priceConfirming, customPrices, setCustomPrices, onConfirmList, onCancelPriceConfirm,
-  autoListSuccess,
+  autoListSuccess, amazonUrl,
 }) {
+  const navigate = useNavigate();
   if (editingEbay) {
     return (
       <div className="flex flex-col gap-1.5 min-w-0">
@@ -170,10 +172,18 @@ export default function EbayListingControls({
           </button>
         </div>
       ) : (
-        <button onClick={onAutoList}
-          className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm">
-          🤖 Auto List on eBay{!hasPrime && <span className="text-[10px] opacity-75 ml-0.5">(No Prime)</span>}
-        </button>
+        <div className="flex gap-1.5">
+          <button onClick={onAutoList}
+            className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm">
+            🤖 Auto list{!hasPrime && <span className="text-[10px] opacity-75 ml-0.5">(No Prime)</span>}
+          </button>
+          {amazonUrl && (
+            <button onClick={() => navigate(`/auction?url=${encodeURIComponent(amazonUrl)}`)}
+              className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors whitespace-nowrap shadow-sm">
+              🔨 Auto Auction
+            </button>
+          )}
+        </div>
       )}
       <button onClick={() => openEbayEdit('')}
         className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
