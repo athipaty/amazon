@@ -26,9 +26,11 @@ const CATEGORIES = [
   'Video Games',
 ];
 
-// Pick an Amazon category and find Prime-eligible items under $15 with
-// a 4+ star rating. Discount is shown when present but not required.
-export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false }) {
+// Pick an Amazon category and find Prime-eligible items under a price ceiling with
+// a 4+ star rating. Discount is shown when present but not required. maxPrice/actionLabel
+// let this be reused outside the Deals tab (e.g. the Auction tab wants a lower ceiling and
+// a "select this" action instead of "track").
+export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, maxPrice = 15, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(defaultOpen);
   const [category, setCategory] = useState('');
   const [searching, setSearching] = useState(false);
@@ -43,7 +45,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     setError('');
     setDeals(null);
     try {
-      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { category } });
+      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { category, maxPrice } });
       setDeals(data.deals || []);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Search failed.');
@@ -101,7 +103,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
           <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under $15</span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under ${maxPrice}</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
           </div>
 
@@ -155,7 +157,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                               disabled={alreadyTracked || trackingAsin === deal.asin}
                               className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
                             >
-                              {alreadyTracked ? '✓ Tracked' : trackingAsin === deal.asin ? 'Adding…' : 'Track'}
+                              {alreadyTracked ? '✓ Tracked' : trackingAsin === deal.asin ? workingLabel : actionLabel}
                             </button>
                           </div>
                         </div>

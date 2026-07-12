@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import FadeImg from '../components/FadeImg';
+import DealSearchPanel from '../components/DealSearchPanel';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 import { calcEbayPrice } from '../utils/pricing';
 
@@ -47,9 +48,9 @@ export default function AuctionPage() {
     setStartingPrice(active?.price != null ? calcEbayPrice(active.price).toFixed(2) : '');
   }, [active?.asin, active?.price]);
 
-  async function handleLookup(e) {
+  async function handleLookup(e, urlOverride) {
     e.preventDefault();
-    const trimmed = url.trim();
+    const trimmed = (urlOverride ?? url).trim();
     if (!trimmed || looking) return;
     setLooking(true);
     setLookupError('');
@@ -60,11 +61,18 @@ export default function AuctionPage() {
     try {
       const { data } = await axios.post(`${API}/api/tracker/preview`, { url: trimmed });
       setPreview(data);
+      setUrl(trimmed);
     } catch (err) {
       setLookupError(err.response?.data?.error || 'Could not fetch that product.');
     } finally {
       setLooking(false);
     }
+  }
+
+  // A deal picked from the "find a product" panel below feeds the same preview flow as
+  // pasting its URL manually — nothing gets tracked, it just becomes the item being auctioned.
+  function handleSelectDeal(dealUrl) {
+    return handleLookup({ preventDefault: () => {} }, dealUrl);
   }
 
   async function createAuction() {
@@ -118,6 +126,13 @@ export default function AuctionPage() {
     <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
       <h1 className="text-lg font-bold text-slate-900 mb-1">Auction</h1>
       <p className="text-sm text-slate-400 mb-4">Paste an Amazon URL and list it on eBay as an auction — starting price and duration only.</p>
+
+      <DealSearchPanel
+        onTrack={handleSelectDeal}
+        maxPrice={6}
+        actionLabel="Auction This"
+        workingLabel="Loading…"
+      />
 
       <form className="flex gap-2 mb-5" onSubmit={handleLookup}>
         <div className="relative flex-1 min-w-0">
