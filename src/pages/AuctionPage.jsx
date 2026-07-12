@@ -16,7 +16,10 @@ import DealSearchPanel from '../components/DealSearchPanel';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const DURATIONS = [1, 3, 5, 7, 10];
+// Confirmed live via eBay's GetCategoryFeatures: 1-day isn't a valid auction duration at all
+// (not category-specific) — real failure seen in production: "[83] The duration '1' day(s) is
+// not available for this listing type." Matches AUCTION_DURATION_MAP in routes/ebay.js.
+const DURATIONS = [3, 5, 7, 10];
 const STEP_LABELS = { ...AUTO_LIST_STEP_LABELS, tracking: '📌 Tracking product…', listing: '📤 Creating auction…' };
 // Matches the progress-dots pattern in EbayListingControls.jsx (the fixed-price auto-list flow)
 const STEP_ORDER = ['tracking', 'title', 'preparing-images', 'images', 'description', 'listing', 'saving'];
