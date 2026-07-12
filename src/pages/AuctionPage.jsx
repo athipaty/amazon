@@ -40,6 +40,10 @@ export default function AuctionPage() {
     : preview ? { label: preview.title, price: preview.price, image: preview.image, asin: preview.groupId, url } : null;
 
   const [priceLookupLoading, setPriceLookupLoading] = useState(false);
+  // Full /preview response for the selected variant's own page, when we had to fetch it because
+  // the listing scrape's per-variant data was incomplete — reused for its image/gallery too (see
+  // createAuction), not just the price it was originally fetched for.
+  const [resolvedVariant, setResolvedVariant] = useState(null);
 
   // Pre-fill a starting-price suggestion once an item resolves — half the Amazon price, a low
   // opener meant to attract bids (not calcEbayPrice's fixed-price-equivalent, which is meant for
@@ -54,6 +58,7 @@ export default function AuctionPage() {
   useEffect(() => {
     let cancelled = false;
     setPriceLookupLoading(false);
+    setResolvedVariant(null);
     if (active?.price != null) {
       setStartingPrice((active.price / 2).toFixed(2));
       return;
@@ -66,8 +71,9 @@ export default function AuctionPage() {
     setPriceLookupLoading(true);
     axios.post(`${API}/api/tracker/preview`, { url: active.url })
       .then(({ data }) => {
-        if (cancelled || data.price == null) return;
-        setStartingPrice((data.price / 2).toFixed(2));
+        if (cancelled) return;
+        setResolvedVariant(data);
+        if (data.price != null) setStartingPrice((data.price / 2).toFixed(2));
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setPriceLookupLoading(false); });
@@ -132,7 +138,14 @@ export default function AuctionPage() {
       const ebayTitle = titleRes.data.title || preview.title;
 
       setStep('images');
-      const imgs = [...new Set([active.image, ...(preview.images || [])].filter(Boolean))].slice(0, 12);
+      // Fall back through, in order: the variant's own image from the listing scrape, the same
+      // variant's image/gallery from its own page (fetched during price lookup, when the listing
+      // scrape's per-variant data was incomplete), then the whole listing's main image/gallery —
+      // that top-level image is reliably present even when per-variant image/gallery data isn't.
+      const imgs = [...new Set([
+        active.image, resolvedVariant?.image, preview.image,
+        ...(resolvedVariant?.images || []), ...(preview.images || []),
+      ].filter(Boolean))].slice(0, 12);
       if (!imgs.length) throw new Error('No product images found to upload.');
       const slug = String(active.asin || preview.groupId || 'item').toLowerCase().replace(/[^a-z0-9]/g, '');
       const uploadRes = await axios.post(`${API}/api/ebay/upload-images`, { imageUrls: imgs, slug });
