@@ -16,6 +16,8 @@ import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const DURATIONS = [1, 3, 5, 7, 10];
 const STEP_LABELS = { ...AUTO_LIST_STEP_LABELS, tracking: '📌 Tracking product…', listing: '📤 Creating auction…' };
+// Matches the progress-dots pattern in EbayListingControls.jsx (the fixed-price auto-list flow)
+const STEP_ORDER = ['tracking', 'title', 'preparing-images', 'images', 'description', 'listing', 'saving'];
 
 export default function AuctionPage() {
   const [url, setUrl] = useState('');
@@ -340,12 +342,42 @@ export default function AuctionPage() {
                 </label>
               </div>
 
+              {/* Step progress dots — same pattern as EbayListingControls.jsx's fixed-price auto-list flow */}
+              {listing && (
+                <div className="flex flex-col gap-2 px-3 py-2.5 rounded-xl ring-1 ring-inset bg-blue-50 ring-blue-200">
+                  <div className="flex items-center">
+                    {STEP_ORDER.map((s, i) => {
+                      const currentIdx = STEP_ORDER.indexOf(step);
+                      const done = i < currentIdx;
+                      const isActive = i === currentIdx;
+                      return (
+                        <div key={s} className="flex items-center">
+                          <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center text-[8px] font-bold flex-shrink-0 transition-colors ${
+                            done ? 'bg-blue-500 text-white' :
+                            isActive ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-300' :
+                            'bg-slate-200 text-slate-400'
+                          }`}>
+                            {done ? '✓' : i + 1}
+                          </div>
+                          {i < STEP_ORDER.length - 1 && (
+                            <div className={`w-3 h-px flex-shrink-0 ${done ? 'bg-blue-400' : 'bg-slate-200'}`} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="text-[11px] text-blue-700 font-semibold leading-snug">
+                    {STEP_LABELS[step] || '⏳ Working…'}
+                  </span>
+                </div>
+              )}
+
               <button
                 onClick={createAuction}
                 disabled={listing || !startingPrice || Number(startingPrice) <= 0}
                 className="self-start px-4 py-2 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-soft"
               >
-                {listing ? (STEP_LABELS[step] || 'Working…') : 'Create Auction'}
+                {listing ? 'Working…' : 'Create Auction'}
               </button>
 
               {step === 'error' && (
