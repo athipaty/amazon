@@ -1,7 +1,7 @@
 // eBay competitor pricing box — active-listing median/lowest/count, sold avg when available,
 // an estimated-price-vs-median badge, a per-listing comparison against your own selling price
 // for the cheapest 5 competitors, and a manual sold-comps research link. Shared by
-// AddProductPanel (inline, pre-tracking) and ResearchPage (standalone lookup).
+// AddProductPanel (inline, pre-tracking) and ProductGroupCard (inline, on tracked products).
 import FadeImg from './FadeImg';
 
 // One listing row — used for both active competitors and sold comps. Sold items from the
