@@ -184,6 +184,10 @@ export default function EbayListingControls({
             className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm">
             🤖 Auto list{!hasPrime && <span className="text-[10px] opacity-75 ml-0.5">(No Prime)</span>}
           </button>
+          <button onClick={() => openEbayEdit('')}
+            className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors whitespace-nowrap">
+            Manual sync
+          </button>
           {amazonUrl && (
             <button onClick={() => setConfirmAction('auction')}
               className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors whitespace-nowrap shadow-sm">
@@ -192,10 +196,6 @@ export default function EbayListingControls({
           )}
         </div>
       )}
-      <button onClick={() => openEbayEdit('')}
-        className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
-        + link existing listing manually
-      </button>
 
       <ConfirmDialog
         open={confirmAction === 'list'}
