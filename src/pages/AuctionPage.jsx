@@ -137,16 +137,27 @@ export default function AuctionPage() {
       const titleRes = await axios.post(`${API}/api/ebay/seo-title`, { title: preview.title, specs: preview.specs });
       const ebayTitle = titleRes.data.title || preview.title;
 
-      setStep('images');
+      setStep('preparing-images');
       // Fall back through, in order: the variant's own image from the listing scrape, the same
       // variant's image/gallery from its own page (fetched during price lookup, when the listing
       // scrape's per-variant data was incomplete), then the whole listing's main image/gallery —
       // that top-level image is reliably present even when per-variant image/gallery data isn't.
-      const imgs = [...new Set([
+      // All of that is Keepa-cached data, free to reuse. Only if it's ALL empty do we spend a
+      // ScraperAPI credit on refresh-images — the same live-Amazon-scrape fallback tracked
+      // products already use, now available to us since the product's tracked as of the step above.
+      let imgs = [...new Set([
         active.image, resolvedVariant?.image, preview.image,
         ...(resolvedVariant?.images || []), ...(preview.images || []),
       ].filter(Boolean))].slice(0, 12);
+      if (!imgs.length) {
+        try {
+          const refreshRes = await axios.post(`${API}/api/tracker/${trackedProduct._id}/refresh-images`);
+          if (refreshRes.data.images?.length) imgs = refreshRes.data.images.slice(0, 12);
+        } catch { /* falls through to the hard error below */ }
+      }
       if (!imgs.length) throw new Error('No product images found to upload.');
+
+      setStep('images');
       const slug = String(active.asin || preview.groupId || 'item').toLowerCase().replace(/[^a-z0-9]/g, '');
       const uploadRes = await axios.post(`${API}/api/ebay/upload-images`, { imageUrls: imgs, slug });
       const cloudinaryUrls = uploadRes.data.cloudinaryUrls || [];
