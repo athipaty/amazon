@@ -1,11 +1,12 @@
-// Standalone "list this as an eBay auction" flow — paste any Amazon URL (doesn't need to be
-// tracked first), pick a single variant if the listing has more than one (eBay auctions can't
-// be multi-variation), set a starting price + duration, and create a live auction listing.
+// Standalone "list this as an eBay auction" flow — paste any Amazon URL (doesn't need to already
+// be tracked), pick a single variant if the listing has more than one (eBay auctions can't be
+// multi-variation), set a starting price + duration, and create a live auction listing.
 //
-// Reuses the same title/image/description generation calls the fixed-price auto-list flow uses
-// (POST /api/ebay/seo-title, /upload-images, /generate-description), then hits the new
-// /api/ebay/trading-create-auction-listing route instead of trading-create-listing. Nothing here
-// gets saved to the tracker DB — this is a one-shot listing action, not a tracking flow.
+// Clicking "Create Auction" tracks the chosen item first (same POST /api/tracker the normal
+// "Track Price" flow uses, reusing the existing record if it's already tracked), then reuses the
+// same title/image/description generation calls the fixed-price auto-list flow uses, then hits
+// the new /api/ebay/trading-create-auction-listing route, then PATCHes the tracked record with
+// the resulting listing ID — so an auctioned item shows up in Tracker/Deals like anything else.
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import FadeImg from '../components/FadeImg';
@@ -14,7 +15,7 @@ import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const DURATIONS = [1, 3, 5, 7, 10];
-const STEP_LABELS = { ...AUTO_LIST_STEP_LABELS, listing: '📤 Creating auction…' };
+const STEP_LABELS = { ...AUTO_LIST_STEP_LABELS, tracking: '📌 Tracking product…', listing: '📤 Creating auction…' };
 
 export default function AuctionPage() {
   const [url, setUrl] = useState('');
@@ -36,7 +37,7 @@ export default function AuctionPage() {
   // itself when there's nothing to choose between.
   const active = hasVariants
     ? variants.find(v => v.asin === selectedAsin) || null
-    : preview ? { label: preview.title, price: preview.price, image: preview.image, asin: preview.groupId } : null;
+    : preview ? { label: preview.title, price: preview.price, image: preview.image, asin: preview.groupId, url } : null;
 
   // Pre-fill a starting-price suggestion once an item resolves — half the Amazon price, a low
   // opener meant to attract bids (not calcEbayPrice's fixed-price-equivalent, which is meant for
@@ -81,6 +82,27 @@ export default function AuctionPage() {
     setListingError('');
     setResult(null);
     try {
+      // Track this exact item first, same as the normal "Track Price" flow — so it shows up
+      // in Tracker/Deals like anything else, instead of the auction existing with no DB record
+      // of what was actually listed. If it's already tracked (409), reuse that record rather
+      // than failing — but block outright if it's already listed on eBay, so this can't
+      // accidentally create a second, duplicate live listing for the same product.
+      setStep('tracking');
+      let trackedProduct;
+      try {
+        const trackRes = await axios.post(`${API}/api/tracker`, { url: active.url, groupId: preview.groupId });
+        trackedProduct = trackRes.data;
+      } catch (err) {
+        if (err.response?.status === 409 && err.response?.data?.product) {
+          trackedProduct = err.response.data.product;
+        } else {
+          throw new Error(err.response?.data?.error || 'Failed to track this product.');
+        }
+      }
+      if (trackedProduct.ebayListingId) {
+        throw new Error(`This product is already listed on eBay (listing ${trackedProduct.ebayListingId}) — pick a different variant, or manage that listing from the Deals/Tracker tab instead.`);
+      }
+
       setStep('title');
       const titleRes = await axios.post(`${API}/api/ebay/seo-title`, { title: preview.title, specs: preview.specs });
       const ebayTitle = titleRes.data.title || preview.title;
@@ -114,6 +136,16 @@ export default function AuctionPage() {
         durationDays,
       });
       setResult(listRes.data);
+
+      setStep('saving');
+      try {
+        await axios.patch(`${API}/api/tracker/${trackedProduct._id}/ebay`, {
+          ebayListingId: listRes.data.listingId,
+          cloudinaryFolder: `ebay-listings/${slug}`,
+          ebayPrice: Number(startingPrice),
+        });
+      } catch { /* listing succeeded either way — this just links it back to the tracked record */ }
+
       setStep('done');
     } catch (err) {
       setListingError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to create auction listing');
