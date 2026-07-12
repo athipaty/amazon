@@ -38,12 +38,12 @@ export default function ResearchPage() {
   const activeUpc = showVariants && !hasVariants ? product?.upc : null;
 
   const { comp, sold, compLoading } = useCompetitorCheck(activeTitle, activeUpc);
-  // Amazon frequently doesn't expose a price for every combination in a large variant matrix
-  // (confirmed live: a 37-variant listing came back with price:null on every single variant) —
-  // fall back to the anchor listing's own price as a same-ballpark estimate rather than letting
-  // the whole comparison go silent for products like this.
-  const activePriceIsEstimate = hasVariants && active?.price == null && product?.price != null;
-  const activePrice = active?.price ?? (hasVariants ? product?.price ?? null : null);
+  // Amazon frequently doesn't expose a price for every combination in a large variant matrix.
+  // Deliberately NOT falling back to the anchor listing's price here — variant dimensions are
+  // very often pack size / quantity / weight (e.g. "4 Pound" vs. the anchor's "8 Pound"), where
+  // borrowing another variant's price produces a confidently-wrong number, not a rough estimate.
+  // Better to show nothing than a price that's off by a factor of 2.
+  const activePrice = active?.price ?? null;
   const estYourPrice = activePrice != null ? calcEbayPrice(activePrice) : null;
 
   async function handleLookup(e) {
@@ -159,12 +159,10 @@ export default function ResearchPage() {
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-slate-900 truncate">{active.label}</p>
-                      {activePrice != null && (
-                        <p className="text-xs text-slate-400">
-                          {product.currency}{activePrice.toLocaleString()} on Amazon
-                          {activePriceIsEstimate && ' (base listing price — this variant\'s own price isn\'t available)'}
-                        </p>
-                      )}
+                      {activePrice != null
+                        ? <p className="text-xs text-slate-400">{product.currency}{activePrice.toLocaleString()} on Amazon</p>
+                        : <p className="text-xs text-slate-400">Amazon price varies by option — check the listing directly</p>
+                      }
                     </div>
                   </div>
                 )}
