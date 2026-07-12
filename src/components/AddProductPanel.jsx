@@ -1,17 +1,10 @@
 // URL input + the "N variants found — select which to track" preview panel shown
 // after pasting a multi-variant Amazon listing URL.
-import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { useMemo } from 'react';
 import FadeImg from './FadeImg';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Mirrors calcEbayPrice() in routes/tracker/index.js — flat cost-plus formula,
-// used here only to estimate what we'd list at for comparison against competitor prices.
-function calcEbayPrice(amazonPrice) {
-  const c = amazonPrice * 1.085;
-  return Math.floor((c + 0.30) / (1 - 0.1325 - 0.05 - 0.07)) + 0.99;
-}
+import CompetitorPriceCheck from './CompetitorPriceCheck';
+import useCompetitorCheck from '../hooks/useCompetitorCheck';
+import { calcEbayPrice } from '../utils/pricing';
 
 export default function AddProductPanel({
   url, setUrl, adding, addError, preview, previewRef,
@@ -54,28 +47,7 @@ export default function AddProductPanel({
   }, [preview]);
 
   // Competitor pricing check — fetch active + sold eBay comps for this product before tracking it
-  const [comp, setComp] = useState(null);       // { count, lowest, median, avg }
-  const [sold, setSold] = useState(null);        // { count, avg, min, max }
-  const [compLoading, setCompLoading] = useState(false);
-
-  useEffect(() => {
-    if (!preview?.title) { setComp(null); setSold(null); return; }
-    let cancelled = false;
-    setCompLoading(true);
-    setComp(null);
-    setSold(null);
-    const q = preview.upc ? { upc: preview.upc } : { title: preview.title };
-    Promise.allSettled([
-      axios.get(`${API}/api/ebay/competitors`, { params: q }),
-      axios.get(`${API}/api/ebay/sold`, { params: { q: preview.title.split(' ').slice(0, 6).join(' ') } }),
-    ]).then(([compRes, soldRes]) => {
-      if (cancelled) return;
-      if (compRes.status === 'fulfilled') setComp(compRes.value.data);
-      if (soldRes.status === 'fulfilled') setSold(soldRes.value.data);
-      setCompLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [preview?.upc, preview?.title]);
+  const { comp, sold, compLoading } = useCompetitorCheck(preview?.title, preview?.upc);
 
   // Ordered unique values per dimension
   const dimValues = useMemo(() => {
@@ -170,50 +142,8 @@ export default function AddProductPanel({
           </div>
 
           {/* eBay competitor pricing check — surfaces active + sold comps before you commit to tracking this */}
-          <div className="mt-2 mb-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs">
-            {compLoading ? (
-              <span className="text-slate-400">Checking eBay competitor prices…</span>
-            ) : comp && comp.count > 0 ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-slate-600">
-                  eBay active: <span className="font-bold text-slate-900">${comp.median}</span> median
-                  <span className="text-slate-400"> (${comp.lowest}–lowest, {comp.count} listings)</span>
-                </span>
-                {sold && sold.count > 0 && (
-                  <span className="text-slate-600">
-                    · Sold avg <span className="font-bold text-slate-900">${sold.avg}</span> ({sold.count} recently)
-                  </span>
-                )}
-                {estYourPrice != null && (
-                  estYourPrice > comp.median ? (
-                    <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ring-red-200">
-                      ⚠ your est. ${estYourPrice.toFixed(2)} is above median
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ring-emerald-200">
-                      ✓ your est. ${estYourPrice.toFixed(2)} beats median
-                    </span>
-                  )
-                )}
-              </div>
-            ) : comp && comp.count === 0 ? (
-              <span className="text-slate-400">No comparable active eBay listings found — could be a low-competition niche, or low demand.</span>
-            ) : null}
-
-            {/* eBay's sold-comps API requires limited-release approval we don't have — link out to
-                eBay's own sold/completed search so sold-price research stays a one-click manual step. */}
-            {preview.title && (
-              <div className="mt-1.5">
-                <a
-                  href={`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(preview.title.split(' ').slice(0, 6).join(' '))}&LH_Sold=1&LH_Complete=1`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-amazon hover:underline font-medium"
-                >
-                  🔍 Research sold prices on eBay ↗
-                </a>
-              </div>
-            )}
+          <div className="mt-2 mb-1">
+            <CompetitorPriceCheck title={preview.title} comp={comp} sold={sold} compLoading={compLoading} estYourPrice={estYourPrice} />
           </div>
 
           {/* Dimension filter buttons — only shown when product has 2+ dimensions (e.g. Color + Size) */}
