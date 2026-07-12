@@ -38,7 +38,13 @@ export default function ResearchPage() {
   const activeUpc = showVariants && !hasVariants ? product?.upc : null;
 
   const { comp, sold, compLoading } = useCompetitorCheck(activeTitle, activeUpc);
-  const estYourPrice = active?.price != null ? calcEbayPrice(active.price) : null;
+  // Amazon frequently doesn't expose a price for every combination in a large variant matrix
+  // (confirmed live: a 37-variant listing came back with price:null on every single variant) —
+  // fall back to the anchor listing's own price as a same-ballpark estimate rather than letting
+  // the whole comparison go silent for products like this.
+  const activePriceIsEstimate = hasVariants && active?.price == null && product?.price != null;
+  const activePrice = active?.price ?? (hasVariants ? product?.price ?? null : null);
+  const estYourPrice = activePrice != null ? calcEbayPrice(activePrice) : null;
 
   async function handleLookup(e) {
     e.preventDefault();
@@ -136,9 +142,10 @@ export default function ResearchPage() {
                         <FadeImg src={v.image} alt={v.label} className="w-8 h-8 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
                       )}
                       <span className="text-xs text-slate-700 flex-1 truncate">{v.label}</span>
-                      {v.price != null && (
-                        <span className="text-xs font-bold text-slate-900 flex-shrink-0">{product.currency}{v.price.toLocaleString()}</span>
-                      )}
+                      {v.price != null
+                        ? <span className="text-xs font-bold text-slate-900 flex-shrink-0">{product.currency}{v.price.toLocaleString()}</span>
+                        : <span className="text-xs text-slate-300 flex-shrink-0">price varies</span>
+                      }
                     </button>
                   ))}
                 </div>
@@ -152,8 +159,11 @@ export default function ResearchPage() {
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-slate-900 truncate">{active.label}</p>
-                      {active.price != null && (
-                        <p className="text-xs text-slate-400">{product.currency}{active.price.toLocaleString()} on Amazon</p>
+                      {activePrice != null && (
+                        <p className="text-xs text-slate-400">
+                          {product.currency}{activePrice.toLocaleString()} on Amazon
+                          {activePriceIsEstimate && ' (base listing price — this variant\'s own price isn\'t available)'}
+                        </p>
                       )}
                     </div>
                   </div>
