@@ -39,16 +39,40 @@ export default function AuctionPage() {
     ? variants.find(v => v.asin === selectedAsin) || null
     : preview ? { label: preview.title, price: preview.price, image: preview.image, asin: preview.groupId, url } : null;
 
+  const [priceLookupLoading, setPriceLookupLoading] = useState(false);
+
   // Pre-fill a starting-price suggestion once an item resolves — half the Amazon price, a low
   // opener meant to attract bids (not calcEbayPrice's fixed-price-equivalent, which is meant for
-  // list-it-and-walk-away selling, not auctions). Only ever computed from that item's own price:
-  // never borrow another variant's price as an estimate — a 37-variant product where every
-  // variant has price:null taught us that borrowing a differently-priced sibling produces a
-  // confidently wrong number, not a rough one. If the price is unknown, the field stays blank
-  // and the user fills it in themselves.
+  // list-it-and-walk-away selling, not auctions). Only ever computed from that exact item's own
+  // price: never borrow another variant's price as an estimate — a 37-variant product where
+  // every variant had price:null taught us that borrowing a differently-priced sibling produces
+  // a confidently wrong number, not a rough one.
+  //
+  // Amazon's variant listing data very often omits per-variant pricing (same 37-variant case —
+  // every single one had price:null). Rather than leave the field blank, fetch that specific
+  // variant's own product page (its own dedicated URL) to get its real price directly.
   useEffect(() => {
-    setStartingPrice(active?.price != null ? (active.price / 2).toFixed(2) : '');
-  }, [active?.asin, active?.price]);
+    let cancelled = false;
+    setPriceLookupLoading(false);
+    if (active?.price != null) {
+      setStartingPrice((active.price / 2).toFixed(2));
+      return;
+    }
+    if (!active?.url) {
+      setStartingPrice('');
+      return;
+    }
+    setStartingPrice('');
+    setPriceLookupLoading(true);
+    axios.post(`${API}/api/tracker/preview`, { url: active.url })
+      .then(({ data }) => {
+        if (cancelled || data.price == null) return;
+        setStartingPrice((data.price / 2).toFixed(2));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPriceLookupLoading(false); });
+    return () => { cancelled = true; };
+  }, [active?.asin, active?.price, active?.url]);
 
   async function handleLookup(e, urlOverride) {
     e.preventDefault();
@@ -252,7 +276,8 @@ export default function AuctionPage() {
                       value={startingPrice}
                       onChange={e => setStartingPrice(e.target.value)}
                       disabled={listing}
-                      className="w-32 pl-6 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 disabled:bg-slate-50"
+                      placeholder={priceLookupLoading ? 'Looking up price…' : ''}
+                      className="w-40 pl-6 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 disabled:bg-slate-50 placeholder:text-slate-400 placeholder:text-xs"
                     />
                   </div>
                 </label>
