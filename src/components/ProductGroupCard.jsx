@@ -8,6 +8,8 @@ import EbayListingControls from './EbayListingControls';
 import SpecsPanel from './SpecsPanel';
 import FadeImg from './FadeImg';
 import ConfirmDialog from './ConfirmDialog';
+import CompetitorPriceCheck from './CompetitorPriceCheck';
+import useCompetitorCheck from '../hooks/useCompetitorCheck';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -16,6 +18,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
   const [allExpanded, setAllExpanded] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const [showSpecs, setShowSpecs] = useState(false);
+  const [showResearch, setShowResearch] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -545,6 +548,11 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
 
   const active = variants[activeIdx];
 
+  // Competitor research — only fetched once expanded, using data already loaded on the card
+  // (no extra /preview round trip like the standalone Research tab needs).
+  const { comp, sold, compLoading } = useCompetitorCheck(showResearch ? active.title : null, showResearch ? active.upc : null);
+  const estYourPrice = active?.current != null ? calcEbayPrice(active.current) : null;
+
   async function redoDescription() {
     if (!groupEbayId) return;
     setRedoingDescription(true);
@@ -856,7 +864,15 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors whitespace-nowrap px-2.5 py-1 rounded-full hover:bg-slate-100">
           <span className="text-[10px]">{showSpecs ? '▲' : '▼'}</span> specs
         </button>
+        <button onClick={() => setShowResearch(s => !s)}
+          className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors whitespace-nowrap px-2.5 py-1 rounded-full hover:bg-slate-100">
+          <span className="text-[10px]">{showResearch ? '▲' : '▼'}</span> 🔎 Research
+        </button>
       </div>
+
+      {showResearch && (
+        <CompetitorPriceCheck title={active.title} comp={comp} sold={sold} compLoading={compLoading} estYourPrice={estYourPrice} />
+      )}
 
 
       {groupEbayId && (() => { const c = ambiguousVariantLabels(variants); return c ? (
