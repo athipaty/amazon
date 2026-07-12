@@ -142,18 +142,31 @@ export default function AuctionPage() {
       // variant's image/gallery from its own page (fetched during price lookup, when the listing
       // scrape's per-variant data was incomplete), then the whole listing's main image/gallery —
       // that top-level image is reliably present even when per-variant image/gallery data isn't.
-      // All of that is Keepa-cached data, free to reuse. Only if it's ALL empty do we spend a
-      // ScraperAPI credit on refresh-images — the same live-Amazon-scrape fallback tracked
-      // products already use, now available to us since the product's tracked as of the step above.
+      // All of that is Keepa-cached data, free to reuse.
       let imgs = [...new Set([
         active.image, resolvedVariant?.image, preview.image,
         ...(resolvedVariant?.images || []), ...(preview.images || []),
       ].filter(Boolean))].slice(0, 12);
       if (!imgs.length) {
-        try {
-          const refreshRes = await axios.post(`${API}/api/tracker/${trackedProduct._id}/refresh-images`);
-          if (refreshRes.data.images?.length) imgs = refreshRes.data.images.slice(0, 12);
-        } catch { /* falls through to the hard error below */ }
+        // The tracking step above already kicked off its own background image scrape for this
+        // exact product (queueImageUpload, server-side). Poll for that to finish instead of
+        // firing a second, concurrent scrape of the same product here — two scrapes racing each
+        // other risks Amazon's bot detection, the same reason that queue is serialized to begin
+        // with. Only fall back to an explicit refresh-images call (a real second scrape) if the
+        // background one genuinely never delivers anything after waiting for it.
+        for (let attempt = 0; attempt < 6 && !imgs.length; attempt++) {
+          await new Promise(r => setTimeout(r, 2000));
+          try {
+            const { data } = await axios.get(`${API}/api/tracker/${trackedProduct._id}`);
+            if (data.images?.length) imgs = data.images.slice(0, 12);
+          } catch { /* keep polling */ }
+        }
+        if (!imgs.length) {
+          try {
+            const refreshRes = await axios.post(`${API}/api/tracker/${trackedProduct._id}/refresh-images`);
+            if (refreshRes.data.images?.length) imgs = refreshRes.data.images.slice(0, 12);
+          } catch { /* falls through to the hard error below */ }
+        }
       }
       if (!imgs.length) throw new Error('No product images found to upload.');
 
