@@ -3,6 +3,7 @@ import { Component } from 'react';
 import AmazonPage from './pages/AmazonPage';
 import DealsPage from './pages/DealsPage';
 import OrdersPage from './pages/OrdersPage';
+import AuctionPage from './pages/AuctionPage';
 import useProductTracker from './hooks/useProductTracker';
 
 class ErrorBoundary extends Component {
@@ -28,7 +29,7 @@ class ErrorBoundary extends Component {
 function AppShell() {
   const location = useLocation();
   const tracker = useProductTracker();
-  const tab = location.pathname === '/orders' ? 'orders' : location.pathname === '/deals' ? 'deals' : 'tracker';
+  const tab = location.pathname === '/orders' ? 'orders' : location.pathname === '/deals' ? 'deals' : location.pathname === '/auction' ? 'auction' : 'tracker';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 antialiased pb-[calc(4rem+env(safe-area-inset-bottom))]">
@@ -44,7 +45,10 @@ function AppShell() {
       <div style={{ display: tab === 'orders' ? 'block' : 'none' }}>
         <OrdersPage />
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 bg-white/90 backdrop-blur-md border-t border-slate-200/60 pb-[env(safe-area-inset-bottom)]">
+      <div style={{ display: tab === 'auction' ? 'block' : 'none' }}>
+        <AuctionPage />
+      </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-4 bg-white/90 backdrop-blur-md border-t border-slate-200/60 pb-[env(safe-area-inset-bottom)]">
         <NavLink to="/deals"
           className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
           <span className="text-lg leading-none">🏷️</span>
@@ -59,6 +63,11 @@ function AppShell() {
           className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
           <span className="text-lg leading-none">🧾</span>
           Orders
+        </NavLink>
+        <NavLink to="/auction"
+          className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${isActive ? 'text-indigo-600' : 'text-slate-300 hover:text-slate-400'}`}>
+          <span className="text-lg leading-none">🔨</span>
+          Auction
         </NavLink>
       </nav>
     </div>
