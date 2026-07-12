@@ -1,6 +1,6 @@
 // URL input + the "N variants found — select which to track" preview panel shown
 // after pasting a multi-variant Amazon listing URL.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import FadeImg from './FadeImg';
 import CompetitorPriceCheck from './CompetitorPriceCheck';
 import useCompetitorCheck from '../hooks/useCompetitorCheck';
@@ -46,8 +46,10 @@ export default function AddProductPanel({
     return calcEbayPrice(avgAmazon);
   }, [preview]);
 
-  // Competitor pricing check — fetch active + sold eBay comps for this product before tracking it
-  const { comp, sold, compLoading } = useCompetitorCheck(preview?.title, preview?.upc);
+  // Competitor pricing check — opt-in via the toggle below, so pasting a URL to track doesn't
+  // fire an eBay call before you've actually decided you want to look.
+  const [showResearch, setShowResearch] = useState(false);
+  const { comp, sold, compLoading } = useCompetitorCheck(showResearch ? preview?.title : null, showResearch ? preview?.upc : null);
 
   // Ordered unique values per dimension
   const dimValues = useMemo(() => {
@@ -134,16 +136,24 @@ export default function AddProductPanel({
               <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
             </div>
             <button
-              onClick={() => { setPreview(null); setSelectedAsins(new Set()); }}
+              onClick={() => { setPreview(null); setSelectedAsins(new Set()); setShowResearch(false); }}
               className="text-slate-300 hover:text-slate-500 text-xl leading-none ml-3 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors flex-shrink-0"
             >
               ×
             </button>
           </div>
 
-          {/* eBay competitor pricing check — surfaces active + sold comps before you commit to tracking this */}
+          {/* eBay competitor pricing check — opt-in, doesn't fetch until you ask for it */}
           <div className="mt-2 mb-1">
-            <CompetitorPriceCheck title={preview.title} comp={comp} sold={sold} compLoading={compLoading} estYourPrice={estYourPrice} />
+            <button onClick={() => setShowResearch(s => !s)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors whitespace-nowrap px-2.5 py-1 rounded-full hover:bg-slate-100">
+              <span className="text-[10px]">{showResearch ? '▲' : '▼'}</span> 🔎 Research
+            </button>
+            {showResearch && (
+              <div className="mt-1.5">
+                <CompetitorPriceCheck title={preview.title} comp={comp} sold={sold} compLoading={compLoading} estYourPrice={estYourPrice} />
+              </div>
+            )}
           </div>
 
           {/* Dimension filter buttons — only shown when product has 2+ dimensions (e.g. Color + Size) */}
