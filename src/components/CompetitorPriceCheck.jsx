@@ -1,6 +1,9 @@
 // eBay competitor pricing box — active-listing median/lowest/count, sold avg when available,
-// an estimated-price-vs-median badge, and a manual sold-comps research link. Shared by
+// an estimated-price-vs-median badge, a per-listing comparison against your own selling price
+// for the cheapest 5 competitors, and a manual sold-comps research link. Shared by
 // AddProductPanel (inline, pre-tracking) and ResearchPage (standalone lookup).
+import FadeImg from './FadeImg';
+
 export default function CompetitorPriceCheck({ title, comp, sold, compLoading, estYourPrice }) {
   return (
     <div className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs">
@@ -32,6 +35,40 @@ export default function CompetitorPriceCheck({ title, comp, sold, compLoading, e
       ) : comp && comp.count === 0 ? (
         <span className="text-slate-400">No comparable active eBay listings found — could be a low-competition niche, or low demand.</span>
       ) : null}
+
+      {/* Cheapest 5 active listings, each compared against your own estimated price */}
+      {comp?.items?.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1.5">
+          {comp.items.map((it, i) => {
+            const diff = estYourPrice != null ? +(estYourPrice - it.price).toFixed(2) : null;
+            return (
+              <a
+                key={it.url || i}
+                href={it.url || undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-2 py-1.5 bg-white border border-slate-100 rounded-lg hover:border-slate-300 transition-colors"
+              >
+                {it.image && (
+                  <FadeImg src={it.image} alt="" className="w-8 h-8 object-contain rounded bg-slate-50 border border-slate-100 flex-shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-slate-700 truncate">{it.title}</p>
+                  <p className="text-slate-400 truncate">{it.condition}{it.seller ? ` · ${it.seller}` : ''}</p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <p className="font-bold text-slate-900">${it.price.toFixed(2)}</p>
+                  {diff != null && (
+                    <p className={diff > 0 ? 'text-red-600' : diff < 0 ? 'text-emerald-600' : 'text-slate-400'}>
+                      {diff > 0 ? `$${diff.toFixed(2)} cheaper` : diff < 0 ? `$${Math.abs(diff).toFixed(2)} pricier` : 'same as you'}
+                    </p>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
 
       {/* eBay's sold-comps API requires limited-release approval we don't have — link out to
           eBay's own sold/completed search so sold-price research stays a one-click manual step. */}
