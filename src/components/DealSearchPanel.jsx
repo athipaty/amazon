@@ -133,6 +133,9 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                           {deal.isLimitedDeal && (
                             <span className="inline-flex items-center bg-amber-50 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">⚡ Limited deal</span>
                           )}
+                          {singleOnly && deal.hasVariants && (
+                            <span className="inline-flex items-center bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Has variants</span>
+                          )}
                         </div>
                         <div className="flex items-center justify-between mt-auto pt-2">
                           <div className="flex flex-col gap-0.5">
