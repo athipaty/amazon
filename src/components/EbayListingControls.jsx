@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
+import ConfirmDialog from './ConfirmDialog';
 
 const STEP_ORDER = ['preparing-images', 'title', 'images', 'description', 'listing', 'photos', 'verifying', 'saving'];
 
@@ -14,6 +16,11 @@ export default function EbayListingControls({
   autoListSuccess, amazonUrl,
 }) {
   const navigate = useNavigate();
+  // A modal gate in front of both buttons below, not an inline swap — same reasoning as
+  // ConfirmDialog's own header comment: these buttons sit where a stray/fat-finger click on a
+  // dense card lands easily, and an inline "are you sure" next to the trigger is a mis-click trap
+  // (the confirm button appears right under the cursor). null | 'list' | 'auction'
+  const [confirmAction, setConfirmAction] = useState(null);
   if (editingEbay) {
     return (
       <div className="flex flex-col gap-1.5 min-w-0">
@@ -173,12 +180,12 @@ export default function EbayListingControls({
         </div>
       ) : (
         <div className="flex gap-1.5">
-          <button onClick={onAutoList}
+          <button onClick={() => setConfirmAction('list')}
             className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm">
             🤖 Auto list{!hasPrime && <span className="text-[10px] opacity-75 ml-0.5">(No Prime)</span>}
           </button>
           {amazonUrl && (
-            <button onClick={() => navigate(`/auction?url=${encodeURIComponent(amazonUrl)}`)}
+            <button onClick={() => setConfirmAction('auction')}
               className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors whitespace-nowrap shadow-sm">
               🔨 Auto Auction
             </button>
@@ -189,6 +196,25 @@ export default function EbayListingControls({
         className="text-[10px] text-slate-400 text-center hover:text-ebay transition-colors">
         + link existing listing manually
       </button>
+
+      <ConfirmDialog
+        open={confirmAction === 'list'}
+        title="Auto-list this on eBay?"
+        message={`This will generate a title, description, and images from the Amazon listing${variants.length > 1 ? ` for all ${variants.length} variants` : ''}, then create a live eBay listing. You'll get a chance to review the price on the next screen before anything goes live.`}
+        confirmLabel="Yes, continue"
+        danger={false}
+        onConfirm={() => { setConfirmAction(null); onAutoList(); }}
+        onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        open={confirmAction === 'auction'}
+        title="Auction this on eBay?"
+        message="This opens the Auction tab with this product pre-filled — nothing goes live until you set a starting price and duration and confirm there."
+        confirmLabel="Yes, continue"
+        danger={false}
+        onConfirm={() => { setConfirmAction(null); navigate(`/auction?url=${encodeURIComponent(amazonUrl)}`); }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
