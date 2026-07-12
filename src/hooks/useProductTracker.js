@@ -298,7 +298,11 @@ export default function useProductTracker() {
   // ── Master-detail helpers (pure logic lives in utils/trackerItems) ──
   const itemStatus = (item) => getItemStatus(item, ebayFailedIds, priceMismatchIds);
   const hasIssue = (item) => itemHasIssue(item, ebayFailedIds, priceMismatchIds);
-  const renderItems = sortRenderItems(buildRenderItems(products), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers, ebaySold);
+  // Auction listings live on their own list on the Auction tab, not mixed in with the
+  // fixed-price Deals/Tracker views — trackedAsins above deliberately still includes them
+  // (an auctioned ASIN is still "already tracking" for the add-product flow's purposes).
+  const fixedPriceProducts = products.filter(p => p.listingType !== 'AUCTION');
+  const renderItems = sortRenderItems(buildRenderItems(fixedPriceProducts), ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers, ebaySold);
 
   function toggleVariant(asin, checked) {
     const next = new Set(selectedAsins);

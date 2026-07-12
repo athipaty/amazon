@@ -6,7 +6,9 @@
 // "Track Price" flow uses, reusing the existing record if it's already tracked), then reuses the
 // same title/image/description generation calls the fixed-price auto-list flow uses, then hits
 // the new /api/ebay/trading-create-auction-listing route, then PATCHes the tracked record with
-// the resulting listing ID — so an auctioned item shows up in Tracker/Deals like anything else.
+// the resulting listing ID and listingType: 'AUCTION' — which useProductTracker.js filters out
+// of the Deals/Tracker views, so auction listings stay on their own list here instead of mixing
+// in with fixed-price ones.
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import FadeImg from '../components/FadeImg';
@@ -32,6 +34,23 @@ export default function AuctionPage() {
   const [step, setStep] = useState(null); // null | 'title' | 'images' | 'description' | 'listing' | 'done' | 'error'
   const [listingError, setListingError] = useState('');
   const [result, setResult] = useState(null); // { listingId, url }
+
+  // Products already listed as auctions (listingType: 'AUCTION') — kept on their own list here
+  // rather than mixed into the fixed-price Deals/Tracker views.
+  const [myAuctions, setMyAuctions] = useState([]);
+  const [loadingAuctions, setLoadingAuctions] = useState(true);
+
+  async function loadMyAuctions() {
+    try {
+      const { data } = await axios.get(`${API}/api/tracker`);
+      setMyAuctions(data.filter(p => p.listingType === 'AUCTION'));
+    } catch { /* leave the previous list showing rather than clearing it on a transient failure */ }
+    finally {
+      setLoadingAuctions(false);
+    }
+  }
+
+  useEffect(() => { loadMyAuctions(); }, []);
 
   const variants = preview?.variants || [];
   const hasVariants = variants.length > 1;
@@ -206,10 +225,12 @@ export default function AuctionPage() {
           ebayListingId: listRes.data.listingId,
           cloudinaryFolder: `ebay-listings/${slug}`,
           ebayPrice: Number(startingPrice),
+          listingType: 'AUCTION',
         });
       } catch { /* listing succeeded either way — this just links it back to the tracked record */ }
 
       setStep('done');
+      loadMyAuctions();
     } catch (err) {
       setListingError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to create auction listing');
       setStep('error');
@@ -392,6 +413,49 @@ export default function AuctionPage() {
           )}
         </div>
       )}
+
+      {/* Live auctions — kept off the Deals/Tracker views (see useProductTracker.js) so
+          fixed-price and auction listings don't get mixed together */}
+      <div className="mt-6">
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">My Auctions</h2>
+        {loadingAuctions ? (
+          <p className="text-sm text-slate-400">Loading…</p>
+        ) : myAuctions.length === 0 ? (
+          <p className="text-sm text-slate-400">No auction listings yet — create one above.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {myAuctions.map(p => (
+              <div key={p._id} className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
+                {p.image && (
+                  <FadeImg src={p.image} alt={p.title} className="w-16 h-16 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
+                )}
+                <div className="min-w-0 flex-1 flex flex-col">
+                  <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{p.title}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    {p.ebayPrice != null && (
+                      <span className="text-sm font-bold text-slate-900">${p.ebayPrice.toLocaleString()}</span>
+                    )}
+                    <span className="text-slate-400">starting bid</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-auto pt-2">
+                    <span className="text-[11px] text-slate-400">
+                      {p.listedAt ? `Listed ${new Date(p.listedAt).toLocaleDateString()}` : ''}
+                    </span>
+                    <a
+                      href={`https://www.ebay.com/itm/${p.ebayListingId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-ebay text-white font-bold text-[11px] rounded-lg hover:bg-ebay-dark active:scale-[0.98] transition-all whitespace-nowrap"
+                    >
+                      View ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
