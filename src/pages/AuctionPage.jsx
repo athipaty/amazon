@@ -11,7 +11,6 @@ import axios from 'axios';
 import FadeImg from '../components/FadeImg';
 import DealSearchPanel from '../components/DealSearchPanel';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
-import { calcEbayPrice } from '../utils/pricing';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const DURATIONS = [1, 3, 5, 7, 10];
@@ -39,13 +38,15 @@ export default function AuctionPage() {
     ? variants.find(v => v.asin === selectedAsin) || null
     : preview ? { label: preview.title, price: preview.price, image: preview.image, asin: preview.groupId } : null;
 
-  // Pre-fill a starting-price suggestion once an item resolves — but only from that item's own
-  // price. Never borrow another variant's price as an estimate: a 37-variant product where every
+  // Pre-fill a starting-price suggestion once an item resolves — half the Amazon price, a low
+  // opener meant to attract bids (not calcEbayPrice's fixed-price-equivalent, which is meant for
+  // list-it-and-walk-away selling, not auctions). Only ever computed from that item's own price:
+  // never borrow another variant's price as an estimate — a 37-variant product where every
   // variant has price:null taught us that borrowing a differently-priced sibling produces a
   // confidently wrong number, not a rough one. If the price is unknown, the field stays blank
   // and the user fills it in themselves.
   useEffect(() => {
-    setStartingPrice(active?.price != null ? calcEbayPrice(active.price).toFixed(2) : '');
+    setStartingPrice(active?.price != null ? (active.price / 2).toFixed(2) : '');
   }, [active?.asin, active?.price]);
 
   async function handleLookup(e, urlOverride) {
@@ -130,6 +131,7 @@ export default function AuctionPage() {
       <DealSearchPanel
         onTrack={handleSelectDeal}
         maxPrice={6}
+        singleOnly
         actionLabel="Auction This"
         workingLabel="Loading…"
       />
