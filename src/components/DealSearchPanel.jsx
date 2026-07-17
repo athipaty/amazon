@@ -5,7 +5,7 @@ import FadeImg from './FadeImg';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Amazon's top-level browse categories — picking one steers the search toward
-// discounted listings within that department only.
+// best-selling listings within that department only.
 const CATEGORIES = [
   'Electronics',
   'Home & Kitchen',
@@ -26,10 +26,10 @@ const CATEGORIES = [
   'Video Games',
 ];
 
-// Pick an Amazon category and find Prime-eligible items under a price ceiling with
-// a 4+ star rating. Discount is shown when present but not required. singleOnly excludes
+// Pick an Amazon category and find its top best-selling, Prime-eligible items with a
+// 4+ star rating — ranked by Amazon sales rank, no price ceiling. singleOnly excludes
 // anything that's a child of an Amazon variation family (color/size siblings).
-export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, maxPrice = 15, singleOnly = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
+export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, singleOnly = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(defaultOpen);
   const [category, setCategory] = useState('');
   const [searching, setSearching] = useState(false);
@@ -44,7 +44,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     setError('');
     setDeals(null);
     try {
-      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { category, maxPrice, singleOnly } });
+      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { category, singleOnly } });
       setDeals(data.deals || []);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Search failed.');
@@ -70,8 +70,8 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
       >
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">🏷️</span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-800">Find items on sale</p>
-          <p className="text-xs text-slate-400">Browse discounted, Prime-eligible deals by category</p>
+          <p className="text-sm font-bold text-slate-800">Find best sellers</p>
+          <p className="text-xs text-slate-400">Browse top-selling, Prime-eligible items by category</p>
         </div>
         <span className={`text-slate-300 text-sm flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
@@ -102,8 +102,8 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
           <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under ${maxPrice}</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
+            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Best sellers</span>
           </div>
 
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
@@ -124,12 +124,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                         <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
-                          {deal.originalPrice && <span className="text-xs text-slate-400 line-through">{deal.currency}{deal.originalPrice.toLocaleString()}</span>}
-                          {deal.discountPercent > 0 && <span className="inline-flex items-center bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">−{deal.discountPercent}%</span>}
                           <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
-                          {deal.isLimitedDeal && (
-                            <span className="inline-flex items-center bg-amber-50 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">⚡ Limited deal</span>
-                          )}
                           {singleOnly && deal.hasVariants && (
                             <span className="inline-flex items-center bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Has variants</span>
                           )}
