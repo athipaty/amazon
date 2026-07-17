@@ -855,7 +855,6 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           redoingDescription={redoingDescription}
           redoDescriptionStatus={redoDescriptionStatus}
           onAutoList={startAutoList}
-          amazonUrl={active.url?.startsWith('http') ? active.url : active.url ? `https://${active.url}` : null}
           autoListing={autoListing}
           autoListStep={autoListStep}
           autoListError={autoListError}

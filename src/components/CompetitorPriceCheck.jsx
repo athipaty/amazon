@@ -4,16 +4,11 @@
 // AddProductPanel (inline, pre-tracking) and ProductGroupCard (inline, on tracked products).
 import FadeImg from './FadeImg';
 
-// One listing row — used for active competitors, sold comps, and auctions. Sold items from the
+// One listing row — used for active competitors and sold comps. Sold items from the
 // Marketplace Insights API don't reliably carry a browsable web URL (itemHref is an API
 // resource id, not a page), so the row only becomes a link when the url actually looks like one.
-//
-// showDiff defaults on for fixed-price/sold comps, where the price is settled. Auctions pass
-// showDiff={false} deliberately — a current bid can still climb before the auction ends, so
-// "$4 cheaper than you" would be comparing your price against a number that isn't final, the
-// same kind of confidently-wrong comparison that caused the variant-price bug earlier.
-function ListingRow({ item, subtitle, estYourPrice, priceLabel, showDiff = true }) {
-  const diff = showDiff && estYourPrice != null ? +(estYourPrice - item.price).toFixed(2) : null;
+function ListingRow({ item, subtitle, estYourPrice }) {
+  const diff = estYourPrice != null ? +(estYourPrice - item.price).toFixed(2) : null;
   const clickable = item.url?.startsWith('http');
   const Tag = clickable ? 'a' : 'div';
   return (
@@ -30,7 +25,6 @@ function ListingRow({ item, subtitle, estYourPrice, priceLabel, showDiff = true 
       </div>
       <div className="flex-shrink-0 text-right">
         <p className="font-bold text-slate-900">${item.price.toFixed(2)}</p>
-        {priceLabel && <p className="text-slate-400">{priceLabel}</p>}
         {diff != null && (
           <p className={diff > 0 ? 'text-red-600' : diff < 0 ? 'text-emerald-600' : 'text-slate-400'}>
             {diff > 0 ? `$${diff.toFixed(2)} cheaper` : diff < 0 ? `$${Math.abs(diff).toFixed(2)} pricier` : 'same as you'}
@@ -98,29 +92,6 @@ export default function CompetitorPriceCheck({ title, comp, sold, compLoading, e
                 item={it}
                 subtitle={[it.condition, it.soldDate ? new Date(it.soldDate).toLocaleDateString() : null].filter(Boolean).join(' · ')}
                 estYourPrice={estYourPrice}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Cheapest 5 live auctions, current bid only — kept separate from the fixed-price median
-          since a current bid isn't a sale price and can still rise before the auction ends. */}
-      {comp?.auctions?.items?.length > 0 && (
-        <div className="mt-2">
-          <p className="text-slate-400 font-bold uppercase tracking-wide mb-1">Live Auctions</p>
-          <div className="flex flex-col gap-1.5">
-            {comp.auctions.items.map((it, i) => (
-              <ListingRow
-                key={it.url || i}
-                item={{ ...it, price: it.currentBid }}
-                subtitle={[
-                  it.condition,
-                  `${it.bidCount} bid${it.bidCount === 1 ? '' : 's'}`,
-                  it.endDate ? `ends ${new Date(it.endDate).toLocaleDateString()}` : null,
-                ].filter(Boolean).join(' · ')}
-                priceLabel="current bid"
-                showDiff={false}
               />
             ))}
           </div>

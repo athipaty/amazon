@@ -27,11 +27,8 @@ const CATEGORIES = [
 ];
 
 // Pick an Amazon category and find Prime-eligible items under a price ceiling with
-// a 4+ star rating. Discount is shown when present but not required. maxPrice/actionLabel
-// let this be reused outside the Deals tab (e.g. the Auction tab wants a lower ceiling and
-// a "select this" action instead of "track"). singleOnly excludes anything that's a child of
-// an Amazon variation family (color/size siblings) — the Auction tab wants single-item results
-// only, since eBay auctions can't be multi-variation.
+// a 4+ star rating. Discount is shown when present but not required. singleOnly excludes
+// anything that's a child of an Amazon variation family (color/size siblings).
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, maxPrice = 15, singleOnly = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(defaultOpen);
   const [category, setCategory] = useState('');

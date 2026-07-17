@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -13,13 +12,12 @@ export default function EbayListingControls({
   redoDescription, redoingDescription, redoDescriptionStatus,
   onAutoList, autoListing, autoListStep, autoListError,
   priceConfirming, customPrices, setCustomPrices, onConfirmList, onCancelPriceConfirm,
-  autoListSuccess, amazonUrl,
+  autoListSuccess,
 }) {
-  const navigate = useNavigate();
-  // A modal gate in front of both buttons below, not an inline swap — same reasoning as
-  // ConfirmDialog's own header comment: these buttons sit where a stray/fat-finger click on a
+  // A modal gate in front of the button below, not an inline swap — same reasoning as
+  // ConfirmDialog's own header comment: this button sits where a stray/fat-finger click on a
   // dense card lands easily, and an inline "are you sure" next to the trigger is a mis-click trap
-  // (the confirm button appears right under the cursor). null | 'list' | 'auction'
+  // (the confirm button appears right under the cursor). null | 'list'
   const [confirmAction, setConfirmAction] = useState(null);
   if (editingEbay) {
     return (
@@ -188,12 +186,6 @@ export default function EbayListingControls({
             className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors whitespace-nowrap">
             Manual sync
           </button>
-          {amazonUrl && (
-            <button onClick={() => setConfirmAction('auction')}
-              className="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors whitespace-nowrap shadow-sm">
-              🔨 Auto Auction
-            </button>
-          )}
         </div>
       )}
 
@@ -204,15 +196,6 @@ export default function EbayListingControls({
         confirmLabel="Yes, continue"
         danger={false}
         onConfirm={() => { setConfirmAction(null); onAutoList(); }}
-        onCancel={() => setConfirmAction(null)}
-      />
-      <ConfirmDialog
-        open={confirmAction === 'auction'}
-        title="Auction this on eBay?"
-        message="This opens the Auction tab with this product pre-filled — nothing goes live until you set a starting price and duration and confirm there."
-        confirmLabel="Yes, continue"
-        danger={false}
-        onConfirm={() => { setConfirmAction(null); navigate(`/auction?url=${encodeURIComponent(amazonUrl)}`); }}
         onCancel={() => setConfirmAction(null)}
       />
     </div>
