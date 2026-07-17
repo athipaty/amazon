@@ -71,6 +71,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
             <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Amazon's Choice only</span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">$20 or less</span>
           </div>
 
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
