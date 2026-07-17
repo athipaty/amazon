@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import FadeImg from './FadeImg';
 import Countdown from './Countdown';
+import ConfirmDialog from './ConfirmDialog';
 
 const STATUS_STYLES = {
   needs_purchase: { label: 'Needs purchase', cls: 'text-amber-600' },
@@ -131,8 +132,7 @@ function addressGroups(a) {
   return groups.filter(g => g.length);
 }
 
-export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMarkDelivered, onNotifyBuyer, onRemove }) {
-  const [expanded, setExpanded] = useState(false);
+export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMarkDelivered, onUndoDelivered, onNotifyBuyer, onRemove }) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
@@ -148,6 +148,8 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
   const [trackingError, setTrackingError] = useState('');
 
   const [markingDelivered, setMarkingDelivered] = useState(false);
+  const [confirmingDeliver, setConfirmingDeliver] = useState(false);
+  const [undoingDelivered, setUndoingDelivered] = useState(false);
 
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null); // { sent, messageText }
@@ -203,6 +205,16 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
       await onMarkDelivered();
     } finally {
       setMarkingDelivered(false);
+      setConfirmingDeliver(false);
+    }
+  }
+
+  async function handleUndoDelivered() {
+    setUndoingDelivered(true);
+    try {
+      await onUndoDelivered();
+    } finally {
+      setUndoingDelivered(false);
     }
   }
 
@@ -242,32 +254,30 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
     : 'border-slate-200/70 bg-white';
 
   return (
-    <div className={`rounded-2xl border shadow-card p-4 md:p-5 flex flex-col gap-3 transition-colors ${cardTone}`}>
-      <button onClick={() => setExpanded(e => !e)} className="flex items-start justify-between gap-2 text-left w-full">
-        <div className="flex items-start gap-3 min-w-0">
-          {order.productImage && (
-            <FadeImg src={order.productImage} alt="" className="w-12 h-12 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0" />
-          )}
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">{order.title || order.ebayItemId}</p>
-            <p className="text-xs text-slate-500">
-              {order.variationValue ? `${order.variationValue} · ` : ''}Qty {order.quantity} · ${order.price?.toFixed?.(2) ?? order.price}
-              {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
-            </p>
+    <div className={`rounded-2xl border shadow-card p-4 md:p-5 flex flex-col gap-4 transition-colors ${cardTone}`}>
+      <div className="flex items-start gap-4 md:gap-5 min-w-0">
+        {order.productImage
+          ? <FadeImg src={order.productImage} alt="" className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0" />
+          : <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-slate-100 flex-shrink-0" />
+        }
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[15px] md:text-base font-bold text-slate-800 leading-snug line-clamp-3 lg:line-clamp-none">{order.title || order.ebayItemId}</p>
+            <span className={`text-[11px] font-semibold whitespace-nowrap flex-shrink-0 ${status.cls}`}>
+              {status.label}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            {order.variationValue ? `${order.variationValue} · ` : ''}Qty {order.quantity} · ${order.price?.toFixed?.(2) ?? order.price}
+            {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <ShipStatusStepper status={order.status} />
+            <ShipDeadlineBadge order={order} />
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ShipDeadlineBadge order={order} />
-          <span className={`text-[11px] font-semibold whitespace-nowrap ${status.cls}`}>
-            {status.label}
-          </span>
-          <span className={`text-xs transition-colors duration-200 ${expanded ? 'text-indigo-600' : 'text-slate-300'}`}>{expanded ? '▲' : '▼'}</span>
-        </div>
-      </button>
+      </div>
 
-      {expanded && (
-      <>
       {/* Shipping address — click any piece to copy just that piece */}
       <div className="flex items-start justify-between gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5">
         {groups.length ? (
@@ -356,15 +366,38 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
       </div>
 
       {/* Mark delivered — a manual checkpoint you confirm yourself (carrier tracking page,
-          Amazon delivery email, etc.) before messaging the buyer. Only relevant once shipped. */}
+          Amazon delivery email, etc.) before messaging the buyer. Only relevant once shipped.
+          Gated behind a confirm modal (same reasoning as ConfirmDialog's own header comment)
+          since a mis-click here previously marked an order delivered before it actually was. */}
       {order.trackingNumber && order.status !== 'delivered' && order.status !== 'notified' && (
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={handleMarkDelivered} disabled={markingDelivered}
+          <button onClick={() => setConfirmingDeliver(true)} disabled={markingDelivered}
             className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-200 hover:bg-teal-100 transition-colors disabled:opacity-50">
             {markingDelivered ? 'Saving…' : '📬 Mark Delivered'}
           </button>
         </div>
       )}
+
+      {/* Undo — for when Mark Delivered gets clicked before delivery is actually confirmed */}
+      {order.status === 'delivered' && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleUndoDelivered} disabled={undoingDelivered}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50">
+            {undoingDelivered ? 'Reverting…' : '↩ Not actually delivered — revert to Shipped'}
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmingDeliver}
+        title="Mark this order delivered?"
+        message="This unlocks messaging the buyer. Only confirm once you've verified delivery — e.g. via the carrier's tracking page or an Amazon delivery email."
+        confirmLabel="Yes, it's delivered"
+        danger={false}
+        loading={markingDelivered}
+        onConfirm={handleMarkDelivered}
+        onCancel={() => setConfirmingDeliver(false)}
+      />
 
       {/* Notify buyer — generates a thank-you message for you to copy into eBay.
           Gated on delivery being confirmed first, so we never message the buyer about
@@ -418,8 +451,6 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
             {messageCopied ? '✓ Copied!' : '📋 Copy Message'}
           </button>
         </div>
-      )}
-      </>
       )}
     </div>
   );
