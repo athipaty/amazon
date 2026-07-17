@@ -4,48 +4,29 @@ import FadeImg from './FadeImg';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Amazon's top-level browse categories — picking one steers the search toward
-// best-selling listings within that department only.
-const CATEGORIES = [
-  'Electronics',
-  'Home & Kitchen',
-  'Kitchen & Dining',
-  'Tools & Home Improvement',
-  'Sports & Outdoors',
-  'Toys & Games',
-  'Beauty & Personal Care',
-  'Clothing, Shoes & Jewelry',
-  'Health & Household',
-  'Pet Supplies',
-  'Office Products',
-  'Patio, Lawn & Garden',
-  'Baby',
-  'Grocery & Gourmet Food',
-  'Automotive',
-  'Books',
-  'Video Games',
-];
-
-// Pick an Amazon category and find its top best-selling, Prime-eligible items with a
-// 4+ star rating — ranked by Amazon sales rank, no price ceiling. singleOnly excludes
-// anything that's a child of an Amazon variation family (color/size siblings).
+// Finds new products worth sourcing, seeded from what you actually sell — not a manual
+// category pick. The backend looks at your recently sold orders and highest-viewed tracked
+// listings, pulls Amazon's "frequently bought together" + same-category best-sellers for
+// those, then hard-filters to Prime + 4+ stars + Amazon's Choice only. Takes 30-70s since
+// the Amazon's Choice check is a live per-product page fetch, not cached product data —
+// results are cached 10min after that so repeat clicks are instant.
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, singleOnly = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(defaultOpen);
-  const [category, setCategory] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
+  const [note, setNote] = useState('');
   const [deals, setDeals] = useState(null);
   const [trackingAsin, setTrackingAsin] = useState(null);
 
-  async function handleSearch(e) {
-    e.preventDefault();
-    if (!category) return;
+  async function handleSearch() {
     setSearching(true);
     setError('');
+    setNote('');
     setDeals(null);
     try {
-      const { data } = await axios.get(`${API}/api/tracker/search-deals`, { params: { category, singleOnly } });
+      const { data } = await axios.get(`${API}/api/tracker/search-similar`, { params: { singleOnly } });
       setDeals(data.deals || []);
+      setNote(data.note || '');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Search failed.');
     } finally {
@@ -70,47 +51,34 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
       >
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">🏷️</span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-800">Find best sellers</p>
-          <p className="text-xs text-slate-400">Browse top-selling, Prime-eligible items by category</p>
+          <p className="text-sm font-bold text-slate-800">Find similar to what you sell</p>
+          <p className="text-xs text-slate-400">Based on your sold orders + highest-viewed listings</p>
         </div>
         <span className={`text-slate-300 text-sm flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
 
       {open && (
         <div className="mt-3 bg-white border border-slate-100 rounded-2xl p-5 shadow-card animate-slide-up">
-          <form className="flex gap-2" onSubmit={handleSearch}>
-            <div className="relative flex-1 min-w-0">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-sm pointer-events-none">🏷️</span>
-              <select
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                disabled={searching}
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amazon focus:ring-4 focus:ring-amazon/10 transition-all disabled:bg-slate-50 text-slate-700 appearance-none"
-              >
-                <option value="">Choose an Amazon category…</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={searching || !category}
-              className="px-5 py-2.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap shadow-soft"
-            >
-              {searching ? 'Searching…' : 'Search'}
-            </button>
-          </form>
+          <button
+            onClick={handleSearch}
+            disabled={searching}
+            className="w-full px-5 py-2.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-soft"
+          >
+            {searching ? 'Searching… (this takes 30-70s, checking each item live on Amazon)' : 'Search'}
+          </button>
           <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
-            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Best sellers</span>
+            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Amazon's Choice only</span>
           </div>
 
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
+          {note && <p className="text-slate-400 text-sm mt-3 px-1">{note}</p>}
 
           {deals && (
-            deals.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-4 px-1">No matching items found in "{category}". Try a different category.</p>
+            deals.length === 0 && !note ? (
+              <p className="text-sm text-slate-400 mt-4 px-1">No Amazon's Choice matches found this time — try again later as your sales/views change.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                 {deals.map(deal => {
@@ -125,6 +93,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
                           <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
+                          <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
                           {singleOnly && deal.hasVariants && (
                             <span className="inline-flex items-center bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Has variants</span>
                           )}
