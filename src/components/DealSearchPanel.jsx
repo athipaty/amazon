@@ -1,22 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import FadeImg from './FadeImg';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const STORAGE_KEY = 'dealSearchPanel:v1';
+
+function loadStored() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 // Finds new products worth sourcing, seeded from what you actually sell — not a manual
 // category pick. The backend looks at your recently sold orders and highest-viewed tracked
 // listings, pulls Amazon's "frequently bought together" + same-category best-sellers for
-// those, then hard-filters to Prime + 4+ stars + Amazon's Choice only. Takes 30-70s since
-// the Amazon's Choice check is a live per-product page fetch, not cached product data —
-// results are cached 10min after that so repeat clicks are instant.
+// those, then hard-filters to Prime + 4+ stars + $20 or less + Amazon's Choice only. Takes
+// 30-70s since the Amazon's Choice check is a live per-product page fetch — results are
+// cached server-side 30min so repeat clicks are instant, and persisted here in localStorage
+// so a page refresh doesn't lose them either. Nothing auto-clears the results — they stay
+// until you run a new search or collapse the panel yourself (both remembered across reloads).
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, singleOnly = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(() => loadStored()?.open ?? defaultOpen);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
-  const [note, setNote] = useState('');
-  const [deals, setDeals] = useState(null);
+  const [note, setNote] = useState(() => loadStored()?.note || '');
+  const [deals, setDeals] = useState(() => loadStored()?.deals ?? null);
+  const [searchedAt, setSearchedAt] = useState(() => loadStored()?.searchedAt || null);
   const [trackingAsin, setTrackingAsin] = useState(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ open, deals, note, searchedAt }));
+    } catch { /* localStorage unavailable (private mode, quota) — persistence just no-ops */ }
+  }, [open, deals, note, searchedAt]);
 
   async function handleSearch() {
     setSearching(true);
@@ -27,6 +46,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
       const { data } = await axios.get(`${API}/api/tracker/search-similar`, { params: { singleOnly } });
       setDeals(data.deals || []);
       setNote(data.note || '');
+      setSearchedAt(Date.now());
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Search failed.');
     } finally {
@@ -72,6 +92,9 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
             <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Amazon's Choice only</span>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">$20 or less</span>
+            {searchedAt && !searching && (
+              <span className="text-[10px] text-slate-300 ml-auto">Searched {new Date(searchedAt).toLocaleString()}</span>
+            )}
           </div>
 
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
