@@ -90,17 +90,6 @@ export default function OrdersPage() {
 
   return (
     <div className="px-3 py-4 md:px-6 md:py-7 max-w-[1600px] mx-auto">
-      <div className="flex items-center justify-end mb-4">
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-soft"
-        >
-          <span className={refreshing ? 'animate-spin' : ''}>↻</span>
-          {refreshing ? 'Checking…' : 'Check for new orders'}
-        </button>
-      </div>
-
       {(overdueCount > 0 || dueSoonCount > 0) && (
         <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-red-700 shadow-soft">
           <span className="flex-shrink-0">⚠️</span>
@@ -119,7 +108,15 @@ export default function OrdersPage() {
             <div className="text-center mt-16 md:mt-24">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-soft border border-slate-100 text-3xl mb-4">🧾</div>
               <p className="text-base font-bold text-slate-700">No sold orders yet</p>
-              <p className="text-sm mt-1 text-slate-400">They'll show up here automatically after a sale, or click "Check for new orders" above.</p>
+              <p className="text-sm mt-1 text-slate-400 mb-4">They'll show up here automatically after a sale, or check now.</p>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-soft"
+              >
+                <span className={refreshing ? 'animate-spin' : ''}>↻</span>
+                {refreshing ? 'Checking…' : 'Check for new orders'}
+              </button>
             </div>
           }
           onMarkPurchased={handleMarkPurchased}
@@ -128,6 +125,8 @@ export default function OrdersPage() {
           onUndoDelivered={handleUndoDelivered}
           onNotifyBuyer={handleNotifyBuyer}
           onRemove={handleRemove}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
         />
       )}
     </div>

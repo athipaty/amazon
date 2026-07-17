@@ -20,7 +20,7 @@ const STEPS = [
   { status: 'notified', label: '✅ Complete', cls: 'text-emerald-600' },
 ];
 
-export default function OrderSidebarList({ orders, selectedId, onSelect, mobile = false }) {
+export default function OrderSidebarList({ orders, selectedId, onSelect, mobile = false, onRefresh, refreshing = false }) {
   const [search, setSearch] = useState('');
   const filtered = search.trim()
     ? orders.filter(o => (o.title || o.ebayItemId || '').toLowerCase().includes(search.toLowerCase()))
@@ -67,9 +67,22 @@ export default function OrderSidebarList({ orders, selectedId, onSelect, mobile 
     }>
       {/* Header + search */}
       <div className="px-3.5 py-3 bg-slate-50/80 border-b border-slate-100 flex-shrink-0">
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-          {orders.length} order{orders.length !== 1 ? 's' : ''}
-        </p>
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            {orders.length} order{orders.length !== 1 ? 's' : ''}
+          </p>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={refreshing}
+              title="Check for new orders"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 bg-white ring-1 ring-inset ring-slate-200 hover:bg-slate-50 rounded-full px-2 py-1 transition-colors disabled:opacity-50"
+            >
+              <span className={refreshing ? 'animate-spin' : ''}>↻</span>
+              {refreshing ? 'Checking…' : 'Refresh'}
+            </button>
+          )}
+        </div>
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none">⌕</span>
           <input

@@ -8,6 +8,7 @@ import OrderSidebarList from './OrderSidebarList';
 export default function OrderListDetail({
   orders, emptyState,
   onMarkPurchased, onAddTracking, onMarkDelivered, onUndoDelivered, onNotifyBuyer, onRemove,
+  onRefresh, refreshing,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -51,6 +52,8 @@ export default function OrderListDetail({
           orders={orders}
           selectedId={selectedId || (orders[0] ? orders[0]._id : null)}
           onSelect={(id) => { setSelectedId(id); setDetailOpen(true); }}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
         />
       </div>
 
@@ -60,6 +63,8 @@ export default function OrderListDetail({
           orders={orders}
           selectedId={selectedId || orders[0]._id}
           onSelect={setSelectedId}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
         />
         <div className="flex-1 min-w-0">
           {selectedOrder && renderCard(selectedOrder)}

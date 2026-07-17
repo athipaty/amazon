@@ -13,33 +13,37 @@ const STATUS_STYLES = {
 
 const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL', 'Other'];
 
-// Maps order.status onto the buyer-facing shipping stages. "Delivered" is a manual
-// checkpoint (confirmed via carrier tracking or an Amazon delivery email) distinct from
-// "Message Customer" — notifying the buyer only makes sense once delivery is confirmed,
-// so these are two separate, ordered steps rather than one combined assumption.
-const SHIP_STAGES = ['Paid', 'Shipped', 'Delivered', 'Message Customer'];
-function shipStageIndex(status) {
-  if (status === 'notified') return 3;
-  if (status === 'delivered') return 2;
-  if (status === 'shipped') return 1;
-  return 0;
-}
+// order.status walks this sequence — used to figure out which of the 4 action sections
+// below is the current one-to-do, so it can be visually pulled forward while finished
+// sections mute down to a quick recap and future ones stay dim previews.
+const STAGE_ORDER = ['needs_purchase', 'purchased', 'shipped', 'delivered', 'notified'];
+const STAGE_LABELS = ['Buy on Amazon', 'Add Tracking', 'Mark Delivered', 'Message Buyer'];
 
-function ShipStatusStepper({ status }) {
-  const current = shipStageIndex(status);
+// Left-rail stepper wrapper around each action section — done sections get a check and
+// mute down (still fully interactive, so a mistake stays fixable), the current section
+// gets pulled forward with a highlighted background, upcoming ones dim to a preview.
+function StageBlock({ index, currentIdx, children }) {
+  const state = index < currentIdx ? 'done' : index === currentIdx ? 'current' : 'upcoming';
+  const dotCls = state === 'done' ? 'bg-emerald-500 text-white'
+    : state === 'current' ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+    : 'bg-slate-200 text-slate-400';
+  const labelCls = state === 'current' ? 'text-blue-700' : state === 'done' ? 'text-emerald-600' : 'text-slate-400';
+  const contentCls = state === 'current' ? 'bg-blue-50/60 ring-1 ring-inset ring-blue-100 rounded-xl p-2.5 -mx-0.5'
+    : state === 'upcoming' ? 'opacity-50' : 'opacity-90';
   return (
-    <div className="flex items-center gap-1 mt-1">
-      {SHIP_STAGES.map((label, i) => (
-        <div key={label} className="flex items-center gap-1">
-          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i <= current ? 'bg-indigo-500' : 'bg-slate-200'}`} />
-          <span className={`text-[10px] font-medium whitespace-nowrap ${i <= current ? 'text-indigo-600' : 'text-slate-300'}`}>
-            {label}
-          </span>
-          {i < SHIP_STAGES.length - 1 && (
-            <span className={`h-px w-3 ${i < current ? 'bg-indigo-400' : 'bg-slate-200'}`} />
-          )}
+    <div className="flex gap-3">
+      <div className="flex flex-col items-center flex-shrink-0 pt-0.5">
+        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-colors ${dotCls}`}>
+          {state === 'done' ? '✓' : index + 1}
         </div>
-      ))}
+        {index < STAGE_LABELS.length - 1 && (
+          <div className={`w-px flex-1 min-h-[14px] mt-1 ${state === 'done' ? 'bg-emerald-300' : 'bg-slate-200'}`} />
+        )}
+      </div>
+      <div className="flex-1 min-w-0 pb-1">
+        <p className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 transition-colors ${labelCls}`}>{STAGE_LABELS[index]}</p>
+        <div className={`transition-colors ${contentCls}`}>{children}</div>
+      </div>
     </div>
   );
 }
@@ -157,6 +161,7 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
   const [notifyError, setNotifyError] = useState('');
 
   const status = STATUS_STYLES[order.status] || STATUS_STYLES.needs_purchase;
+  const currentIdx = STAGE_ORDER.indexOf(order.status);
 
   const groups = addressGroups(order.shippingAddress);
 
@@ -272,7 +277,6 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
             {order.createTimeEbay ? ` · ${new Date(order.createTimeEbay).toLocaleDateString()}` : ''}
           </p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <ShipStatusStepper status={order.status} />
             <ShipDeadlineBadge order={order} />
           </div>
         </div>
@@ -305,7 +309,8 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
         </button>
       </div>
 
-      {/* Mark purchased */}
+      <div className="flex flex-col gap-3">
+      <StageBlock index={0} currentIdx={currentIdx}>
       <div className="flex items-center gap-2 flex-wrap">
         {order.amazonUrl && (
           <a href={order.amazonUrl} target="_blank" rel="noopener noreferrer"
@@ -338,8 +343,9 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
           </a>
         )}
       </div>
+      </StageBlock>
 
-      {/* Tracking */}
+      <StageBlock index={1} currentIdx={currentIdx}>
       <div className="flex items-center gap-2 flex-wrap">
         {editingTracking ? (
           <>
@@ -364,7 +370,9 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
         )}
         {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
       </div>
+      </StageBlock>
 
+      <StageBlock index={2} currentIdx={currentIdx}>
       {/* Mark delivered — a manual checkpoint you confirm yourself (carrier tracking page,
           Amazon delivery email, etc.) before messaging the buyer. Only relevant once shipped.
           Gated behind a confirm modal (same reasoning as ConfirmDialog's own header comment)
@@ -376,6 +384,9 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
             {markingDelivered ? 'Saving…' : '📬 Mark Delivered'}
           </button>
         </div>
+      )}
+      {!order.trackingNumber && (
+        <p className="text-[11px] text-slate-400">Add tracking first</p>
       )}
 
       {/* Undo — for when Mark Delivered gets clicked before delivery is actually confirmed */}
@@ -398,7 +409,9 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
         onConfirm={handleMarkDelivered}
         onCancel={() => setConfirmingDeliver(false)}
       />
+      </StageBlock>
 
+      <StageBlock index={3} currentIdx={currentIdx}>
       {/* Notify buyer — generates a thank-you message for you to copy into eBay.
           Gated on delivery being confirmed first, so we never message the buyer about
           delivery before it's actually happened. */}
@@ -421,6 +434,21 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
         {notifyError && <span className="text-[11px] text-red-500">⚠ {notifyError}</span>}
       </div>
 
+      {(notifyResult?.messageText || order.buyerMessageText) && (
+        <div className="flex items-start justify-between gap-2 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-xl px-3.5 py-2.5 mt-2">
+          <div>
+            <p className="text-xs text-emerald-700 font-semibold mb-1">Copy this and paste into eBay's message center:</p>
+            <p className="text-xs text-emerald-700 whitespace-pre-wrap">{notifyResult?.messageText || order.buyerMessageText}</p>
+          </div>
+          <button onClick={copyMessage}
+            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap">
+            {messageCopied ? '✓ Copied!' : '📋 Copy Message'}
+          </button>
+        </div>
+      )}
+      </StageBlock>
+      </div>
+
       {/* Remove — for orders you've already fully handled */}
       <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-slate-100">
         {confirmingRemove ? (
@@ -439,19 +467,6 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
           </button>
         )}
       </div>
-
-      {(notifyResult?.messageText || order.buyerMessageText) && (
-        <div className="flex items-start justify-between gap-2 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-xl px-3.5 py-2.5">
-          <div>
-            <p className="text-xs text-emerald-700 font-semibold mb-1">Copy this and paste into eBay's message center:</p>
-            <p className="text-xs text-emerald-700 whitespace-pre-wrap">{notifyResult?.messageText || order.buyerMessageText}</p>
-          </div>
-          <button onClick={copyMessage}
-            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap">
-            {messageCopied ? '✓ Copied!' : '📋 Copy Message'}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
