@@ -5,6 +5,27 @@ import FadeImg from './FadeImg';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const STORAGE_KEY = 'dealSearchPanel:v1';
 
+// Must match KEEPA_CATEGORY_IDS keys in backend routes/tracker/index.js
+const CATEGORIES = [
+  'Electronics',
+  'Home & Kitchen',
+  'Kitchen & Dining',
+  'Tools & Home Improvement',
+  'Sports & Outdoors',
+  'Toys & Games',
+  'Beauty & Personal Care',
+  'Clothing, Shoes & Jewelry',
+  'Health & Household',
+  'Pet Supplies',
+  'Office Products',
+  'Patio, Lawn & Garden',
+  'Baby',
+  'Grocery & Gourmet Food',
+  'Automotive',
+  'Books',
+  'Video Games',
+];
+
 function loadStored() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -14,16 +35,19 @@ function loadStored() {
   }
 }
 
-// Finds new products worth sourcing, seeded from what you actually sell — not a manual
-// category pick. The backend looks at your recently sold orders and highest-viewed tracked
-// listings, pulls Amazon's "frequently bought together" + same-category best-sellers for
-// those, then hard-filters to Prime + 4+ stars + $60 or less + Amazon's Choice + at least 2
+// Finds new products worth sourcing. Default mode is seeded from what you actually sell — the
+// backend looks at your recently sold orders and highest-viewed tracked listings, pulls
+// Amazon's "frequently bought together" + same-category best-sellers for those. Picking a
+// category from the dropdown instead bypasses that sourcing and pulls straight from Amazon's
+// best-sellers for that category — for prospecting outside what you already sell. Either way,
+// results are hard-filtered to Prime + 4+ stars + $60 or less + Amazon's Choice + at least 2
 // distinct quantity/pack-size variants (more pack sizes = ranked higher — more upsell room).
 // Takes 30-70s since the Amazon's Choice check is a live per-product page fetch — results are
-// cached server-side 30min so repeat clicks are instant, and persisted here in localStorage
-// so a page refresh doesn't lose them either. Nothing auto-clears the results — they stay
-// until you run a new search or collapse the panel yourself (both remembered across reloads).
-export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, singleOnly = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
+// cached server-side 30min per query (auto vs. each category has its own cache slot) so repeat
+// clicks are instant, and persisted here in localStorage so a page refresh doesn't lose them
+// either. Nothing auto-clears the results — they stay until you run a new search or collapse
+// the panel yourself (both remembered across reloads).
+export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(() => loadStored()?.open ?? defaultOpen);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
@@ -31,12 +55,13 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
   const [deals, setDeals] = useState(() => loadStored()?.deals ?? null);
   const [searchedAt, setSearchedAt] = useState(() => loadStored()?.searchedAt || null);
   const [trackingAsin, setTrackingAsin] = useState(null);
+  const [category, setCategory] = useState(() => loadStored()?.category || '');
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ open, deals, note, searchedAt }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ open, deals, note, searchedAt, category }));
     } catch { /* localStorage unavailable (private mode, quota) — persistence just no-ops */ }
-  }, [open, deals, note, searchedAt]);
+  }, [open, deals, note, searchedAt, category]);
 
   async function handleSearch() {
     setSearching(true);
@@ -44,7 +69,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     setNote('');
     setDeals(null);
     try {
-      const { data } = await axios.get(`${API}/api/tracker/search-similar`, { params: { singleOnly } });
+      const { data } = await axios.get(`${API}/api/tracker/search-similar`, { params: { category: category || undefined } });
       setDeals(data.deals || []);
       setNote(data.note || '');
       setSearchedAt(Date.now());
@@ -73,13 +98,21 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">🏷️</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-slate-800">Find similar to what you sell</p>
-          <p className="text-xs text-slate-400">Based on your sold orders + highest-viewed listings</p>
+          <p className="text-xs text-slate-400">{category ? `Browsing "${category}" best-sellers` : 'Based on your sold orders + highest-viewed listings'}</p>
         </div>
         <span className={`text-slate-300 text-sm flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
 
       {open && (
         <div className="mt-3 bg-white border border-slate-100 rounded-2xl p-5 shadow-card animate-slide-up">
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            className="w-full mb-2.5 px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-amazon/30"
+          >
+            <option value="">Auto — based on what you sell</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
           <button
             onClick={handleSearch}
             disabled={searching}
@@ -120,9 +153,6 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                           <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
                           <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
                           <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
-                          {singleOnly && deal.hasVariants && (
-                            <span className="inline-flex items-center bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Has variants</span>
-                          )}
                           {deal.qtyVariants?.length > 0 && (
                             <span className="inline-flex items-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Qty: {deal.qtyVariants.join(', ')} pcs</span>
                           )}
