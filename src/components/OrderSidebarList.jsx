@@ -45,14 +45,14 @@ export default function OrderSidebarList({ orders, selectedId, onSelect, mobile 
             : <div className="w-16 h-16 rounded-xl bg-slate-100 opacity-60" />
           }
           <span className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white ${STATUS_DOT[order.status] || 'bg-slate-300'}`} />
-          {order.isOverdue && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-600 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white animate-pulse">
-              🚨
-            </span>
-          )}
-          {!order.isOverdue && order.hoursLeft != null && order.hoursLeft <= 6 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-amber-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
-              ⏰
+          {order.hoursLeft != null && (
+            <span className={`absolute -top-1.5 -right-1.5 min-w-[20px] h-[16px] flex items-center justify-center text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white whitespace-nowrap ${
+              order.isOverdue ? 'bg-red-600 animate-pulse'
+                : order.hoursLeft <= 6 ? 'bg-red-500'
+                : order.hoursLeft <= 12 ? 'bg-amber-500'
+                : 'bg-emerald-600'
+            }`}>
+              {Math.round(order.hoursLeft)}h
             </span>
           )}
         </div>
