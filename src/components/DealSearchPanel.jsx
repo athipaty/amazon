@@ -17,8 +17,9 @@ function loadStored() {
 // Finds new products worth sourcing, seeded from what you actually sell — not a manual
 // category pick. The backend looks at your recently sold orders and highest-viewed tracked
 // listings, pulls Amazon's "frequently bought together" + same-category best-sellers for
-// those, then hard-filters to Prime + 4+ stars + $20 or less + Amazon's Choice only. Takes
-// 30-70s since the Amazon's Choice check is a live per-product page fetch — results are
+// those, then hard-filters to Prime + 4+ stars + $20 or less + Amazon's Choice + at least 2
+// distinct quantity/pack-size variants (more pack sizes = ranked higher — more upsell room).
+// Takes 30-70s since the Amazon's Choice check is a live per-product page fetch — results are
 // cached server-side 30min so repeat clicks are instant, and persisted here in localStorage
 // so a page refresh doesn't lose them either. Nothing auto-clears the results — they stay
 // until you run a new search or collapse the panel yourself (both remembered across reloads).
@@ -92,6 +93,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
             <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Amazon's Choice only</span>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">$20 or less</span>
+            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 ring-1 ring-inset ring-indigo-200 rounded-full px-2 py-0.5">2+ qty variants</span>
             {searchedAt && !searching && (
               <span className="text-[10px] text-slate-300 ml-auto">Searched {new Date(searchedAt).toLocaleString()}</span>
             )}
@@ -120,6 +122,9 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                           <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
                           {singleOnly && deal.hasVariants && (
                             <span className="inline-flex items-center bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Has variants</span>
+                          )}
+                          {deal.qtyVariants?.length > 0 && (
+                            <span className="inline-flex items-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Qty: {deal.qtyVariants.join(', ')} pcs</span>
                           )}
                         </div>
                         <div className="flex items-center justify-between mt-auto pt-2">
