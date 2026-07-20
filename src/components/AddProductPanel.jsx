@@ -117,7 +117,7 @@ export default function AddProductPanel({
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
               Related items on this product's page
-              <span className="ml-2 font-normal normal-case text-slate-300">under $10</span>
+              <span className="ml-2 font-normal normal-case text-slate-300">under $30</span>
             </p>
             <button
               onClick={() => setRelatedCheck(null)}
@@ -133,7 +133,7 @@ export default function AddProductPanel({
           {relatedCheck.error && <p className="text-sm text-red-500 mt-2">{relatedCheck.error}</p>}
           {relatedCheck.deals && (
             relatedCheck.deals.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-2">No under-$10 matches in that carousel.</p>
+              <p className="text-sm text-slate-400 mt-2">No under-$30 matches in that carousel.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
                 {relatedCheck.deals.map(deal => (

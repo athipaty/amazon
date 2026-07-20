@@ -260,7 +260,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             </button>
             <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under $10</span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under $30</span>
               <span className="text-[10px] text-slate-300">(Amazon's Choice sorts first when detected, not required)</span>
               {relatedSearchedAt && !relatedSearching && (
                 <span className="text-[10px] text-slate-300 ml-auto">Searched {new Date(relatedSearchedAt).toLocaleString()}</span>
@@ -272,7 +272,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
 
             {relatedDeals && (
               relatedDeals.length === 0 && !relatedNote ? (
-                <p className="text-sm text-slate-400 mt-4 px-1">No under-$10 matches this time — try again later as sponsored ad fill changes.</p>
+                <p className="text-sm text-slate-400 mt-4 px-1">No under-$30 matches this time — try again later as sponsored ad fill changes.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                   {relatedDeals.map(deal => {
