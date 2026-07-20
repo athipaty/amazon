@@ -12,6 +12,7 @@ export default function AddProductPanel({
   selectedAsins, toggleVariant, setSelectedAsins,
   addingVariants, addProgress,
   setPreview, trackedAsins,
+  relatedCheck, setRelatedCheck,
 }) {
   // Extract unique dimensions (e.g. Color, Size) from variant attributes
   const dimensions = useMemo(() => {
@@ -110,6 +111,61 @@ export default function AddProductPanel({
         </form>
         {addError && <p className="text-red-500 text-sm mt-2 px-1">{addError}</p>}
       </div>
+
+      {relatedCheck && (
+        <div className="mb-5 bg-white border border-slate-100 rounded-2xl p-4 shadow-soft animate-slide-up">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+              Related items on this product's page
+              <span className="ml-2 font-normal normal-case text-slate-300">Amazon's Choice · under $10</span>
+            </p>
+            <button
+              onClick={() => setRelatedCheck(null)}
+              className="text-slate-300 hover:text-slate-500 text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors flex-shrink-0"
+            >
+              ×
+            </button>
+          </div>
+
+          {relatedCheck.loading && (
+            <p className="text-sm text-slate-400 mt-2">Checking… (live page fetch, can take up to 30s)</p>
+          )}
+          {relatedCheck.error && <p className="text-sm text-red-500 mt-2">{relatedCheck.error}</p>}
+          {relatedCheck.deals && (
+            relatedCheck.deals.length === 0 ? (
+              <p className="text-sm text-slate-400 mt-2">No Amazon's Choice + under-$10 matches in that carousel.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                {relatedCheck.deals.map(deal => (
+                  <div key={deal.asin} className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
+                    {deal.image && (
+                      <FadeImg src={deal.image} alt={deal.title} className="w-14 h-14 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1 flex flex-col">
+                      <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
+                        <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
+                        {deal.rating && (
+                          <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount?.toLocaleString()})</span>
+                        )}
+                      </div>
+                      <a
+                        href={deal.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-auto pt-2 text-[11px] font-bold text-slate-500 hover:text-slate-700 w-fit"
+                      >
+                        🔗 View on Amazon
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      )}
 
       {preview && (
         <div ref={previewRef} className="mb-5 bg-white border border-amber-200 rounded-2xl p-5 shadow-card animate-slide-up">

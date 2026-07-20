@@ -7,6 +7,7 @@ export default function DealsPage({ tracker }) {
     API, url, setUrl, adding, addError, preview, setPreview, previewRef,
     selectedAsins, setSelectedAsins, addingVariants, addProgress,
     handleAdd, handleTrackDeal, handleTrackSelected, toggleVariant, trackedAsins,
+    relatedCheck, setRelatedCheck,
     ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds, itemStatus, ebayFailedIds,
     handleCheckOne, handleDeleteGroup, handleUpdate, handleVariantDeleted, handlePriceMismatch,
     renderItems,
@@ -25,6 +26,7 @@ export default function DealsPage({ tracker }) {
         addingVariants={addingVariants} addProgress={addProgress}
         setPreview={setPreview}
         trackedAsins={trackedAsins}
+        relatedCheck={relatedCheck} setRelatedCheck={setRelatedCheck}
       />
 
       <DealSearchPanel onTrack={handleTrackDeal} trackedAsins={trackedAsins} />
