@@ -40,13 +40,12 @@ function loadStored() {
 // Amazon's "frequently bought together" + same-category best-sellers for those. Picking a
 // category from the dropdown instead bypasses that sourcing and pulls straight from Amazon's
 // best-sellers for that category — for prospecting outside what you already sell. Either way,
-// results are hard-filtered to Prime + 4+ stars + $60 or less + Amazon's Choice + at least 2
-// distinct quantity/pack-size variants (more pack sizes = ranked higher — more upsell room).
-// Takes 30-70s since the Amazon's Choice check is a live per-product page fetch — results are
-// cached server-side 30min per query (auto vs. each category has its own cache slot) so repeat
-// clicks are instant, and persisted here in localStorage so a page refresh doesn't lose them
-// either. Nothing auto-clears the results — they stay until you run a new search or collapse
-// the panel yourself (both remembered across reloads).
+// results are hard-filtered to Prime + 4+ stars + $60 or less. Distinct quantity/pack-size
+// variants aren't a requirement — products with more pack sizes just rank higher (more upsell
+// room). Every search runs the pipeline fresh (no server-side caching), and results are
+// persisted here in localStorage so a page refresh doesn't lose them. Nothing auto-clears the
+// results — they stay until you run a new search or collapse the panel yourself (both
+// remembered across reloads).
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(() => loadStored()?.open ?? defaultOpen);
   const [searching, setSearching] = useState(false);
@@ -118,15 +117,13 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             disabled={searching}
             className="w-full px-5 py-2.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-sm rounded-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-soft"
           >
-            {searching ? 'Searching… (this takes 30-70s, checking each item live on Amazon)' : 'Search'}
+            {searching ? 'Searching…' : 'Search'}
           </button>
           <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
-            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Amazon's Choice only</span>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">$60 or less</span>
-            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 ring-1 ring-inset ring-indigo-200 rounded-full px-2 py-0.5">2+ qty variants</span>
             {searchedAt && !searching && (
               <span className="text-[10px] text-slate-300 ml-auto">Searched {new Date(searchedAt).toLocaleString()}</span>
             )}
@@ -137,7 +134,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
 
           {deals && (
             deals.length === 0 && !note ? (
-              <p className="text-sm text-slate-400 mt-4 px-1">No Amazon's Choice matches found this time — try again later as your sales/views change.</p>
+              <p className="text-sm text-slate-400 mt-4 px-1">No matches found this time — try again later as your sales/views change.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                 {deals.map(deal => {
@@ -152,7 +149,6 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
                           <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
-                          <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
                           {deal.qtyVariants?.length > 0 && (
                             <span className="inline-flex items-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Qty: {deal.qtyVariants.join(', ')} pcs</span>
                           )}
