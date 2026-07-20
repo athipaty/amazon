@@ -117,7 +117,7 @@ export default function AddProductPanel({
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
               Related items on this product's page
-              <span className="ml-2 font-normal normal-case text-slate-300">Amazon's Choice · under $10</span>
+              <span className="ml-2 font-normal normal-case text-slate-300">under $10</span>
             </p>
             <button
               onClick={() => setRelatedCheck(null)}
@@ -133,7 +133,7 @@ export default function AddProductPanel({
           {relatedCheck.error && <p className="text-sm text-red-500 mt-2">{relatedCheck.error}</p>}
           {relatedCheck.deals && (
             relatedCheck.deals.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-2">No Amazon's Choice + under-$10 matches in that carousel.</p>
+              <p className="text-sm text-slate-400 mt-2">No under-$10 matches in that carousel.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
                 {relatedCheck.deals.map(deal => (
@@ -145,7 +145,9 @@ export default function AddProductPanel({
                       <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
-                        <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
+                        {deal.hasAmazonChoice && (
+                          <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
+                        )}
                         {deal.rating && (
                           <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount?.toLocaleString()})</span>
                         )}

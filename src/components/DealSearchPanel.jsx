@@ -260,8 +260,8 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             </button>
             <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Filters:</span>
-              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 ring-1 ring-inset ring-purple-200 rounded-full px-2 py-0.5">Amazon's Choice only</span>
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">Under $10</span>
+              <span className="text-[10px] text-slate-300">(Amazon's Choice sorts first when detected, not required)</span>
               {relatedSearchedAt && !relatedSearching && (
                 <span className="text-[10px] text-slate-300 ml-auto">Searched {new Date(relatedSearchedAt).toLocaleString()}</span>
               )}
@@ -272,7 +272,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
 
             {relatedDeals && (
               relatedDeals.length === 0 && !relatedNote ? (
-                <p className="text-sm text-slate-400 mt-4 px-1">No Amazon's Choice + under-$10 matches this time — try again later as sponsored ad fill changes.</p>
+                <p className="text-sm text-slate-400 mt-4 px-1">No under-$10 matches this time — try again later as sponsored ad fill changes.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                   {relatedDeals.map(deal => {
@@ -286,7 +286,9 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                           <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
-                            <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
+                            {deal.hasAmazonChoice && (
+                              <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
+                            )}
                           </div>
                           <div className="flex items-center justify-between mt-auto pt-2">
                             {deal.rating ? (
