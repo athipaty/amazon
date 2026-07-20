@@ -73,6 +73,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
   const [relatedDeals, setRelatedDeals] = useState(() => loadStoredRelated()?.deals ?? null);
   const [relatedSearchedAt, setRelatedSearchedAt] = useState(() => loadStoredRelated()?.searchedAt || null);
   const [relatedTrackingAsin, setRelatedTrackingAsin] = useState(null);
+  const [copiedAsin, setCopiedAsin] = useState(null);
 
   useEffect(() => {
     try {
@@ -141,6 +142,14 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     } finally {
       setRelatedTrackingAsin(null);
     }
+  }
+
+  async function handleCopyRelatedUrl(deal) {
+    try {
+      await navigator.clipboard.writeText(deal.url);
+      setCopiedAsin(deal.asin);
+      setTimeout(() => setCopiedAsin(null), 1500);
+    } catch { /* clipboard unavailable — no-op */ }
   }
 
   return (
@@ -317,13 +326,21 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                               )}
                             </td>
                             <td className="py-2 pl-2 whitespace-nowrap">
-                              <button
-                                onClick={() => handleTrackRelated(deal)}
-                                disabled={alreadyTracked || relatedTrackingAsin === deal.asin}
-                                className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
-                              >
-                                {alreadyTracked ? '✓ Tracked' : relatedTrackingAsin === deal.asin ? workingLabel : actionLabel}
-                              </button>
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <button
+                                  onClick={() => handleCopyRelatedUrl(deal)}
+                                  className="px-2.5 py-1.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all whitespace-nowrap"
+                                >
+                                  {copiedAsin === deal.asin ? '✓ Copied' : '🔗 Copy URL'}
+                                </button>
+                                <button
+                                  onClick={() => handleTrackRelated(deal)}
+                                  disabled={alreadyTracked || relatedTrackingAsin === deal.asin}
+                                  className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+                                >
+                                  {alreadyTracked ? '✓ Tracked' : relatedTrackingAsin === deal.asin ? workingLabel : actionLabel}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

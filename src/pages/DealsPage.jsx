@@ -27,6 +27,7 @@ export default function DealsPage({ tracker }) {
         setPreview={setPreview}
         trackedAsins={trackedAsins}
         relatedCheck={relatedCheck} setRelatedCheck={setRelatedCheck}
+        onTrackRelated={handleTrackDeal}
       />
 
       <DealSearchPanel onTrack={handleTrackDeal} trackedAsins={trackedAsins} />

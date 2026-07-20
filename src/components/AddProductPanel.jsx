@@ -12,8 +12,28 @@ export default function AddProductPanel({
   selectedAsins, toggleVariant, setSelectedAsins,
   addingVariants, addProgress,
   setPreview, trackedAsins,
-  relatedCheck, setRelatedCheck,
+  relatedCheck, setRelatedCheck, onTrackRelated,
 }) {
+  const [relatedTrackingAsin, setRelatedTrackingAsin] = useState(null);
+  const [copiedAsin, setCopiedAsin] = useState(null);
+
+  async function handleTrackRelatedItem(deal) {
+    setRelatedTrackingAsin(deal.asin);
+    try {
+      await onTrackRelated(deal.url);
+    } finally {
+      setRelatedTrackingAsin(null);
+    }
+  }
+
+  async function handleCopyRelatedUrl(deal) {
+    try {
+      await navigator.clipboard.writeText(deal.url);
+      setCopiedAsin(deal.asin);
+      setTimeout(() => setCopiedAsin(null), 1500);
+    } catch { /* clipboard unavailable — no-op */ }
+  }
+
   // Extract unique dimensions (e.g. Color, Size) from variant attributes
   const dimensions = useMemo(() => {
     if (!preview?.variants?.length) return [];
@@ -142,11 +162,14 @@ export default function AddProductPanel({
                       <th className="text-left pb-1.5 pr-2">Item</th>
                       <th className="text-right pb-1.5 px-2">Price</th>
                       <th className="text-right pb-1.5 px-2">Rating</th>
-                      <th className="text-left pb-1.5 pl-2">Qty options</th>
+                      <th className="text-left pb-1.5 px-2">Qty options</th>
+                      <th className="pb-1.5 pl-2"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {relatedCheck.deals.map(deal => (
+                    {relatedCheck.deals.map(deal => {
+                      const alreadyTracked = trackedAsins?.has(deal.asin);
+                      return (
                       <tr key={deal.asin} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
                         <td className="py-2 pr-2">
                           <a href={deal.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0">
@@ -167,15 +190,32 @@ export default function AddProductPanel({
                             <span className="text-slate-300">—</span>
                           )}
                         </td>
-                        <td className="py-2 pl-2 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           {deal.qtyVariants?.length > 0 ? (
                             <span className="inline-flex items-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{deal.qtyVariants.join(', ')} pcs</span>
                           ) : (
                             <span className="text-slate-300 text-xs">single</span>
                           )}
                         </td>
+                        <td className="py-2 pl-2">
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <button
+                              onClick={() => handleCopyRelatedUrl(deal)}
+                              className="px-2.5 py-1.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all whitespace-nowrap"
+                            >
+                              {copiedAsin === deal.asin ? '✓ Copied' : '🔗 Copy URL'}
+                            </button>
+                            <button
+                              onClick={() => handleTrackRelatedItem(deal)}
+                              disabled={alreadyTracked || relatedTrackingAsin === deal.asin}
+                              className="px-2.5 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+                            >
+                              {alreadyTracked ? '✓ Tracked' : relatedTrackingAsin === deal.asin ? 'Adding…' : 'Track Price'}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               </div>
