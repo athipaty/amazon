@@ -135,34 +135,49 @@ export default function AddProductPanel({
             relatedCheck.deals.length === 0 ? (
               <p className="text-sm text-slate-400 mt-2">No under-$30 matches in that carousel.</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-                {relatedCheck.deals.map(deal => (
-                  <div key={deal.asin} className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
-                    {deal.image && (
-                      <FadeImg src={deal.image} alt={deal.title} className="w-14 h-14 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
-                    )}
-                    <div className="min-w-0 flex-1 flex flex-col">
-                      <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
-                        {deal.hasAmazonChoice && (
-                          <span className="inline-flex items-center bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Amazon's Choice</span>
-                        )}
-                        {deal.rating && (
-                          <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount?.toLocaleString()})</span>
-                        )}
-                      </div>
-                      <a
-                        href={deal.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-auto pt-2 text-[11px] font-bold text-slate-500 hover:text-slate-700 w-fit"
-                      >
-                        🔗 View on Amazon
-                      </a>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                      <th className="text-left pb-1.5 pr-2">Item</th>
+                      <th className="text-right pb-1.5 px-2">Price</th>
+                      <th className="text-right pb-1.5 px-2">Rating</th>
+                      <th className="text-left pb-1.5 pl-2">Qty options</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {relatedCheck.deals.map(deal => (
+                      <tr key={deal.asin} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                        <td className="py-2 pr-2">
+                          <a href={deal.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0">
+                            {deal.image && (
+                              <FadeImg src={deal.image} alt={deal.title} className="w-10 h-10 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
+                            )}
+                            <span className="text-xs text-slate-700 font-medium leading-snug line-clamp-2 min-w-0">{deal.title}</span>
+                            {deal.hasAmazonChoice && (
+                              <span className="flex-shrink-0 inline-flex items-center bg-purple-50 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">Choice</span>
+                            )}
+                          </a>
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-slate-900 whitespace-nowrap">{deal.currency}{deal.price.toLocaleString()}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap">
+                          {deal.rating ? (
+                            <span className="text-slate-500">★ {deal.rating} <span className="text-slate-300">({deal.reviewCount?.toLocaleString()})</span></span>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                        <td className="py-2 pl-2 whitespace-nowrap">
+                          {deal.qtyVariants?.length > 0 ? (
+                            <span className="inline-flex items-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{deal.qtyVariants.join(', ')} pcs</span>
+                          ) : (
+                            <span className="text-slate-300 text-xs">single</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )
           )}
