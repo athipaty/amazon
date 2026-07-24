@@ -3,7 +3,7 @@ import axios from 'axios';
 import FadeImg from './FadeImg';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const STORAGE_KEY = 'dealSearchPanel:category:v1';
+const STORAGE_KEY = 'dealSearchPanel:category:v2';
 
 // Must match KEEPA_CATEGORY_IDS keys in backend routes/tracker/index.js
 const CATEGORIES = [
@@ -35,34 +35,34 @@ function loadStored() {
   }
 }
 
-// Pick a category, get back the single best-selling, single-listing (no color/size/pack-size
-// variants) product in it — hard-filtered to Prime + 4+ stars + $60 or less. Every search runs
-// the pipeline fresh (no server-side caching); the last result is persisted in localStorage so
-// a page refresh doesn't lose it.
+// Pick a category, get back best-selling, single-listing (no color/size/pack-size variants)
+// products in it — hard-filtered to Prime + 4+ stars + $60 or less, up to 25, in Amazon Best
+// Sellers rank order. Every search runs the pipeline fresh (no server-side caching); the last
+// results are persisted in localStorage so a page refresh doesn't lose them.
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(() => loadStored()?.open ?? defaultOpen);
   const [category, setCategory] = useState(() => loadStored()?.category || CATEGORIES[0]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
   const [note, setNote] = useState(() => loadStored()?.note || '');
-  const [deal, setDeal] = useState(() => loadStored()?.deal ?? null);
+  const [deals, setDeals] = useState(() => loadStored()?.deals ?? null);
   const [searchedAt, setSearchedAt] = useState(() => loadStored()?.searchedAt || null);
   const [trackingAsin, setTrackingAsin] = useState(null);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ open, category, deal, note, searchedAt }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ open, category, deals, note, searchedAt }));
     } catch { /* localStorage unavailable (private mode, quota) — persistence just no-ops */ }
-  }, [open, category, deal, note, searchedAt]);
+  }, [open, category, deals, note, searchedAt]);
 
   async function handleSearch() {
     setSearching(true);
     setError('');
     setNote('');
-    setDeal(null);
+    setDeals(null);
     try {
       const { data } = await axios.get(`${API}/api/tracker/best-sellers-by-category`, { params: { category } });
-      setDeal(data.deal || null);
+      setDeals(data.deals || []);
       setNote(data.note || '');
       setSearchedAt(Date.now());
     } catch (err) {
@@ -72,8 +72,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     }
   }
 
-  async function handleTrack() {
-    if (!deal) return;
+  async function handleTrack(deal) {
     setTrackingAsin(deal.asin);
     try {
       await onTrack(deal.url);
@@ -91,7 +90,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">🏷️</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-slate-800">Find new products</p>
-          <p className="text-xs text-slate-400">Best seller by category — no variants</p>
+          <p className="text-xs text-slate-400">Best sellers by category — no variants</p>
         </div>
         <span className={`text-slate-300 text-sm flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
@@ -126,48 +125,59 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
           {note && <p className="text-slate-400 text-sm mt-3 px-1">{note}</p>}
 
-          {deal && (
-            <div className="flex gap-3 p-3 mt-4 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
-              {deal.image && (
-                <FadeImg src={deal.image} alt={deal.title} className="w-16 h-16 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
-              )}
-              <div className="min-w-0 flex-1 flex flex-col">
-                <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
-                  <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
-                </div>
-                <div className="flex items-center justify-between mt-auto pt-2">
-                  <div className="flex flex-col gap-0.5">
-                    {deal.rating ? (
-                      <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount.toLocaleString()})</span>
-                    ) : (
-                      <span className="text-[11px] text-slate-300">No rating</span>
-                    )}
-                    {deal.monthlySold && (
-                      <span className="text-[11px] text-emerald-600 font-medium">{deal.monthlySold.toLocaleString()}+ sold/mo</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <a
-                      href={deal.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all whitespace-nowrap"
-                    >
-                      🔗 Amazon
-                    </a>
-                    <button
-                      onClick={handleTrack}
-                      disabled={trackedAsins?.has(deal.asin) || trackingAsin === deal.asin}
-                      className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
-                    >
-                      {trackedAsins?.has(deal.asin) ? '✓ Tracked' : trackingAsin === deal.asin ? workingLabel : actionLabel}
-                    </button>
-                  </div>
-                </div>
+          {deals && (
+            deals.length === 0 && !note ? (
+              <p className="text-sm text-slate-400 mt-4 px-1">No single-listing best sellers cleared the filters this time — try again later.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+                {deals.map(deal => {
+                  const alreadyTracked = trackedAsins?.has(deal.asin);
+                  return (
+                    <div key={deal.asin} className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
+                      {deal.image && (
+                        <FadeImg src={deal.image} alt={deal.title} className="w-16 h-16 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1 flex flex-col">
+                        <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">{deal.title}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
+                          <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-auto pt-2">
+                          <div className="flex flex-col gap-0.5">
+                            {deal.rating ? (
+                              <span className="text-[11px] text-slate-400">★ {deal.rating} ({deal.reviewCount.toLocaleString()})</span>
+                            ) : (
+                              <span className="text-[11px] text-slate-300">No rating</span>
+                            )}
+                            {deal.monthlySold && (
+                              <span className="text-[11px] text-emerald-600 font-medium">{deal.monthlySold.toLocaleString()}+ sold/mo</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={deal.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all whitespace-nowrap"
+                            >
+                              🔗 Amazon
+                            </a>
+                            <button
+                              onClick={() => handleTrack(deal)}
+                              disabled={alreadyTracked || trackingAsin === deal.asin}
+                              className="px-3 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+                            >
+                              {alreadyTracked ? '✓ Tracked' : trackingAsin === deal.asin ? workingLabel : actionLabel}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )
           )}
         </div>
       )}
