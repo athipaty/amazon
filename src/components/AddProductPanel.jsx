@@ -245,6 +245,22 @@ export default function AddProductPanel({
                   ? <span className="inline-flex items-center gap-1 bg-[#00A8E0] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Prime</span>
                   : <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full">✗ No Prime</span>
                 }
+                {preview.fulfillment?.isAmazonFulfilled === true && (
+                  <span
+                    title={`Ships from: ${preview.fulfillment.shipsFrom?.trim() || 'Amazon'} · Sold by: ${preview.fulfillment.soldBy || 'unknown'}. eBay can't validate Amazon Logistics (TBA…) tracking numbers, so orders for this item are likely to hurt your "tracking uploaded and validated" rate.`}
+                    className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ring-amber-200 cursor-help"
+                  >
+                    ⚠️ Amazon-fulfilled
+                  </span>
+                )}
+                {preview.fulfillment?.isAmazonFulfilled === false && (
+                  <span
+                    title={`Ships from and sold by ${preview.fulfillment.soldBy || 'the seller'} — real carrier tracking, should validate fine on eBay.`}
+                    className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ring-emerald-200 cursor-help"
+                  >
+                    ✓ Ships from seller
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{preview.title}</p>
             </div>

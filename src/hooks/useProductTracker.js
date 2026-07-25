@@ -184,7 +184,7 @@ export default function useProductTracker() {
         setPreviewGroupId(existingGroupId || data.groupId || null);
         setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
       } else {
-        const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed });
+        const { data: product } = await axios.post(`${API}/api/tracker`, { url: trimmed, fulfillment: data.fulfillment });
         setProducts(prev => [product, ...prev]);
         setUrl('');
         setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
@@ -208,7 +208,7 @@ export default function useProductTracker() {
         setPreviewGroupId(existingGroupId || data.groupId || null);
         setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
       } else {
-        const { data: product } = await axios.post(`${API}/api/tracker`, { url });
+        const { data: product } = await axios.post(`${API}/api/tracker`, { url, fulfillment: data.fulfillment });
         setProducts(prev => [product, ...prev]);
         setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
         setTimeout(() => setStatusMsg(''), 4000);
@@ -256,7 +256,9 @@ export default function useProductTracker() {
     for (let i = 0; i < toAdd.length; i++) {
       setAddProgress(`Adding ${i + 1} of ${toAdd.length}…`);
       try {
-        const { data: newProduct } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId });
+        // Fulfillment is only looked up once per preview, at the group/parent URL — applied to
+        // every variant tracked from that preview rather than re-paying for a per-ASIN lookup.
+        const { data: newProduct } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId, fulfillment: preview.fulfillment });
         if (existingEbayId && newProduct.variant) {
           const price = calcEbayPrice(newProduct.current).toFixed(2);
           try {

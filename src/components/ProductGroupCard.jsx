@@ -682,6 +682,14 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           <p className={`font-bold text-slate-800 ${detailMode ? 'text-[15px] md:text-base leading-snug line-clamp-3 lg:line-clamp-none' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {variants.some(v => v.isPrime) && <AmazonPrimeBadge />}
+            {variants.some(v => v.isAmazonFulfilled === true) && (
+              <span
+                title="Fulfilled by Amazon — likely ships via Amazon Logistics (TBA…), which eBay can't validate as tracking. Was known before this was added; not something auto-tracking can fix."
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200"
+              >
+                ⚠️ Amazon-fulfilled
+              </span>
+            )}
             {detailMode && (() => {
               const priced = variants.filter(v => v.current != null);
               if (!priced.length) return null;
