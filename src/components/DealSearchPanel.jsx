@@ -48,6 +48,19 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
   const [deals, setDeals] = useState(() => loadStored()?.deals ?? null);
   const [searchedAt, setSearchedAt] = useState(() => loadStored()?.searchedAt || null);
   const [trackingAsin, setTrackingAsin] = useState(null);
+  // Per-ASIN, on-demand — a category search can return up to 25 candidates, and eagerly
+  // checking all of them would burn 25 ScraperAPI credits per search. { [asin]: 'loading' | data | 'error' }
+  const [fulfillment, setFulfillment] = useState({});
+
+  async function handleCheckFulfillment(deal) {
+    setFulfillment(f => ({ ...f, [deal.asin]: 'loading' }));
+    try {
+      const { data } = await axios.get(`${API}/api/tracker/fulfillment`, { params: { url: deal.url } });
+      setFulfillment(f => ({ ...f, [deal.asin]: data }));
+    } catch {
+      setFulfillment(f => ({ ...f, [deal.asin]: 'error' }));
+    }
+  }
 
   useEffect(() => {
     try {
@@ -142,6 +155,40 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <span className="text-sm font-bold text-slate-900">{deal.currency}{deal.price.toLocaleString()}</span>
                           <span className="inline-flex items-center bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">Prime</span>
+                          {(() => {
+                            const f = fulfillment[deal.asin];
+                            if (!f) {
+                              return (
+                                <button
+                                  onClick={() => handleCheckFulfillment(deal)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+                                >
+                                  🔎 Check shipping
+                                </button>
+                              );
+                            }
+                            if (f === 'loading') {
+                              return <span className="text-[10px] text-slate-300">Checking…</span>;
+                            }
+                            if (f === 'error' || f.isAmazonFulfilled == null) {
+                              return <span className="text-[10px] text-slate-300">Shipping unknown</span>;
+                            }
+                            return f.isAmazonFulfilled ? (
+                              <span
+                                title={`Ships from: ${f.shipsFrom?.trim() || 'Amazon'} · Sold by: ${f.soldBy || 'unknown'}. eBay can't validate Amazon Logistics (TBA…) tracking numbers.`}
+                                className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-1 ring-inset ring-amber-200 cursor-help"
+                              >
+                                ⚠️ Amazon-fulfilled
+                              </span>
+                            ) : (
+                              <span
+                                title={`Ships from and sold by ${f.soldBy || 'the seller'} — real carrier tracking, should validate fine on eBay.`}
+                                className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-1 ring-inset ring-emerald-200 cursor-help"
+                              >
+                                ✓ Ships from seller
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center justify-between mt-auto pt-2">
                           <div className="flex flex-col gap-0.5">
