@@ -51,16 +51,49 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
   // Per-ASIN, on-demand — a category search can return up to 25 candidates, and eagerly
   // checking all of them would burn 25 ScraperAPI credits per search. { [asin]: 'loading' | data | 'error' }
   const [fulfillment, setFulfillment] = useState({});
+  const [checkingAll, setCheckingAll] = useState(false);
+  const [checkAllProgress, setCheckAllProgress] = useState(null); // { done, total }
+  const [hideAmazonFulfilled, setHideAmazonFulfilled] = useState(false);
 
-  async function handleCheckFulfillment(deal) {
+  async function checkOne(deal) {
     setFulfillment(f => ({ ...f, [deal.asin]: 'loading' }));
     try {
       const { data } = await axios.get(`${API}/api/tracker/fulfillment`, { params: { url: deal.url } });
       setFulfillment(f => ({ ...f, [deal.asin]: data }));
+      return data;
     } catch {
       setFulfillment(f => ({ ...f, [deal.asin]: 'error' }));
+      return null;
     }
   }
+
+  async function handleCheckFulfillment(deal) {
+    await checkOne(deal);
+  }
+
+  // Sequential, paced ~3s apart — same pacing the backend's own image-scrape queue uses to
+  // avoid Amazon bot detection on back-to-back scrapes. These are all Prime-filtered already
+  // (the category search hard-filters to Prime), so what this surfaces is specifically Seller
+  // Fulfilled Prime candidates — real carrier tracking without giving up the Prime badge/speed.
+  // Given every one of the 208 already-tracked products came back Amazon-fulfilled on backfill,
+  // don't expect this to find many — SFP is the exception, not the rule.
+  async function handleCheckAll() {
+    if (!deals?.length) return;
+    setCheckingAll(true);
+    const todo = deals.filter(d => !fulfillment[d.asin] || fulfillment[d.asin] === 'error');
+    setCheckAllProgress({ done: 0, total: todo.length });
+    for (let i = 0; i < todo.length; i++) {
+      await checkOne(todo[i]);
+      setCheckAllProgress({ done: i + 1, total: todo.length });
+      if (i < todo.length - 1) await new Promise(r => setTimeout(r, 3000));
+    }
+    setCheckingAll(false);
+    setCheckAllProgress(null);
+  }
+
+  const visibleDeals = (deals || []).filter(d =>
+    !(hideAmazonFulfilled && fulfillment[d.asin] && fulfillment[d.asin] !== 'loading' && fulfillment[d.asin] !== 'error' && fulfillment[d.asin].isAmazonFulfilled === true)
+  );
 
   useEffect(() => {
     try {
@@ -138,12 +171,37 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
           {error && <p className="text-red-500 text-sm mt-3 px-1">{error}</p>}
           {note && <p className="text-slate-400 text-sm mt-3 px-1">{note}</p>}
 
+          {deals && deals.length > 0 && (
+            <div className="flex items-center gap-3 mt-3 px-1 flex-wrap">
+              <button
+                onClick={handleCheckAll}
+                disabled={checkingAll}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {checkingAll
+                  ? `Checking shipping… ${checkAllProgress?.done ?? 0}/${checkAllProgress?.total ?? 0}`
+                  : '🔎 Check shipping for all — finds Seller Fulfilled Prime'}
+              </button>
+              <label className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hideAmazonFulfilled}
+                  onChange={e => setHideAmazonFulfilled(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-amazon"
+                />
+                Hide Amazon-fulfilled
+              </label>
+            </div>
+          )}
+
           {deals && (
             deals.length === 0 && !note ? (
               <p className="text-sm text-slate-400 mt-4 px-1">No single-listing best sellers cleared the filters this time — try again later.</p>
+            ) : visibleDeals.length === 0 ? (
+              <p className="text-sm text-slate-400 mt-4 px-1">All {deals.length} results are Amazon-fulfilled — nothing left once hidden. Try another category, or uncheck "Hide Amazon-fulfilled".</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-                {deals.map(deal => {
+                {visibleDeals.map(deal => {
                   const alreadyTracked = trackedAsins?.has(deal.asin);
                   return (
                     <div key={deal.asin} className="flex gap-3 p-3 rounded-xl border border-slate-100 hover:border-amazon/30 hover:shadow-soft transition-all">
