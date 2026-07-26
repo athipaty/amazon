@@ -3,7 +3,7 @@ import axios from 'axios';
 import FadeImg from './FadeImg';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const STORAGE_KEY = 'dealSearchPanel:category:v2';
+const STORAGE_KEY = 'dealSearchPanel:category:v3';
 
 // Must match KEEPA_CATEGORY_IDS keys in backend routes/tracker/index.js
 const CATEGORIES = [
@@ -35,10 +35,10 @@ function loadStored() {
   }
 }
 
-// Pick a category, get back best-selling, single-listing (no color/size/pack-size variants)
-// products in it — hard-filtered to Prime + 4+ stars + $60 or less, up to 25, in Amazon Best
-// Sellers rank order. Every search runs the pipeline fresh (no server-side caching); the last
-// results are persisted in localStorage so a page refresh doesn't lose them.
+// Pick a category, get back newest-released, single-listing (no color/size/pack-size variants)
+// products in it — hard-filtered to Prime + 4+ stars (when rated) + $60 or less, up to 50, in
+// Amazon's own "Newest Arrivals" order. Every search runs the pipeline fresh (no server-side
+// caching); the last results are persisted in localStorage so a page refresh doesn't lose them.
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(() => loadStored()?.open ?? defaultOpen);
   const [category, setCategory] = useState(() => loadStored()?.category || CATEGORIES[0]);
@@ -48,8 +48,8 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
   const [deals, setDeals] = useState(() => loadStored()?.deals ?? null);
   const [searchedAt, setSearchedAt] = useState(() => loadStored()?.searchedAt || null);
   const [trackingAsin, setTrackingAsin] = useState(null);
-  // Per-ASIN, on-demand — a category search can return up to 25 candidates, and eagerly
-  // checking all of them would burn 25 ScraperAPI credits per search. { [asin]: 'loading' | data | 'error' }
+  // Per-ASIN, on-demand — a category search can return up to 50 candidates, and eagerly
+  // checking all of them would burn 50 ScraperAPI credits per search. { [asin]: 'loading' | data | 'error' }
   const [fulfillment, setFulfillment] = useState({});
   const [checkingAll, setCheckingAll] = useState(false);
   const [checkAllProgress, setCheckAllProgress] = useState(null); // { done, total }
@@ -107,7 +107,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
     setNote('');
     setDeals(null);
     try {
-      const { data } = await axios.get(`${API}/api/tracker/best-sellers-by-category`, { params: { category } });
+      const { data } = await axios.get(`${API}/api/tracker/new-releases-by-category`, { params: { category } });
       setDeals(data.deals || []);
       setNote(data.note || '');
       setSearchedAt(Date.now());
@@ -136,7 +136,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amazon text-white text-lg shadow-soft flex-shrink-0">🏷️</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-slate-800">Find new products</p>
-          <p className="text-xs text-slate-400">Best sellers by category — no variants</p>
+          <p className="text-xs text-slate-400">New releases by category — no variants</p>
         </div>
         <span className={`text-slate-300 text-sm flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
@@ -196,7 +196,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
 
           {deals && (
             deals.length === 0 && !note ? (
-              <p className="text-sm text-slate-400 mt-4 px-1">No single-listing best sellers cleared the filters this time — try again later.</p>
+              <p className="text-sm text-slate-400 mt-4 px-1">No single-listing new releases cleared the filters this time — try again later.</p>
             ) : visibleDeals.length === 0 ? (
               <p className="text-sm text-slate-400 mt-4 px-1">All {deals.length} results are Amazon-fulfilled — nothing left once hidden. Try another category, or uncheck "Hide Amazon-fulfilled".</p>
             ) : (
