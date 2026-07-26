@@ -35,10 +35,10 @@ function loadStored() {
   }
 }
 
-// Pick a category, get back newest-released, single-listing (no color/size/pack-size variants)
-// products in it — hard-filtered to Prime + 4+ stars (when rated) + $60 or less, up to 50, in
-// Amazon's own "Newest Arrivals" order. Every search runs the pipeline fresh (no server-side
-// caching); the last results are persisted in localStorage so a page refresh doesn't lose them.
+// Pick a category, get back newest-released products in it — hard-filtered to Prime + 4+ stars
+// (when rated) + $60 or less, up to 50, in Amazon's own "Newest Arrivals" order. Every search
+// runs the pipeline fresh (no server-side caching); the last results are persisted in
+// localStorage so a page refresh doesn't lose them.
 export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = false, actionLabel = 'Track', workingLabel = 'Adding…' }) {
   const [open, setOpen] = useState(() => loadStored()?.open ?? defaultOpen);
   const [category, setCategory] = useState(() => loadStored()?.category || CATEGORIES[0]);
@@ -162,7 +162,6 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-200 rounded-full px-2 py-0.5">Prime only</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2 py-0.5">★ 4.0+</span>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded-full px-2 py-0.5">$60 or less</span>
-            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5">No variants</span>
             {searchedAt && !searching && (
               <span className="text-[10px] text-slate-300 ml-auto">Searched {new Date(searchedAt).toLocaleString()}</span>
             )}
@@ -196,7 +195,7 @@ export default function DealSearchPanel({ onTrack, trackedAsins, defaultOpen = f
 
           {deals && (
             deals.length === 0 && !note ? (
-              <p className="text-sm text-slate-400 mt-4 px-1">No single-listing new releases cleared the filters this time — try again later.</p>
+              <p className="text-sm text-slate-400 mt-4 px-1">No new releases cleared the filters this time — try again later.</p>
             ) : visibleDeals.length === 0 ? (
               <p className="text-sm text-slate-400 mt-4 px-1">All {deals.length} results are Amazon-fulfilled — nothing left once hidden. Try another category, or uncheck "Hide Amazon-fulfilled".</p>
             ) : (
