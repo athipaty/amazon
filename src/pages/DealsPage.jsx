@@ -1,4 +1,3 @@
-import DealSearchPanel from '../components/DealSearchPanel';
 import AddProductPanel from '../components/AddProductPanel';
 import ProductListDetail from '../components/ProductListDetail';
 
@@ -29,8 +28,6 @@ export default function DealsPage({ tracker }) {
         relatedCheck={relatedCheck} setRelatedCheck={setRelatedCheck}
         onTrackRelated={handleTrackDeal}
       />
-
-      <DealSearchPanel onTrack={handleTrackDeal} trackedAsins={trackedAsins} />
 
       <div className="mt-5">
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Not yet listed on eBay</h2>
