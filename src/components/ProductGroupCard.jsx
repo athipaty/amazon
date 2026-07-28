@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
-import { detectVariantDimension, detectVariantDimensions, variantSpecifics, AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
+import { detectVariantDimensions, variantSpecifics, AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 import { useAutoListState, setAutoListState } from '../utils/autoListStore';
 import AmazonPrimeBadge from './AmazonPrimeBadge';
 import VariantSwatchGrid from './VariantSwatchGrid';
@@ -535,10 +535,11 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
         } catch { variantCloudinaryImages.push([]); }
       }
 
-      const variantDimension = detectVariantDimension(variants);
+      const dimensions = detectVariantDimensions(variants);
 
       const variantPayload = variants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
+        specifics: variantSpecifics(v, dimensions),
         images: variantCloudinaryImages[i] || [],
         image: variantCloudinaryImages[i]?.[0] || null,
       })).filter(v => v.images.length);
@@ -546,7 +547,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
       const res = await fetch(`${API}/api/ebay/listing/variation-photos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: groupEbayId, variantDimension, variants: variantPayload }),
+        body: JSON.stringify({ listingId: groupEbayId, variantDimension: dimensions[0], dimensions, variants: variantPayload }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
