@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
-import { detectVariantDimension, AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
+import { detectVariantDimension, detectVariantDimensions, variantSpecifics, AUTO_LIST_STEP_LABELS } from '../utils/productGroupHelpers';
 import { useAutoListState, setAutoListState } from '../utils/autoListStore';
 import AmazonPrimeBadge from './AmazonPrimeBadge';
 import VariantSwatchGrid from './VariantSwatchGrid';
@@ -352,9 +352,10 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
       } catch { /* fall back to generic placeholder */ }
 
       setAutoListStep('listing');
-      const variantDimension = detectVariantDimension(freshVariants);
+      const dimensions = detectVariantDimensions(freshVariants);
       const variantPayload = freshVariants.map((v, i) => ({
         label: v.variant || `Variant ${i + 1}`,
+        specifics: variantSpecifics(v, dimensions),
         price: (parseFloat(pricesOverride[v._id]) || calcEbayPrice(v.current)).toFixed(2),
         quantity: 1,
         images: variantCloudinaryImages[i] || [],
@@ -376,7 +377,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           upc: active.upc,
           specs: active.specs || {},
           variants: variantPayload,
-          variantDimension,
+          dimensions,
           ...(listingDescription ? { description: listingDescription } : {}),
         }),
       });
@@ -390,7 +391,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           const vpRes = await fetch(`${API}/api/ebay/listing/variation-photos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ listingId: listData.listingId, variantDimension, variants: variantPayload }),
+            body: JSON.stringify({ listingId: listData.listingId, variantDimension: dimensions[0], variants: variantPayload }),
           });
           if (!vpRes.ok) setAutoListWarning('photos-failed');
         } catch { setAutoListWarning('photos-failed'); }
