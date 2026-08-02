@@ -13,6 +13,20 @@ const STATUS_STYLES = {
 
 const CARRIERS = ['USPS', 'UPS', 'FedEx', 'DHL', 'Other'];
 
+// Guesses the carrier from tracking-number format so the dropdown doesn't sit on a stale/
+// wrong default — eBay only counts a shipment as "scanned" if the carrier code we push
+// matches the carrier that's actually scanning the package, and Amazon dropship packages
+// move through whichever last-mile carrier Amazon picked, not whatever we last selected.
+function detectCarrier(tracking) {
+  const t = tracking.trim().toUpperCase().replace(/\s+/g, '');
+  if (!t) return null;
+  if (/^1Z[0-9A-Z]{16}$/.test(t)) return 'UPS';
+  if (/^(94|93|92|95|82)\d{20}$/.test(t) || /^[A-Z]{2}\d{9}US$/.test(t)) return 'USPS';
+  if (/^\d{12}$/.test(t) || /^\d{15}$/.test(t) || /^\d{20}$/.test(t)) return 'FedEx';
+  if (/^\d{10,11}$/.test(t)) return 'DHL';
+  return null;
+}
+
 // order.status walks this sequence — used to figure out which of the 4 action sections
 // below is the current one-to-do, so it can be visually pulled forward while finished
 // sections mute down to a quick recap and future ones stay dim previews.
@@ -353,7 +367,12 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
               className="text-xs px-2.5 py-1.5 rounded-full ring-1 ring-inset ring-slate-200 focus:outline-none">
               {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <input value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)}
+            <input value={trackingNumber} onChange={e => {
+                const val = e.target.value;
+                setTrackingNumber(val);
+                const guess = detectCarrier(val);
+                if (guess) setCarrier(guess);
+              }}
               placeholder="Tracking number"
               className="text-xs px-3 py-1.5 rounded-full ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-ebay flex-1 min-w-[160px]" />
             <button onClick={submitTracking} disabled={savingTracking}
@@ -369,6 +388,14 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
           </button>
         )}
         {trackingError && <span className="text-[11px] text-red-500">⚠ {trackingError}</span>}
+        {editingTracking && /^TBA/i.test(trackingNumber.trim()) && (
+          <span className="text-[11px] text-amber-600 basis-full">
+            ⚠ Looks like an Amazon Logistics number (TBA…) — eBay can't validate a carrier scan for
+            these under any of the options above. Check the Amazon tracking page for an underlying
+            carrier (USPS/UPS/FedEx) number if one's listed, or this shipment risks counting as
+            "no scan" against your Top Rated status.
+          </span>
+        )}
       </div>
       </StageBlock>
 
