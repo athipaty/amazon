@@ -29,7 +29,6 @@ export default function useProductTracker() {
   const [ebaySold, setEbaySold] = useState({}); // listingId → quantity sold
   const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
-  const [relatedCheck, setRelatedCheck] = useState(null); // { asin, loading, deals, error }
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
@@ -144,23 +143,6 @@ export default function useProductTracker() {
 
   const trackedAsins = new Set(products.map(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i) || [])[1]).filter(Boolean));
 
-  // Checks the "Products related to this item" carousel on the Amazon page you just pasted
-  // (Amazon's Choice + under $10 only — same filter as the Deals tab's related-items search,
-  // but a single ASIN instead of 5, so it's cheap enough to run inline right after pasting a
-  // URL). Fire-and-forget from the caller's perspective — never blocks or fails the actual
-  // track/preview flow, just populates a separate panel once it resolves.
-  async function checkRelatedForUrl(rawUrl) {
-    const asin = rawUrl.match(/\/dp\/([A-Z0-9]{10})/i)?.[1];
-    if (!asin) return;
-    setRelatedCheck({ asin, loading: true, deals: null, error: '' });
-    try {
-      const { data } = await axios.get(`${API}/api/tracker/related-for/${asin}`);
-      setRelatedCheck({ asin, loading: false, deals: data.deals || [], error: '' });
-    } catch (err) {
-      setRelatedCheck({ asin, loading: false, deals: null, error: err.response?.data?.error || err.message || 'Check failed.' });
-    }
-  }
-
   async function handleAdd(e, urlOverride) {
     e.preventDefault();
     const trimmed = (urlOverride ?? url).trim();
@@ -171,7 +153,6 @@ export default function useProductTracker() {
     }
     setAdding(true);
     setAddError('');
-    checkRelatedForUrl(trimmed);
     try {
       const { data } = await axios.post(`${API}/api/tracker/preview`, { url: trimmed });
       if (data.variants && data.variants.length > 1) {
@@ -194,30 +175,6 @@ export default function useProductTracker() {
       setAddError(err.response?.data?.error || err.message || 'Failed to reach the server.');
     } finally {
       setAdding(false);
-    }
-  }
-
-  async function handleTrackDeal(url) {
-    try {
-      const { data } = await axios.post(`${API}/api/tracker/preview`, { url });
-      if (data.variants && data.variants.length > 1) {
-        const existingGroupId = data.variants
-          .map(v => products.find(p => (p.url.match(/\/dp\/([A-Z0-9]{10})/i)||[])[1] === v.asin)?.groupId)
-          .find(Boolean);
-        setPreview(data);
-        setPreviewGroupId(existingGroupId || data.groupId || null);
-        setSelectedAsins(new Set(data.variants.filter(v => !trackedAsins.has(v.asin)).map(v => v.asin)));
-      } else {
-        const { data: product } = await axios.post(`${API}/api/tracker`, { url, fulfillment: data.fulfillment });
-        setProducts(prev => [product, ...prev]);
-        setStatusMsg(product.isPrime ? '✓ Tracked — Prime eligible' : '✓ Tracked — No Prime');
-        setTimeout(() => setStatusMsg(''), 4000);
-      }
-    } catch (err) {
-      if (err.response?.status !== 409) {
-        setStatusMsg(err.response?.data?.error || 'Failed to track item.');
-        setTimeout(() => setStatusMsg(''), 4000);
-      }
     }
   }
 
@@ -377,8 +334,7 @@ export default function useProductTracker() {
     preview, setPreview, selectedAsins, setSelectedAsins, addingVariants, addProgress,
     previewGroupId, ebayConnected, ebayTokenDaysLeft, ebayFailedIds, priceMismatchIds,
     ebayViews, ebayWatchers, ebaySold, blankPhotoIds, sellingLimits,
-    relatedCheck, setRelatedCheck,
-    previewRef, loadProducts, handleAdd, handleTrackDeal,
+    previewRef, loadProducts, handleAdd,
     handleTrackSelected, toggleVariant, handleDeleteGroup, handleVariantDeleted, handleUpdate,
     handlePriceMismatch, handleCheckOne,
     itemStatus, hasIssue, renderItems, trackedAsins,

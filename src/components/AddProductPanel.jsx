@@ -12,28 +12,7 @@ export default function AddProductPanel({
   selectedAsins, toggleVariant, setSelectedAsins,
   addingVariants, addProgress,
   setPreview, trackedAsins,
-  relatedCheck, setRelatedCheck, onTrackRelated,
 }) {
-  const [relatedTrackingAsin, setRelatedTrackingAsin] = useState(null);
-  const [copiedAsin, setCopiedAsin] = useState(null);
-
-  async function handleTrackRelatedItem(deal) {
-    setRelatedTrackingAsin(deal.asin);
-    try {
-      await onTrackRelated(deal.url);
-    } finally {
-      setRelatedTrackingAsin(null);
-    }
-  }
-
-  async function handleCopyRelatedUrl(deal) {
-    try {
-      await navigator.clipboard.writeText(deal.url);
-      setCopiedAsin(deal.asin);
-      setTimeout(() => setCopiedAsin(null), 1500);
-    } catch { /* clipboard unavailable — no-op */ }
-  }
-
   // Extract unique dimensions (e.g. Color, Size) from variant attributes
   const dimensions = useMemo(() => {
     if (!preview?.variants?.length) return [];
@@ -131,98 +110,6 @@ export default function AddProductPanel({
         </form>
         {addError && <p className="text-red-500 text-sm mt-2 px-1">{addError}</p>}
       </div>
-
-      {relatedCheck && (
-        <div className="mb-5 bg-white border border-slate-100 rounded-2xl p-4 shadow-soft animate-slide-up">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-              Related items on this product's page
-              <span className="ml-2 font-normal normal-case text-slate-300">under $30</span>
-            </p>
-            <button
-              onClick={() => setRelatedCheck(null)}
-              className="text-slate-300 hover:text-slate-500 text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors flex-shrink-0"
-            >
-              ×
-            </button>
-          </div>
-
-          {relatedCheck.loading && (
-            <p className="text-sm text-slate-400 mt-2">Checking… (live page fetch, can take up to 30s)</p>
-          )}
-          {relatedCheck.error && <p className="text-sm text-red-500 mt-2">{relatedCheck.error}</p>}
-          {relatedCheck.deals && (
-            relatedCheck.deals.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-2">No under-$30 matches in that carousel.</p>
-            ) : (
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-100">
-                      <th className="text-left pb-1.5 pr-2">Item</th>
-                      <th className="text-right pb-1.5 px-2">Price</th>
-                      <th className="text-right pb-1.5 px-2">Rating</th>
-                      <th className="text-left pb-1.5 px-2">Qty options</th>
-                      <th className="pb-1.5 pl-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {relatedCheck.deals.map(deal => {
-                      const alreadyTracked = trackedAsins?.has(deal.asin);
-                      return (
-                      <tr key={deal.asin} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                        <td className="py-2 pr-2">
-                          <a href={deal.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0">
-                            {deal.image && (
-                              <FadeImg src={deal.image} alt={deal.title} className="w-10 h-10 object-contain rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0" />
-                            )}
-                            <span className="text-xs text-slate-700 font-medium leading-snug line-clamp-2 min-w-0">{deal.title}</span>
-                            {deal.hasAmazonChoice && (
-                              <span className="flex-shrink-0 inline-flex items-center bg-purple-50 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">Choice</span>
-                            )}
-                          </a>
-                        </td>
-                        <td className="py-2 px-2 text-right font-bold text-slate-900 whitespace-nowrap">{deal.currency}{deal.price.toLocaleString()}</td>
-                        <td className="py-2 px-2 text-right whitespace-nowrap">
-                          {deal.rating ? (
-                            <span className="text-slate-500">★ {deal.rating} <span className="text-slate-300">({deal.reviewCount?.toLocaleString()})</span></span>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
-                        <td className="py-2 px-2 whitespace-nowrap">
-                          {deal.qtyVariants?.length > 0 ? (
-                            <span className="inline-flex items-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{deal.qtyVariants.join(', ')} pcs</span>
-                          ) : (
-                            <span className="text-slate-300 text-xs">single</span>
-                          )}
-                        </td>
-                        <td className="py-2 pl-2">
-                          <div className="flex items-center gap-1.5 justify-end">
-                            <button
-                              onClick={() => handleCopyRelatedUrl(deal)}
-                              className="px-2.5 py-1.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all whitespace-nowrap"
-                            >
-                              {copiedAsin === deal.asin ? '✓ Copied' : '🔗 Copy URL'}
-                            </button>
-                            <button
-                              onClick={() => handleTrackRelatedItem(deal)}
-                              disabled={alreadyTracked || relatedTrackingAsin === deal.asin}
-                              className="px-2.5 py-1.5 bg-gradient-to-b from-amber-400 to-amazon text-slate-900 font-bold text-[11px] rounded-lg hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
-                            >
-                              {alreadyTracked ? '✓ Tracked' : relatedTrackingAsin === deal.asin ? 'Adding…' : 'Track Price'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );})}
-                  </tbody>
-                </table>
-              </div>
-            )
-          )}
-        </div>
-      )}
 
       {preview && (
         <div ref={previewRef} className="mb-5 bg-white border border-amber-200 rounded-2xl p-5 shadow-card animate-slide-up">

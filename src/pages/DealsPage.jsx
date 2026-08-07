@@ -5,8 +5,7 @@ export default function DealsPage({ tracker }) {
   const {
     API, url, setUrl, adding, addError, preview, setPreview, previewRef,
     selectedAsins, setSelectedAsins, addingVariants, addProgress,
-    handleAdd, handleTrackDeal, handleTrackSelected, toggleVariant, trackedAsins,
-    relatedCheck, setRelatedCheck,
+    handleAdd, handleTrackSelected, toggleVariant, trackedAsins,
     ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds, itemStatus, ebayFailedIds,
     handleCheckOne, handleDeleteGroup, handleUpdate, handleVariantDeleted, handlePriceMismatch,
     renderItems,
@@ -25,8 +24,6 @@ export default function DealsPage({ tracker }) {
         addingVariants={addingVariants} addProgress={addProgress}
         setPreview={setPreview}
         trackedAsins={trackedAsins}
-        relatedCheck={relatedCheck} setRelatedCheck={setRelatedCheck}
-        onTrackRelated={handleTrackDeal}
       />
 
       <div className="mt-5">
