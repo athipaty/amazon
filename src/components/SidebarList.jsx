@@ -20,12 +20,32 @@ function fmtCompact(n) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
-// Bar length as % of the largest value currently in the list — so length is directly
-// comparable row-to-row, the point of a meter. Math.max floor keeps small-but-real values
-// visible instead of shrinking to an invisible sliver; a true 0/null stays at 0 width.
+// Bar length as % of the largest value currently in its bucket — so length is directly
+// comparable row-to-row within that bucket, the point of a meter. Math.max floor keeps
+// small-but-real values visible instead of shrinking to an invisible sliver; a true 0/null
+// stays at 0 width.
 function barPct(value, max) {
   if (!value || !max) return 0;
   return Math.max(4, Math.min(100, (value / max) * 100));
+}
+
+// Splits a list into 10-day-listed bands (0–9, 10–19, ...; never-listed items get their own
+// band) so each band's bar meters scale to THAT band's own max instead of the whole list's —
+// a handful of long-running listings were flattening every shorter one's bar to a sliver.
+function bucketByDays(items) {
+  const buckets = new Map(); // bucketStart (or null) -> items[]
+  for (const item of items) {
+    const days = getDaysListed(item);
+    const start = days == null ? null : Math.floor(days / 10) * 10;
+    if (!buckets.has(start)) buckets.set(start, []);
+    buckets.get(start).push(item);
+  }
+  return [...buckets.entries()]
+    .sort(([a], [b]) => (b ?? -1) - (a ?? -1)) // longest band first; never-listed last
+    .map(([start, bucketItems]) => ({
+      label: start == null ? 'Not listed' : `${start}–${start + 9} days`,
+      items: bucketItems,
+    }));
 }
 
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
@@ -36,14 +56,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
   // Longest-listed first; never-listed items (null) sort last.
   ).slice().sort((a, b) => (getDaysListed(b) ?? -1) - (getDaysListed(a) ?? -1));
 
-  // Scale both meters to the max within the currently visible (filtered) set, so the bars
-  // stay meaningfully comparable even after a search narrows the list.
-  const maxDays = Math.max(1, ...filtered.map(i => getDaysListed(i) || 0));
-  const maxViews = Math.max(1, ...filtered.map(i => {
-    const id = getEbayId(i);
-    return id != null ? (ebayViews[String(id)] || 0) : 0;
-  }));
-
   // When `hasIssue` is provided, split into two labeled sections so problems are
   // easy to spot instead of buried among everything that's fine.
   const groups = hasIssue
@@ -53,7 +65,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       ].filter(g => g.items.length)
     : [{ label: null, items: filtered }];
 
-  function renderItem(item) {
+  function renderItem(item, maxDays, maxViews) {
     const key = getItemKey(item);
     const image = getItemImage(item);
     const title = getItemTitle(item);
@@ -87,7 +99,8 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
         </div>
 
         {/* Two per-row meters — days listed (blue) and eBay views (teal) — each scaled to
-            the max in the currently visible list so lengths are directly comparable. */}
+            the max within this item's 10-day bucket (see bucketByDays) so lengths are
+            directly comparable to its actual neighbors, not flattened by outliers. */}
         <div className="flex flex-col gap-1 w-28 flex-shrink-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[9px] flex-shrink-0" aria-hidden="true">📅</span>
@@ -167,9 +180,23 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                 {group.label} ({group.items.length})
               </p>
             )}
-            <div className="flex flex-col divide-y divide-slate-50">
-              {group.items.map(renderItem)}
-            </div>
+            {bucketByDays(group.items).map((bucket, bi) => {
+              const maxDays = Math.max(1, ...bucket.items.map(i => getDaysListed(i) || 0));
+              const maxViews = Math.max(1, ...bucket.items.map(i => {
+                const id = getEbayId(i);
+                return id != null ? (ebayViews[String(id)] || 0) : 0;
+              }));
+              return (
+                <div key={bucket.label} className={bi > 0 ? 'mt-2' : ''}>
+                  <p className="text-[9px] font-semibold text-slate-400 px-0.5 mb-0.5">
+                    {bucket.label} ({bucket.items.length})
+                  </p>
+                  <div className="flex flex-col divide-y divide-slate-50">
+                    {bucket.items.map(item => renderItem(item, maxDays, maxViews))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
