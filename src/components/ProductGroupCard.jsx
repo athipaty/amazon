@@ -671,15 +671,28 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
   const someIssue = variants.some(v => v.status && v.status !== 'active');
   const groupStatus = allUnavailable ? 'unavailable' : allOOS ? 'out_of_stock' : someIssue ? 'partial' : 'active';
 
+  // Earliest listedAt across all variants — a variant added later shouldn't make the group
+  // look "younger", and the automated relist-unsold cron never touches listedAt (only manual
+  // re-linking does), so this stays stable across relists.
+  const listedTimes = variants.map(v => v.listedAt).filter(Boolean).map(d => new Date(d).getTime());
+  const daysListed = listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
+
   return (
     <div className={`bg-white rounded-2xl border border-slate-200/70 transition-shadow flex flex-col p-4 md:p-5 ${detailMode ? 'gap-5 shadow-card' : 'gap-3 hover:shadow-soft'}`}>
 
       {/* ── Group header ── */}
       <div className={`flex items-start gap-3 min-w-0 ${detailMode ? 'gap-4 md:gap-5' : ''}`}>
-        {active.image
-          ? <FadeImg src={active.image} alt={active.title} className={`object-contain rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
-          : <div className={`rounded-2xl bg-slate-100 flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`} />
-        }
+        <div className={`relative flex-shrink-0 ${detailMode ? 'w-24 h-24 md:w-32 md:h-32' : 'w-12 h-12'}`}>
+          {active.image
+            ? <FadeImg src={active.image} alt={active.title} className="w-full h-full object-contain rounded-2xl bg-slate-50 border border-slate-100" />
+            : <div className="w-full h-full rounded-2xl bg-slate-100" />
+          }
+          {daysListed != null && (
+            <span className="absolute bottom-0.5 right-0.5 leading-none font-bold text-white bg-slate-900/75 rounded px-1 py-0.5 text-[8px]">
+              {daysListed}d
+            </span>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <p className={`font-bold text-slate-800 ${detailMode ? 'text-[15px] md:text-base leading-snug line-clamp-3 lg:line-clamp-none' : 'text-sm truncate'}`} title={active.title}>{active.title}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -965,22 +978,6 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
             onConfirm={performVariantDelete}
             onCancel={() => { setConfirmingVariantId(null); setVariantDeleteError(null); }}
           />
-        );
-      })()}
-
-      {(() => {
-        // Earliest listedAt across all variants — a variant added later shouldn't make the
-        // group look "younger", and the automated relist-unsold cron never touches listedAt
-        // (only manual re-linking does), so this stays stable across relists.
-        const listedTimes = variants.map(v => v.listedAt).filter(Boolean).map(d => new Date(d).getTime());
-        if (!listedTimes.length) return null;
-        const days = Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000));
-        return (
-          <div className="flex justify-end -mt-1">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-200">
-              📅 {days}d listed
-            </span>
-          </div>
         );
       })()}
 
