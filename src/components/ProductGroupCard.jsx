@@ -75,7 +75,17 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
   const groupKey = variants[0]?.groupId ? `group-${variants[0].groupId}` : `single-${variants[0]?._id}`;
   const { autoListing, autoListStep, autoListError, autoListWarning, autoListSuccess } = useAutoListState(groupKey);
   const setAutoListing = (v) => setAutoListState(groupKey, { autoListing: v });
-  const setAutoListStep = (v) => setAutoListState(groupKey, { autoListStep: v });
+  // Also persists the step to the backend (fire-and-forget) so it survives a page refresh —
+  // see the autoListStep/autoListStepAt comment on the Product model. Passing '' (the finally
+  // block's clear-on-done value) persists as null, same as any other falsy step.
+  const setAutoListStep = (v) => {
+    setAutoListState(groupKey, { autoListStep: v });
+    fetch(`${API}/api/tracker/auto-list-step`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: variants.map(x => x._id), step: v || null }),
+    }).catch(() => {});
+  };
   const setAutoListError = (v) => setAutoListState(groupKey, { autoListError: v });
   const setAutoListWarning = (v) => setAutoListState(groupKey, { autoListWarning: v });
   const setAutoListSuccess = (v) => setAutoListState(groupKey, { autoListSuccess: v });
@@ -689,7 +699,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
           }
           {daysListed != null && (
             <span className="absolute -bottom-1.5 -right-1.5 leading-none font-bold text-white bg-slate-900/85 rounded px-1 py-0.5 text-[8px] shadow-sm ring-2 ring-white">
-              {daysListed}d
+              {daysListed}
             </span>
           )}
         </div>
@@ -902,6 +912,26 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
       )}
 
 
+      {!autoListing && (() => {
+        // Backend-persisted step left over from a PREVIOUS page load that got refreshed/closed
+        // mid-auto-list (see autoListStep on the Product model) — the local in-memory progress
+        // store (autoListStore.js) has already reset by the time this component remounts, so
+        // without this the in-progress state would silently vanish with no trace.
+        const stepVariant = variants.find(v => v.autoListStep);
+        if (!stepVariant) return null;
+        const ageMs = Date.now() - new Date(stepVariant.autoListStepAt).getTime();
+        const stale = ageMs > 10 * 60 * 1000;
+        const label = AUTO_LIST_STEP_LABELS[stepVariant.autoListStep] || stepVariant.autoListStep;
+        return (
+          <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] ring-1 ring-inset ${stale ? 'bg-amber-50 ring-amber-200 text-amber-700' : 'bg-blue-50 ring-blue-200 text-blue-700'}`}>
+            <span>{stale ? '⚠️' : '🔄'}</span>
+            <span>
+              {stale ? 'Auto-list stalled' : 'Still under listing'} — last seen at "{label}"
+              {stale ? ' (probably interrupted by a refresh/close). Try Auto List again.' : '.'}
+            </span>
+          </div>
+        );
+      })()}
       {groupEbayId && (() => { const c = ambiguousVariantLabels(variants); return c ? (
         <div className="bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-inset ring-amber-200 text-[11px] text-amber-700">
           ⚠ Variant name conflict: <strong>"{c.subset}"</strong> is a substring of <strong>"{c.superset}"</strong> — eBay price lookup may return the wrong price. Rename one variant to avoid overlap.

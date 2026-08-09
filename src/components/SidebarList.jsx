@@ -1,11 +1,22 @@
 import { useState } from 'react';
 import FadeImg from './FadeImg';
 
+// Earliest listedAt across the group's variants (or the single product) — stays stable
+// across relists since the automated relist-unsold cron never touches listedAt. null if
+// never listed.
+function getDaysListed(item) {
+  const listedTimes = (item.type === 'group' ? item.variants : [item.product])
+    .map(v => v?.listedAt).filter(Boolean).map(d => new Date(d).getTime());
+  return listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
+}
+
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, ebaySold = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
-  const filtered = search.trim()
+  const filtered = (search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
-    : items;
+    : items
+  // Longest-listed first; never-listed items (null) sort last.
+  ).slice().sort((a, b) => (getDaysListed(b) ?? -1) - (getDaysListed(a) ?? -1));
 
   // When `hasIssue` is provided, split into two labeled sections so problems are
   // easy to spot instead of buried among everything that's fine.
@@ -25,11 +36,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       ? item.variants.find(v => v.ebayListingId)?.ebayListingId
       : item.product?.ebayListingId;
     const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
-    // Earliest listedAt across the group's variants (or the single product) — stays stable
-    // across relists since the automated relist-unsold cron never touches listedAt.
-    const listedTimes = (item.type === 'group' ? item.variants : [item.product])
-      .map(v => v?.listedAt).filter(Boolean).map(d => new Date(d).getTime());
-    const daysListed = listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
+    const daysListed = getDaysListed(item);
     return (
       <button
         key={key}
@@ -67,7 +74,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           })()}
           {daysListed != null && (
             <span className="absolute -bottom-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-slate-900/85 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
-              {daysListed}d
+              {daysListed}
             </span>
           )}
           {/* Blank eBay photo warning badge */}
