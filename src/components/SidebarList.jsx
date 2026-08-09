@@ -10,6 +10,24 @@ function getDaysListed(item) {
   return listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
 }
 
+function getEbayId(item) {
+  return item.type === 'group'
+    ? item.variants.find(v => v.ebayListingId)?.ebayListingId
+    : item.product?.ebayListingId;
+}
+
+function fmtCompact(n) {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
+// Bar length as % of the largest value currently in the list — so length is directly
+// comparable row-to-row, the point of a meter. Math.max floor keeps small-but-real values
+// visible instead of shrinking to an invisible sliver; a true 0/null stays at 0 width.
+function barPct(value, max) {
+  if (!value || !max) return 0;
+  return Math.max(4, Math.min(100, (value / max) * 100));
+}
+
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, ebaySold = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
   const filtered = (search.trim()
@@ -17,6 +35,14 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
     : items
   // Longest-listed first; never-listed items (null) sort last.
   ).slice().sort((a, b) => (getDaysListed(b) ?? -1) - (getDaysListed(a) ?? -1));
+
+  // Scale both meters to the max within the currently visible (filtered) set, so the bars
+  // stay meaningfully comparable even after a search narrows the list.
+  const maxDays = Math.max(1, ...filtered.map(i => getDaysListed(i) || 0));
+  const maxViews = Math.max(1, ...filtered.map(i => {
+    const id = getEbayId(i);
+    return id != null ? (ebayViews[String(id)] || 0) : 0;
+  }));
 
   // When `hasIssue` is provided, split into two labeled sections so problems are
   // easy to spot instead of buried among everything that's fine.
@@ -32,60 +58,59 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
     const image = getItemImage(item);
     const title = getItemTitle(item);
     const isSelected = selectedKey === key;
-    const ebayId = item.type === 'group'
-      ? item.variants.find(v => v.ebayListingId)?.ebayListingId
-      : item.product?.ebayListingId;
+    const ebayId = getEbayId(item);
     const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
+    const watchers = ebayId != null ? ebayWatchers[String(ebayId)] : undefined;
+    const sold = ebayId != null ? ebaySold[String(ebayId)] : undefined;
     const daysListed = getDaysListed(item);
+    const hasPhotoWarning = ebayId && blankPhotoIds.has(String(ebayId));
+
     return (
       <button
         key={key}
         onClick={() => onSelect(key)}
-        title={title}
-        className={`flex items-center justify-center p-1.5 rounded-xl transition-colors ${isSelected ? 'bg-blue-50/70 ring-2 ring-blue-500' : 'ring-1 ring-transparent hover:bg-slate-50'}`}
+        title={`${title} — ${daysListed != null ? `${daysListed}d listed` : 'not listed'}, ${views != null ? `${views} views` : 'no view data'}`}
+        className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-400' : 'hover:bg-slate-50'}`}
       >
-        <div className="relative flex-shrink-0">
+        <div className="relative flex-shrink-0 w-9 h-9">
           {image
-            ? <FadeImg src={image} alt="" className="w-16 h-16 object-contain rounded-xl bg-slate-50 border border-slate-100 opacity-60" />
-            : <div className="w-16 h-16 rounded-xl bg-slate-100 opacity-60" />
+            ? <FadeImg src={image} alt="" className="w-full h-full object-contain rounded-lg bg-slate-50 border border-slate-100" />
+            : <div className="w-full h-full rounded-lg bg-slate-100" />
           }
-          {views != null && (
-            <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-slate-900 [text-shadow:0_1px_2px_rgba(255,255,255,0.9),0_0_4px_rgba(255,255,255,0.7)] pointer-events-none">
-              {views >= 1000 ? `${(views / 1000).toFixed(1)}k` : views}
+          {hasPhotoWarning && (
+            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 flex items-center justify-center bg-orange-500 text-white text-[8px] rounded-full ring-2 ring-white" title="No photos on eBay listing">
+              📷
             </span>
           )}
-          {(() => {
-            const sold = ebayId != null ? ebaySold[String(ebayId)] : undefined;
-            if (!sold) return null;
-            return (
-              <span className="absolute -top-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-emerald-600 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
-                {sold >= 1000 ? `${(sold / 1000).toFixed(1)}k` : sold}
-              </span>
-            );
-          })()}
-          {(() => {
-            const watchers = ebayId != null ? ebayWatchers[String(ebayId)] : undefined;
-            if (!watchers) return null;
-            return (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-amber-500 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
-                {watchers >= 1000 ? `${(watchers / 1000).toFixed(1)}k` : watchers}
-              </span>
-            );
-          })()}
-          {daysListed != null && (
-            <span className="absolute -bottom-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-slate-900/85 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
-              {daysListed}
-            </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-slate-700 truncate">{title}</p>
+          {(sold != null || watchers != null) && (
+            <div className="flex items-center gap-2 mt-0.5">
+              {sold != null && <span className="text-[9px] font-bold text-emerald-600">{fmtCompact(sold)} sold</span>}
+              {watchers != null && <span className="text-[9px] font-bold text-amber-600">{fmtCompact(watchers)} watching</span>}
+            </div>
           )}
-          {/* Blank eBay photo warning badge */}
-          {(() => {
-            if (!ebayId || !blankPhotoIds.has(String(ebayId))) return null;
-            return (
-              <span className="absolute -bottom-1.5 -right-1.5 w-[17px] h-[17px] flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full leading-none shadow-sm ring-2 ring-white" title="No photos on eBay listing">
-                📷
-              </span>
-            );
-          })()}
+        </div>
+
+        {/* Two per-row meters — days listed (blue) and eBay views (teal) — each scaled to
+            the max in the currently visible list so lengths are directly comparable. */}
+        <div className="flex flex-col gap-1 w-28 flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] flex-shrink-0" aria-hidden="true">📅</span>
+            <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
+              <div className="h-full rounded-full bg-blue-500" style={{ width: `${barPct(daysListed, maxDays)}%` }} />
+            </div>
+            <span className="text-[9px] text-slate-400 tabular-nums w-6 text-right flex-shrink-0">{daysListed ?? '–'}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] flex-shrink-0" aria-hidden="true">👁</span>
+            <div className="flex-1 h-1.5 rounded-full bg-teal-100 overflow-hidden">
+              <div className="h-full rounded-full bg-teal-600" style={{ width: `${barPct(views, maxViews)}%` }} />
+            </div>
+            <span className="text-[9px] text-slate-400 tabular-nums w-6 text-right flex-shrink-0">{views != null ? fmtCompact(views) : '–'}</span>
+          </div>
         </div>
       </button>
     );
@@ -138,7 +163,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           />
         </div>
       </div>
-      {/* Items — responsive photo grid: more columns as the screen gets wider */}
+      {/* Items — one product per row, sorted by days listed (longest first) */}
       <div className={mobile ? "p-2" : "overflow-y-auto flex-1 scrollbar-thin p-2"}>
         {filtered.length === 0 && (
           <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
@@ -150,7 +175,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
                 {group.label} ({group.items.length})
               </p>
             )}
-            <div className={mobile ? "grid grid-cols-4 gap-2" : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"}>
+            <div className="flex flex-col divide-y divide-slate-50">
               {group.items.map(renderItem)}
             </div>
           </div>
