@@ -688,7 +688,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
             : <div className="w-full h-full rounded-2xl bg-slate-100" />
           }
           {daysListed != null && (
-            <span className="absolute bottom-0.5 right-0.5 leading-none font-bold text-white bg-slate-900/75 rounded px-1 py-0.5 text-[8px]">
+            <span className="absolute -bottom-1.5 -right-1.5 leading-none font-bold text-white bg-slate-900/85 rounded px-1 py-0.5 text-[8px] shadow-sm ring-2 ring-white">
               {daysListed}d
             </span>
           )}

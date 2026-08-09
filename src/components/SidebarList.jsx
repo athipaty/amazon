@@ -25,6 +25,11 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       ? item.variants.find(v => v.ebayListingId)?.ebayListingId
       : item.product?.ebayListingId;
     const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
+    // Earliest listedAt across the group's variants (or the single product) — stays stable
+    // across relists since the automated relist-unsold cron never touches listedAt.
+    const listedTimes = (item.type === 'group' ? item.variants : [item.product])
+      .map(v => v?.listedAt).filter(Boolean).map(d => new Date(d).getTime());
+    const daysListed = listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
     return (
       <button
         key={key}
@@ -60,6 +65,11 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
               </span>
             );
           })()}
+          {daysListed != null && (
+            <span className="absolute -bottom-1.5 -left-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-slate-900/85 text-white text-[9px] font-bold rounded-full px-1 leading-none shadow-sm ring-2 ring-white">
+              {daysListed}d
+            </span>
+          )}
           {/* Blank eBay photo warning badge */}
           {(() => {
             if (!ebayId || !blankPhotoIds.has(String(ebayId))) return null;
