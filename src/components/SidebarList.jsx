@@ -28,7 +28,7 @@ function barPct(value, max) {
   return Math.max(4, Math.min(100, (value / max) * 100));
 }
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, ebaySold = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
   const filtered = (search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -60,8 +60,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
     const isSelected = selectedKey === key;
     const ebayId = getEbayId(item);
     const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
-    const watchers = ebayId != null ? ebayWatchers[String(ebayId)] : undefined;
-    const sold = ebayId != null ? ebaySold[String(ebayId)] : undefined;
     const daysListed = getDaysListed(item);
     const hasPhotoWarning = ebayId && blankPhotoIds.has(String(ebayId));
 
@@ -86,12 +84,6 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
 
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-slate-700 truncate">{title}</p>
-          {(sold != null || watchers != null) && (
-            <div className="flex items-center gap-2 mt-0.5">
-              {sold != null && <span className="text-[9px] font-bold text-emerald-600">{fmtCompact(sold)} sold</span>}
-              {watchers != null && <span className="text-[9px] font-bold text-amber-600">{fmtCompact(watchers)} watching</span>}
-            </div>
-          )}
         </div>
 
         {/* Two per-row meters — days listed (blue) and eBay views (teal) — each scaled to
