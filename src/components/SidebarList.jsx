@@ -104,24 +104,23 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           )}
         </div>
 
-        {/* Two per-row meters — days listed (blue) and eBay views (teal) — each scaled to
-            the max within this item's 10-day bucket (see bucketByDays) so lengths are
-            directly comparable to its actual neighbors, not flattened by outliers. */}
-        <div className="flex flex-col gap-1 w-28 flex-shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] flex-shrink-0" aria-hidden="true">📅</span>
-            <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
-              <div className="h-full rounded-full bg-blue-500" style={{ width: `${barPct(daysListed, maxDays)}%` }} />
+        {/* One combined meter — left half days listed (blue), right half eBay views (teal),
+            each scaled to the max within this item's 10-day bucket (see bucketByDays) so
+            lengths stay comparable to its actual neighbors, not flattened by outliers. */}
+        <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
+          <span className="text-[9px] flex-shrink-0" aria-hidden="true">📅👁</span>
+          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
+            <div className="w-1/2 h-full bg-blue-100 flex justify-start">
+              <div className="h-full bg-blue-500" style={{ width: `${barPct(daysListed, maxDays)}%` }} />
             </div>
-            <span className="text-[9px] text-slate-400 tabular-nums w-6 text-right flex-shrink-0">{daysListed ?? '–'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] flex-shrink-0" aria-hidden="true">👁</span>
-            <div className="flex-1 h-1.5 rounded-full bg-teal-100 overflow-hidden">
-              <div className="h-full rounded-full bg-teal-600" style={{ width: `${barPct(views, maxViews)}%` }} />
+            <div className="w-px h-full bg-white flex-shrink-0" />
+            <div className="flex-1 h-full bg-teal-100 flex justify-start">
+              <div className="h-full bg-teal-600" style={{ width: `${barPct(views, maxViews)}%` }} />
             </div>
-            <span className="text-[9px] text-slate-400 tabular-nums w-6 text-right flex-shrink-0">{views != null ? fmtCompact(views) : '–'}</span>
           </div>
+          <span className="text-[9px] text-slate-400 tabular-nums flex-shrink-0">
+            {daysListed ?? '–'}·{views != null ? fmtCompact(views) : '–'}
+          </span>
         </div>
       </button>
     );
