@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import FadeImg from './FadeImg';
 
-// Earliest listedAt across the group's variants (or the single product) — stays stable
-// across relists since the automated relist-unsold cron never touches listedAt. null if
-// never listed.
+// Earliest listedAt across the group's variants (or the single product). null if never listed.
 function getDaysListed(item) {
   const listedTimes = (item.type === 'group' ? item.variants : [item.product])
     .map(v => v?.listedAt).filter(Boolean).map(d => new Date(d).getTime());

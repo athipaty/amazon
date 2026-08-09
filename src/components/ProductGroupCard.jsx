@@ -682,8 +682,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
   const groupStatus = allUnavailable ? 'unavailable' : allOOS ? 'out_of_stock' : someIssue ? 'partial' : 'active';
 
   // Earliest listedAt across all variants — a variant added later shouldn't make the group
-  // look "younger", and the automated relist-unsold cron never touches listedAt (only manual
-  // re-linking does), so this stays stable across relists.
+  // look "younger".
   const listedTimes = variants.map(v => v.listedAt).filter(Boolean).map(d => new Date(d).getTime());
   const daysListed = listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
 
