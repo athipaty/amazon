@@ -712,16 +712,6 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
                 {variants.length} variant{variants.length !== 1 ? 's' : ''}
               </span>
             )}
-            {detailMode && (() => {
-              const listedAt = variants.find(v => v.listedAt)?.listedAt;
-              if (!listedAt) return null;
-              const days = Math.max(0, Math.floor((Date.now() - new Date(listedAt).getTime()) / 86400000));
-              return (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-200">
-                  {days}d listed
-                </span>
-              );
-            })()}
             {(() => {
               // Surfaces SKUs that keep blowing eBay's 24h tracking deadline, so their
               // handling time can be bumped — sourcing lag isn't something auto-tracking
@@ -975,6 +965,22 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
             onConfirm={performVariantDelete}
             onCancel={() => { setConfirmingVariantId(null); setVariantDeleteError(null); }}
           />
+        );
+      })()}
+
+      {(() => {
+        // Earliest listedAt across all variants — a variant added later shouldn't make the
+        // group look "younger", and the automated relist-unsold cron never touches listedAt
+        // (only manual re-linking does), so this stays stable across relists.
+        const listedTimes = variants.map(v => v.listedAt).filter(Boolean).map(d => new Date(d).getTime());
+        if (!listedTimes.length) return null;
+        const days = Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000));
+        return (
+          <div className="flex justify-end -mt-1">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-200">
+              📅 {days}d listed
+            </span>
+          </div>
         );
       })()}
 
