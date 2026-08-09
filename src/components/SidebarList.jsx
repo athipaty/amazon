@@ -27,25 +27,6 @@ function barPct(value, max) {
   return Math.max(4, Math.min(100, (value / max) * 100));
 }
 
-// Splits a list into 10-day-listed bands (0–9, 10–19, ...; never-listed items get their own
-// band) so each band's bar meters scale to THAT band's own max instead of the whole list's —
-// a handful of long-running listings were flattening every shorter one's bar to a sliver.
-function bucketByDays(items) {
-  const buckets = new Map(); // bucketStart (or null) -> items[]
-  for (const item of items) {
-    const days = getDaysListed(item);
-    const start = days == null ? null : Math.floor(days / 10) * 10;
-    if (!buckets.has(start)) buckets.set(start, []);
-    buckets.get(start).push(item);
-  }
-  return [...buckets.entries()]
-    .sort(([a], [b]) => (b ?? -1) - (a ?? -1)) // longest band first; never-listed last
-    .map(([start, bucketItems]) => ({
-      label: start == null ? 'Not listed' : `${start}–${start + 9} days`,
-      items: bucketItems,
-    }));
-}
-
 export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, ebayWatchers = {}, ebaySold = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
   const [search, setSearch] = useState('');
   const filtered = (search.trim()
@@ -105,8 +86,8 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
         </div>
 
         {/* One combined meter — left half days listed (blue), right half eBay views (teal),
-            each scaled to the max within this item's 10-day bucket (see bucketByDays) so
-            lengths stay comparable to its actual neighbors, not flattened by outliers. */}
+            each scaled to the max within this item's group (⚠/✓) so lengths stay comparable
+            to its actual peers, not flattened by outliers elsewhere in the full list. */}
         <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
           <span className="text-[9px] flex-shrink-0" aria-hidden="true">📅👁</span>
           <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
@@ -178,32 +159,27 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
         {filtered.length === 0 && (
           <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
         )}
-        {groups.map((group, gi) => (
-          <div key={group.label || gi} className={gi > 0 ? 'mt-3' : ''}>
-            {group.label && (
-              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 px-0.5 ${group.label.startsWith('⚠') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {group.label} ({group.items.length})
-              </p>
-            )}
-            {bucketByDays(group.items).map((bucket, bi) => {
-              const maxDays = Math.max(1, ...bucket.items.map(i => getDaysListed(i) || 0));
-              const maxViews = Math.max(1, ...bucket.items.map(i => {
-                const id = getEbayId(i);
-                return id != null ? (ebayViews[String(id)] || 0) : 0;
-              }));
-              return (
-                <div key={bucket.label} className={bi > 0 ? 'mt-2' : ''}>
-                  <p className="text-[9px] font-semibold text-slate-400 px-0.5 mb-0.5">
-                    {bucket.label} ({bucket.items.length})
-                  </p>
-                  <div className="flex flex-col divide-y divide-slate-50">
-                    {bucket.items.map(item => renderItem(item, maxDays, maxViews))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        {groups.map((group, gi) => {
+          // Scaled to the max within THIS group (⚠ Needs attention vs ✓ All good) — so
+          // meters compare items against their actual peers, not the whole list.
+          const maxDays = Math.max(1, ...group.items.map(i => getDaysListed(i) || 0));
+          const maxViews = Math.max(1, ...group.items.map(i => {
+            const id = getEbayId(i);
+            return id != null ? (ebayViews[String(id)] || 0) : 0;
+          }));
+          return (
+            <div key={group.label || gi} className={gi > 0 ? 'mt-3' : ''}>
+              {group.label && (
+                <p className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 px-0.5 ${group.label.startsWith('⚠') ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  {group.label} ({group.items.length})
+                </p>
+              )}
+              <div className="flex flex-col divide-y divide-slate-50">
+                {group.items.map(item => renderItem(item, maxDays, maxViews))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
