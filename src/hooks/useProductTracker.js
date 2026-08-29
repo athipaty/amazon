@@ -215,7 +215,15 @@ export default function useProductTracker() {
       try {
         // Fulfillment is only looked up once per preview, at the group/parent URL — applied to
         // every variant tracked from that preview rather than re-paying for a per-ASIN lookup.
-        const { data: newProduct } = await axios.post(`${API}/api/tracker`, { url: toAdd[i].url, groupId: previewGroupId, fulfillment: preview.fulfillment });
+        // `variant` passes this sibling's already-known label/attributes/image from the
+        // preview's customization_options, so the backend can skip a second full scrape and
+        // just do a cheap price check for this ASIN — see POST /api/tracker's sibling fast path.
+        const { data: newProduct } = await axios.post(`${API}/api/tracker`, {
+          url: toAdd[i].url,
+          groupId: previewGroupId,
+          fulfillment: preview.fulfillment,
+          variant: { label: toAdd[i].label, attributes: toAdd[i].attributes, image: toAdd[i].image },
+        });
         if (existingEbayId && newProduct.variant) {
           const price = calcEbayPrice(newProduct.current).toFixed(2);
           try {
