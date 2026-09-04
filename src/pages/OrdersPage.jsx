@@ -23,7 +23,8 @@ export default function OrdersPage() {
   async function handleRefresh() {
     setRefreshing(true);
     try {
-      await loadOrders();
+      const { data } = await axios.post(`${API}/api/orders/check-new`);
+      setOrders(data);
     } finally {
       setRefreshing(false);
     }
