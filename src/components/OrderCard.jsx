@@ -332,6 +332,13 @@ export default function OrderCard({ order, onMarkPurchased, onAddTracking, onMar
             Amazon ↗
           </a>
         )}
+        {order.title && (
+          <a href={`https://www.bcwsupplies.com/catalogsearch/result/?q=${encodeURIComponent(order.title)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 transition-colors whitespace-nowrap">
+            BCW ↗
+          </a>
+        )}
         {editingPurchase ? (
           <>
             <input value={amazonOrderId} onChange={e => setAmazonOrderId(e.target.value)}

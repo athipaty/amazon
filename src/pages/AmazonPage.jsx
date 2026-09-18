@@ -5,7 +5,7 @@ export default function AmazonPage({ tracker }) {
   const {
     API, products, statusMsg,
     ebayConnected, ebayTokenDaysLeft, ebayFailedIds, ebayViews, ebayWatchers, ebaySold,
-    blankPhotoIds, sellingLimits,
+    blankPhotoIds, sellingLimits, scraperUsage,
     handleDeleteGroup, handleUpdate, handlePriceMismatch, handleCheckOne,
     handleVariantDeleted, itemStatus, hasIssue, renderItems,
   } = tracker;
@@ -47,6 +47,7 @@ export default function AmazonPage({ tracker }) {
         hasIssue={hasIssue}
         sellingLimits={sellingLimits}
         ebayFailedIds={ebayFailedIds}
+        scraperUsage={scraperUsage}
         handleCheckOne={handleCheckOne}
         handleDeleteGroup={handleDeleteGroup}
         handleUpdate={handleUpdate}

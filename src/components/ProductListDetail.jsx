@@ -9,7 +9,7 @@ import { getItemKey, getItemImage, getItemTitle } from '../utils/trackerItems';
 export default function ProductListDetail({
   items, emptyState, API, ebayConnected, ebayViews, ebayWatchers, ebaySold, blankPhotoIds,
   itemStatus, hasIssue, sellingLimits, ebayFailedIds, handleCheckOne, handleDeleteGroup, handleUpdate,
-  handleVariantDeleted, handlePriceMismatch,
+  handleVariantDeleted, handlePriceMismatch, scraperUsage,
 }) {
   const [selectedKey, setSelectedKey] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -50,6 +50,7 @@ export default function ProductListDetail({
           apiUrl={API}
           ebayConnected={ebayConnected}
           blankPhotoIds={blankPhotoIds}
+          scraperUsage={scraperUsage}
         />
       </div>
 
@@ -72,6 +73,7 @@ export default function ProductListDetail({
           apiUrl={API}
           ebayConnected={ebayConnected}
           blankPhotoIds={blankPhotoIds}
+          scraperUsage={scraperUsage}
         />
 
         {/* RIGHT: detail panel — always use GroupCard layout (1 card for singles, N for groups) */}

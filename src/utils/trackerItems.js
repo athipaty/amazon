@@ -98,6 +98,18 @@ export function itemListedAt(item) {
   return dates.length ? Math.max(...dates) : null;
 }
 
+export function getAsin(url) {
+  const m = url?.match(/\/dp\/([A-Z0-9]{10})/i);
+  return m ? m[1] : null;
+}
+
+// Sum of today's ScraperAPI credits across every ASIN behind this item (all variants for
+// a group) — scraperUsage is the { asin: credits } map from GET /scraper-usage/today.
+export function itemScraperUsage(item, scraperUsage) {
+  const variants = item.type === 'group' ? item.variants : [item.product];
+  return variants.reduce((sum, v) => sum + (scraperUsage[getAsin(v.url)] || 0), 0);
+}
+
 // Sort: issues first, then most sold, then most watchers, then most views, then most recently listed
 export function sortRenderItems(renderItems, ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers = {}, ebaySold = {}) {
   return [...renderItems].sort((a, b) => {
