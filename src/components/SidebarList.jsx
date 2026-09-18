@@ -26,7 +26,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
   const filtered = (search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
     : items
-  // Heaviest ScraperAPI credit users today first — surfaces items worth investigating
+  // Heaviest ScraperAPI credit users (last 7 days) first — surfaces items worth investigating
   // (stuck in an error retry loop, or one that never lands the free direct-fetch tier).
   ).slice().sort((a, b) => itemScraperUsage(b, scraperUsage) - itemScraperUsage(a, scraperUsage));
 
@@ -53,7 +53,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       <button
         key={key}
         onClick={() => onSelect(key)}
-        title={`${title} — ${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used today, ${views != null ? `${views} views` : 'no view data'}`}
+        title={`${title} — ${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used in the last 7 days, ${views != null ? `${views} views` : 'no view data'}`}
         className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-400' : 'hover:bg-slate-50'}`}
       >
         <div className="relative flex-shrink-0 w-9 h-9">
@@ -72,7 +72,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           <p className="text-xs font-medium text-slate-700 truncate">{title}</p>
         </div>
 
-        {/* One combined meter — left half today's ScraperAPI credits (orange), right half
+        {/* One combined meter — left half last-7-days ScraperAPI credits (orange), right half
             eBay views (teal), each scaled to the max within this item's group. */}
         <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
           <span className="text-[9px] flex-shrink-0" aria-hidden="true">⚡👁</span>
@@ -140,7 +140,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           />
         </div>
       </div>
-      {/* Items — one product per row, sorted by today's ScraperAPI credits used (highest first),
+      {/* Items — one product per row, sorted by last-7-days ScraperAPI credits used (highest first),
           views still shown alongside so the row isn't just about token cost. */}
       <div className={mobile ? "p-2" : "overflow-y-auto flex-1 scrollbar-thin p-2"}>
         {filtered.length === 0 && (
