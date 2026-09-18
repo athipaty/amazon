@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import FadeImg from './FadeImg';
-
-// Earliest listedAt across the group's variants (or the single product). null if never listed.
-function getDaysListed(item) {
-  const listedTimes = (item.type === 'group' ? item.variants : [item.product])
-    .map(v => v?.listedAt).filter(Boolean).map(d => new Date(d).getTime());
-  return listedTimes.length ? Math.max(0, Math.floor((Date.now() - Math.min(...listedTimes)) / 86400000)) : null;
-}
+import { itemScraperUsage } from '../utils/trackerItems';
 
 function getEbayId(item) {
   return item.type === 'group'
@@ -27,13 +21,14 @@ function barPct(value, max) {
   return Math.max(4, Math.min(100, (value / max) * 100));
 }
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set() }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set(), scraperUsage = {} }) {
   const [search, setSearch] = useState('');
   const filtered = (search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
     : items
-  // Longest-listed first; never-listed items (null) sort last.
-  ).slice().sort((a, b) => (getDaysListed(b) ?? -1) - (getDaysListed(a) ?? -1));
+  // Heaviest ScraperAPI credit users today first — surfaces items worth investigating
+  // (stuck in an error retry loop, or one that never lands the free direct-fetch tier).
+  ).slice().sort((a, b) => itemScraperUsage(b, scraperUsage) - itemScraperUsage(a, scraperUsage));
 
   // When `hasIssue` is provided, split into two labeled sections so problems are
   // easy to spot instead of buried among everything that's fine.
@@ -44,21 +39,20 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       ].filter(g => g.items.length)
     : [{ label: null, items: filtered }];
 
-  function renderItem(item, maxDays, maxViews) {
+  function renderItem(item, maxUsage) {
     const key = getItemKey(item);
     const image = getItemImage(item);
     const title = getItemTitle(item);
     const isSelected = selectedKey === key;
     const ebayId = getEbayId(item);
-    const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
-    const daysListed = getDaysListed(item);
+    const usage = itemScraperUsage(item, scraperUsage);
     const hasPhotoWarning = ebayId && blankPhotoIds.has(String(ebayId));
 
     return (
       <button
         key={key}
         onClick={() => onSelect(key)}
-        title={`${title} — ${daysListed != null ? `${daysListed}d listed` : 'not listed'}, ${views != null ? `${views} views` : 'no view data'}`}
+        title={`${title} — ${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used today`}
         className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-400' : 'hover:bg-slate-50'}`}
       >
         <div className="relative flex-shrink-0 w-9 h-9">
@@ -77,21 +71,16 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           <p className="text-xs font-medium text-slate-700 truncate">{title}</p>
         </div>
 
-        {/* One combined meter — left half days listed (blue), right half eBay views (teal),
-            each scaled to the max within this item's group. */}
-        <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
-          <span className="text-[9px] flex-shrink-0" aria-hidden="true">📅👁</span>
-          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
-            <div className="w-1/2 h-full bg-blue-100 flex justify-start">
-              <div className="h-full bg-blue-500" style={{ width: `${barPct(daysListed, maxDays)}%` }} />
-            </div>
-            <div className="w-px h-full bg-white flex-shrink-0" />
-            <div className="flex-1 h-full bg-teal-100 flex justify-start">
-              <div className="h-full bg-teal-600" style={{ width: `${barPct(views, maxViews)}%` }} />
-            </div>
+        {/* ScraperAPI credits spent on this item today, scaled to the max within this
+            item's group — flags whatever's burning tokens (a retry loop, a page that
+            never lands the free direct-fetch tier) right on the landing page. */}
+        <div className="flex items-center gap-1.5 w-24 flex-shrink-0">
+          <span className="text-[9px] flex-shrink-0" aria-hidden="true">⚡</span>
+          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div className={`h-full ${usage > 0 ? 'bg-orange-500' : 'bg-slate-200'}`} style={{ width: `${barPct(usage, maxUsage)}%` }} />
           </div>
-          <span className="text-[9px] text-slate-400 tabular-nums flex-shrink-0">
-            {daysListed ?? '–'}·{views != null ? fmtCompact(views) : '–'}
+          <span className={`text-[9px] tabular-nums flex-shrink-0 ${usage > 0 ? 'text-orange-600 font-semibold' : 'text-slate-400'}`}>
+            {fmtCompact(usage)}
           </span>
         </div>
       </button>
@@ -145,7 +134,7 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           />
         </div>
       </div>
-      {/* Items — one product per row, sorted by days listed (longest first) */}
+      {/* Items — one product per row, sorted by today's ScraperAPI credits used (highest first) */}
       <div className={mobile ? "p-2" : "overflow-y-auto flex-1 scrollbar-thin p-2"}>
         {filtered.length === 0 && (
           <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
@@ -158,14 +147,10 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
               </p>
             )}
             {(() => {
-              const maxDays = Math.max(1, ...group.items.map(i => getDaysListed(i) || 0));
-              const maxViews = Math.max(1, ...group.items.map(i => {
-                const id = getEbayId(i);
-                return id != null ? (ebayViews[String(id)] || 0) : 0;
-              }));
+              const maxUsage = Math.max(1, ...group.items.map(i => itemScraperUsage(i, scraperUsage)));
               return (
                 <div className="flex flex-col divide-y divide-slate-50">
-                  {group.items.map(item => renderItem(item, maxDays, maxViews))}
+                  {group.items.map(item => renderItem(item, maxUsage))}
                 </div>
               );
             })()}
