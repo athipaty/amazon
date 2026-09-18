@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import FadeImg from './FadeImg';
-import { itemScraperUsage } from '../utils/trackerItems';
+import { itemScraperUsage, itemScraperChecked } from '../utils/trackerItems';
 
 function getEbayId(item) {
   return item.type === 'group'
@@ -46,14 +46,21 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
     const isSelected = selectedKey === key;
     const ebayId = getEbayId(item);
     const usage = itemScraperUsage(item, scraperUsage);
+    const checked = itemScraperChecked(item, scraperUsage);
     const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
     const hasPhotoWarning = ebayId && blankPhotoIds.has(String(ebayId));
+
+    const tokenStatus = usage > 0
+      ? `${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used in the last 7 days`
+      : checked
+        ? 'checked free — landed the no-cost tier every time in the last 7 days'
+        : 'not checked in the last 7 days';
 
     return (
       <button
         key={key}
         onClick={() => onSelect(key)}
-        title={`${title} — ${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used in the last 7 days, ${views != null ? `${views} views` : 'no view data'}`}
+        title={`${title} — ${tokenStatus}, ${views != null ? `${views} views` : 'no view data'}`}
         className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-400' : 'hover:bg-slate-50'}`}
       >
         <div className="relative flex-shrink-0 w-9 h-9">
@@ -72,21 +79,28 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           <p className="text-xs font-medium text-slate-700 truncate">{title}</p>
         </div>
 
-        {/* One combined meter — left half last-7-days ScraperAPI credits (orange), right half
-            eBay views (teal), each scaled to the max within this item's group. */}
+        {/* One combined meter — left half last-7-days ScraperAPI credits (orange when it costs
+            something, green when it's confirmed landing the free tier, gray when unchecked),
+            right half eBay views (teal) — each scaled to the max within this item's group. */}
         <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
-          <span className="text-[9px] flex-shrink-0" aria-hidden="true">⚡👁</span>
+          <span className="text-[9px] flex-shrink-0" aria-hidden="true">{usage > 0 ? '⚡' : checked ? '✓' : '⋯'}👁</span>
           <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
-            <div className="w-1/2 h-full bg-orange-100 flex justify-start">
-              <div className="h-full bg-orange-500" style={{ width: `${barPct(usage, maxUsage)}%` }} />
+            <div className={`w-1/2 h-full flex justify-start ${usage > 0 ? 'bg-orange-100' : checked ? 'bg-emerald-50' : 'bg-slate-100'}`}>
+              <div
+                className={`h-full ${usage > 0 ? 'bg-orange-500' : checked ? 'bg-emerald-400' : ''}`}
+                style={{ width: `${usage > 0 ? barPct(usage, maxUsage) : checked ? 100 : 0}%` }}
+              />
             </div>
             <div className="w-px h-full bg-white flex-shrink-0" />
             <div className="flex-1 h-full bg-teal-100 flex justify-start">
               <div className="h-full bg-teal-600" style={{ width: `${barPct(views, maxViews)}%` }} />
             </div>
           </div>
-          <span className="text-[9px] text-slate-400 tabular-nums flex-shrink-0">
-            {fmtCompact(usage)}·{views != null ? fmtCompact(views) : '–'}
+          <span className="text-[9px] tabular-nums flex-shrink-0">
+            <span className={usage > 0 ? 'text-orange-600 font-semibold' : checked ? 'text-emerald-600 font-semibold' : 'text-slate-300'}>
+              {usage > 0 ? fmtCompact(usage) : checked ? 'free' : '–'}
+            </span>
+            <span className="text-slate-400">·{views != null ? fmtCompact(views) : '–'}</span>
           </span>
         </div>
       </button>
