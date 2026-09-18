@@ -21,7 +21,7 @@ function barPct(value, max) {
   return Math.max(4, Math.min(100, (value / max) * 100));
 }
 
-export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set(), scraperUsage = {} }) {
+export default function SidebarList({ items, selectedKey, onSelect, getItemKey, getItemTitle, getItemImage, getItemStatus, hasIssue, sellingLimits, ebayViews = {}, apiUrl = '', ebayConnected = true, mobile = false, blankPhotoIds = new Set(), scraperUsage = {} }) {
   const [search, setSearch] = useState('');
   const filtered = (search.trim()
     ? items.filter(item => getItemTitle(item).toLowerCase().includes(search.toLowerCase()))
@@ -39,20 +39,21 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
       ].filter(g => g.items.length)
     : [{ label: null, items: filtered }];
 
-  function renderItem(item, maxUsage) {
+  function renderItem(item, maxUsage, maxViews) {
     const key = getItemKey(item);
     const image = getItemImage(item);
     const title = getItemTitle(item);
     const isSelected = selectedKey === key;
     const ebayId = getEbayId(item);
     const usage = itemScraperUsage(item, scraperUsage);
+    const views = ebayId != null ? ebayViews[String(ebayId)] : undefined;
     const hasPhotoWarning = ebayId && blankPhotoIds.has(String(ebayId));
 
     return (
       <button
         key={key}
         onClick={() => onSelect(key)}
-        title={`${title} — ${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used today`}
+        title={`${title} — ${usage} ScraperAPI credit${usage !== 1 ? 's' : ''} used today, ${views != null ? `${views} views` : 'no view data'}`}
         className={`flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-400' : 'hover:bg-slate-50'}`}
       >
         <div className="relative flex-shrink-0 w-9 h-9">
@@ -71,16 +72,21 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           <p className="text-xs font-medium text-slate-700 truncate">{title}</p>
         </div>
 
-        {/* ScraperAPI credits spent on this item today, scaled to the max within this
-            item's group — flags whatever's burning tokens (a retry loop, a page that
-            never lands the free direct-fetch tier) right on the landing page. */}
-        <div className="flex items-center gap-1.5 w-24 flex-shrink-0">
-          <span className="text-[9px] flex-shrink-0" aria-hidden="true">⚡</span>
-          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-            <div className={`h-full ${usage > 0 ? 'bg-orange-500' : 'bg-slate-200'}`} style={{ width: `${barPct(usage, maxUsage)}%` }} />
+        {/* One combined meter — left half today's ScraperAPI credits (orange), right half
+            eBay views (teal), each scaled to the max within this item's group. */}
+        <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
+          <span className="text-[9px] flex-shrink-0" aria-hidden="true">⚡👁</span>
+          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
+            <div className="w-1/2 h-full bg-orange-100 flex justify-start">
+              <div className="h-full bg-orange-500" style={{ width: `${barPct(usage, maxUsage)}%` }} />
+            </div>
+            <div className="w-px h-full bg-white flex-shrink-0" />
+            <div className="flex-1 h-full bg-teal-100 flex justify-start">
+              <div className="h-full bg-teal-600" style={{ width: `${barPct(views, maxViews)}%` }} />
+            </div>
           </div>
-          <span className={`text-[9px] tabular-nums flex-shrink-0 ${usage > 0 ? 'text-orange-600 font-semibold' : 'text-slate-400'}`}>
-            {fmtCompact(usage)}
+          <span className="text-[9px] text-slate-400 tabular-nums flex-shrink-0">
+            {fmtCompact(usage)}·{views != null ? fmtCompact(views) : '–'}
           </span>
         </div>
       </button>
@@ -134,7 +140,8 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
           />
         </div>
       </div>
-      {/* Items — one product per row, sorted by today's ScraperAPI credits used (highest first) */}
+      {/* Items — one product per row, sorted by today's ScraperAPI credits used (highest first),
+          views still shown alongside so the row isn't just about token cost. */}
       <div className={mobile ? "p-2" : "overflow-y-auto flex-1 scrollbar-thin p-2"}>
         {filtered.length === 0 && (
           <p className="text-xs text-slate-400 text-center py-8">No results for &ldquo;{search}&rdquo;</p>
@@ -148,9 +155,13 @@ export default function SidebarList({ items, selectedKey, onSelect, getItemKey, 
             )}
             {(() => {
               const maxUsage = Math.max(1, ...group.items.map(i => itemScraperUsage(i, scraperUsage)));
+              const maxViews = Math.max(1, ...group.items.map(i => {
+                const id = getEbayId(i);
+                return id != null ? (ebayViews[String(id)] || 0) : 0;
+              }));
               return (
                 <div className="flex flex-col divide-y divide-slate-50">
-                  {group.items.map(item => renderItem(item, maxUsage))}
+                  {group.items.map(item => renderItem(item, maxUsage, maxViews))}
                 </div>
               );
             })()}
