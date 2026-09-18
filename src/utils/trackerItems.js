@@ -103,8 +103,8 @@ export function getAsin(url) {
   return m ? m[1] : null;
 }
 
-// Sum of today's ScraperAPI credits across every ASIN behind this item (all variants for
-// a group) — scraperUsage is the { asin: credits } map from GET /scraper-usage/today.
+// Sum of the last 7 days' ScraperAPI credits across every ASIN behind this item (all
+// variants for a group) — scraperUsage is the { asin: credits } map from GET /scraper-usage.
 export function itemScraperUsage(item, scraperUsage) {
   const variants = item.type === 'group' ? item.variants : [item.product];
   return variants.reduce((sum, v) => sum + (scraperUsage[getAsin(v.url)] || 0), 0);

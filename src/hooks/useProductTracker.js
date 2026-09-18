@@ -29,7 +29,7 @@ export default function useProductTracker() {
   const [ebaySold, setEbaySold] = useState({}); // listingId → quantity sold
   const [blankPhotoIds, setBlankPhotoIds] = useState(new Set()); // eBay listing IDs with no photos
   const [sellingLimits, setSellingLimits] = useState(null); // { used, limit, remaining }
-  const [scraperUsage, setScraperUsage] = useState({}); // ASIN → ScraperAPI credits used today
+  const [scraperUsage, setScraperUsage] = useState({}); // ASIN → ScraperAPI credits used in the last 7 days
   const socketRef = useRef(null);
   const ebayIdsRef = useRef([]); // kept in sync by loadProducts for fetchEbayViews
   const previewRef = useRef(null);
@@ -131,7 +131,7 @@ export default function useProductTracker() {
 
   async function fetchScraperUsage() {
     try {
-      const { data } = await axios.get(`${API}/api/tracker/scraper-usage/today`);
+      const { data } = await axios.get(`${API}/api/tracker/scraper-usage?days=7`);
       if (data.byAsin) setScraperUsage(data.byAsin);
     } catch (e) { console.warn('[scraper usage] fetch failed:', e.message); }
   }
