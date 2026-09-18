@@ -110,6 +110,15 @@ export function itemScraperUsage(item, scraperUsage) {
   return variants.reduce((sum, v) => sum + (scraperUsage[getAsin(v.url)] || 0), 0);
 }
 
+// Whether at least one of this item's ASINs has a usage record at all in the window —
+// scraperUsage now carries a 0-credit entry for a free direct-fetch success, so presence
+// (not just a nonzero value) is what tells "checked, landed the free tier" apart from
+// "not checked in this window yet".
+export function itemScraperChecked(item, scraperUsage) {
+  const variants = item.type === 'group' ? item.variants : [item.product];
+  return variants.some(v => Object.prototype.hasOwnProperty.call(scraperUsage, getAsin(v.url)));
+}
+
 // Sort: issues first, then most sold, then most watchers, then most views, then most recently listed
 export function sortRenderItems(renderItems, ebayFailedIds, priceMismatchIds, ebayViews, ebayWatchers = {}, ebaySold = {}) {
   return [...renderItems].sort((a, b) => {
