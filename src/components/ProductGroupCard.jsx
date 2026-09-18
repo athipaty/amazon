@@ -13,7 +13,7 @@ import useCompetitorCheck from '../hooks/useCompetitorCheck';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch }) {
+export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onUpdate, onVariantDeleted, ebayFailedIds, detailMode = false, onPriceMismatch, scraperUsage = {} }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [allExpanded, setAllExpanded] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -830,6 +830,7 @@ export default function ProductGroupCard({ variants, onCheck, onDeleteGroup, onU
         onAddVariantToEbay={handleAddVariantToEbay}
         addingToEbayId={addingToEbayId}
         addToEbayErrors={addToEbayErrors}
+        scraperUsage={scraperUsage}
       />
 
       {/* ── Action buttons ── */}

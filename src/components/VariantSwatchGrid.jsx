@@ -1,6 +1,20 @@
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
+import { getAsin } from '../utils/trackerItems';
 import Countdown from './Countdown';
 import FadeImg from './FadeImg';
+
+// Small per-variant badge for last-7-days ScraperAPI usage: orange with the credit count
+// when it costs something, green "free" when it's confirmed landing the no-cost tier, and
+// nothing at all when this ASIN has no usage record yet (avoids cluttering every tile with
+// a "not checked" badge for what's usually most of them).
+function TokenBadge({ url, scraperUsage }) {
+  const asin = getAsin(url);
+  if (!asin || !Object.prototype.hasOwnProperty.call(scraperUsage, asin)) return null;
+  const credits = scraperUsage[asin];
+  return credits > 0
+    ? <span title={`${credits} ScraperAPI credit${credits !== 1 ? 's' : ''} used in the last 7 days`} className="ml-1 text-[9px] font-bold text-orange-600 bg-orange-50 ring-1 ring-inset ring-orange-200 rounded px-1">⚡{credits}</span>
+    : <span title="Checked free — landed the no-cost tier every time in the last 7 days" className="ml-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded px-1">✓ free</span>;
+}
 
 // Grid of per-variant tiles on a group card: a full price/profit/sync
 // breakdown per tile in detail mode, or a compact swatch grid (with an
@@ -11,6 +25,7 @@ export default function VariantSwatchGrid({
   getLivePrice, handleCheckOne, apiUrl,
   onDeleteVariant, deletingVariantId,
   groupEbayId, ebayPricesFetched, onAddVariantToEbay, addingToEbayId, addToEbayErrors,
+  scraperUsage = {},
 }) {
   return (
     <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
@@ -72,6 +87,7 @@ export default function VariantSwatchGrid({
                   ? <span className="ml-1 text-[9px] font-bold text-ebay bg-red-50 ring-1 ring-inset ring-ebay/30 rounded px-1">eBay ✓</span>
                   : <span className="ml-1 text-[9px] font-semibold text-slate-400 bg-slate-50 ring-1 ring-inset ring-slate-200 rounded px-1">Not listed</span>
               )}
+              <TokenBadge url={v.url} scraperUsage={scraperUsage} />
             </div>
 
             {/* Price rows */}

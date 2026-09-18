@@ -80,8 +80,8 @@ export default function ProductListDetail({
         <div className="flex-1 min-w-0">
           {selectedItem && (
             selectedItem.type === 'group'
-              ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDeleteGroup={handleDeleteGroup} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
-              : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDeleteGroup={handleDeleteGroup} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+              ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDeleteGroup={handleDeleteGroup} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} scraperUsage={scraperUsage} />
+              : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDeleteGroup={handleDeleteGroup} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} scraperUsage={scraperUsage} />
           )}
         </div>
       </div>
@@ -104,8 +104,8 @@ export default function ProductListDetail({
           <div className="flex-1 overflow-y-auto p-3 pb-8">
             {selectedItem && (
               selectedItem.type === 'group'
-                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDeleteGroup={(ids) => { handleDeleteGroup(ids); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
-                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDeleteGroup={(ids) => { handleDeleteGroup(ids); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} />
+                ? <ProductGroupCard key={getItemKey(selectedItem)} variants={selectedItem.variants} onCheck={handleCheckOne} onDeleteGroup={(ids) => { handleDeleteGroup(ids); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} scraperUsage={scraperUsage} />
+                : <ProductGroupCard key={selectedItem.product._id} variants={[selectedItem.product]} onCheck={handleCheckOne} onDeleteGroup={(ids) => { handleDeleteGroup(ids); setDetailOpen(false); }} onUpdate={handleUpdate} onVariantDeleted={handleVariantDeleted} ebayFailedIds={ebayFailedIds} detailMode={true} onPriceMismatch={handlePriceMismatch} scraperUsage={scraperUsage} />
             )}
           </div>
         </div>
