@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { calcEbayPrice, calcEbayFee, trueCost } from '../utils/pricing';
 import { getAsin } from '../utils/trackerItems';
 import Countdown from './Countdown';
@@ -16,6 +17,31 @@ function TokenBadge({ url, scraperUsage }) {
     : <span title="Checked free — landed the no-cost tier every time in the last 7 days" className="ml-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 ring-1 ring-inset ring-emerald-200 rounded px-1">✓ free</span>;
 }
 
+function formatCheckTime(at) {
+  return new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// One line per past check: when, and whether it landed the free tier or cost credits.
+// tier can be undefined for entries migrated from the old daily-aggregate storage — falls
+// back to a generic "paid" label rather than showing nothing.
+function TokenHistoryList({ url, scraperHistory }) {
+  const asin = getAsin(url);
+  const entries = asin ? scraperHistory[asin] : null;
+  if (!entries?.length) return <p className="text-[9px] text-slate-400 text-center py-1">No check history yet</p>;
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {entries.map((e, i) => (
+        <li key={i} className="flex items-center justify-between gap-2 text-[9px]">
+          <span className="text-slate-400 font-mono">{formatCheckTime(e.at)}</span>
+          <span className={e.credits > 0 ? 'font-semibold text-orange-600' : 'font-semibold text-emerald-600'}>
+            {e.credits > 0 ? `+${e.credits}cr (${e.tier || 'paid'})` : 'free'}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // Grid of per-variant tiles on a group card: a full price/profit/sync
 // breakdown per tile in detail mode, or a compact swatch grid (with an
 // expandable info row per tile) in the sidebar/list view.
@@ -25,8 +51,9 @@ export default function VariantSwatchGrid({
   getLivePrice, handleCheckOne, apiUrl,
   onDeleteVariant, deletingVariantId,
   groupEbayId, ebayPricesFetched, onAddVariantToEbay, addingToEbayId, addToEbayErrors,
-  scraperUsage = {},
+  scraperUsage = {}, scraperHistory = {},
 }) {
+  const [historyOpenId, setHistoryOpenId] = useState(null);
   return (
     <div className={`grid gap-2 ${detailMode ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-1'}`}>
       {variants.map((v, i) => {
@@ -88,7 +115,22 @@ export default function VariantSwatchGrid({
                   : <span className="ml-1 text-[9px] font-semibold text-slate-400 bg-slate-50 ring-1 ring-inset ring-slate-200 rounded px-1">Not listed</span>
               )}
               <TokenBadge url={v.url} scraperUsage={scraperUsage} />
+              {Object.prototype.hasOwnProperty.call(scraperHistory, getAsin(v.url) || '') && (
+                <button
+                  onClick={e => { e.stopPropagation(); setHistoryOpenId(id => id === v._id ? null : v._id); }}
+                  title="Show the last 3 checks for this variant"
+                  className="ml-1 text-[9px] font-bold text-slate-400 bg-slate-50 ring-1 ring-inset ring-slate-200 rounded px-1 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  🕐{historyOpenId === v._id ? '▲' : '▼'}
+                </button>
+              )}
             </div>
+
+            {historyOpenId === v._id && (
+              <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-100" onClick={e => e.stopPropagation()}>
+                <TokenHistoryList url={v.url} scraperHistory={scraperHistory} />
+              </div>
+            )}
 
             {/* Price rows */}
             <div className="px-2.5 py-2.5 flex flex-col gap-1 bg-white">
