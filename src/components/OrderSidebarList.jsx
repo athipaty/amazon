@@ -26,6 +26,14 @@ export default function OrderSidebarList({ orders, selectedId, onSelect, mobile 
     ? orders.filter(o => (o.title || o.ebayItemId || '').toLowerCase().includes(search.toLowerCase()))
     : orders;
 
+  // Sums only orders with a known estAmazonCost/estProfit (both null together — see
+  // getOrdersList() — when the linked product's no longer tracked, so there's no current
+  // Amazon price to estimate from). knownCount lets the header say "X of Y orders" instead
+  // of silently understating the total when some orders can't be estimated.
+  const priced = orders.filter(o => o.estAmazonCost != null && o.estProfit != null);
+  const totalAmazonCost = priced.reduce((sum, o) => sum + o.estAmazonCost, 0);
+  const totalProfit = priced.reduce((sum, o) => sum + o.estProfit, 0);
+
   const groups = STEPS
     .map(step => ({ label: step.label, cls: step.cls, items: filtered.filter(o => (o.status || 'needs_purchase') === step.status) }))
     .filter(g => g.items.length);
@@ -67,6 +75,27 @@ export default function OrderSidebarList({ orders, selectedId, onSelect, mobile 
     }>
       {/* Header + search */}
       <div className="px-3.5 py-3 bg-slate-50/80 border-b border-slate-100 flex-shrink-0">
+        {priced.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+            <span
+              title="Estimated total spent on Amazon for these orders — based on each item's current tracked price, not the exact historical purchase price (which isn't stored)"
+              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-amazon-dark ring-1 ring-inset ring-orange-200"
+            >
+              📦 Amazon ${totalAmazonCost.toFixed(2)}
+            </span>
+            <span
+              title="Estimated profit after Amazon cost and eBay fees for these orders"
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                totalProfit >= 0 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-600 ring-red-200'
+              }`}
+            >
+              {totalProfit >= 0 ? '▲' : '▼'} ${Math.abs(totalProfit).toFixed(2)} profit
+            </span>
+            {priced.length < orders.length && (
+              <span className="text-[9px] text-slate-400">({priced.length} of {orders.length} — rest unknown)</span>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-2.5">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             {orders.length} order{orders.length !== 1 ? 's' : ''}
