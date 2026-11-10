@@ -84,12 +84,12 @@ export default function OrderSidebarList({ orders, selectedId, onSelect, mobile 
               📦 Amazon ${totalAmazonCost.toFixed(2)}
             </span>
             <span
-              title="Estimated profit after Amazon cost and eBay fees for these orders"
+              title="Estimated net profit after Amazon cost, eBay fees, and ~3.5% Payoneer USD→THB conversion loss on the payout"
               className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                 totalProfit >= 0 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-600 ring-red-200'
               }`}
             >
-              {totalProfit >= 0 ? '▲' : '▼'} ${Math.abs(totalProfit).toFixed(2)} profit
+              {totalProfit >= 0 ? '▲' : '▼'} ${Math.abs(totalProfit).toFixed(2)} net profit
             </span>
             {priced.length < orders.length && (
               <span className="text-[9px] text-slate-400">({priced.length} of {orders.length} — rest unknown)</span>
